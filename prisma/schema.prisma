@@ -1,0 +1,655 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ═══════════════════════════════════════════════════════
+// AUTHENTICATION & USERS
+// ═══════════════════════════════════════════════════════
+
+enum UserRole {
+  ADMIN
+  SUPERVISOR
+  TECHNICIAN
+  CLIENT_RESPONSIBLE
+  CLIENT_REQUESTER
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  nombre       String
+  apellido     String?
+  telefono     String?
+  role         UserRole @default(TECHNICIAN)
+  active       Boolean  @default(true)
+
+  // Client association (for CLIENT_RESPONSIBLE and CLIENT_REQUESTER)
+  clientId String?
+  client   Client? @relation(fields: [clientId], references: [id])
+
+  // Plant-level access (for CLIENT_REQUESTER)
+  plantAccess UserPlantAccess[]
+
+  // OneSignal device
+  onesignalPlayerId String?
+
+  // Relations
+  reportedTickets      Ticket[]                     @relation("TicketReporter")
+  assignedTickets      Ticket[]                     @relation("TicketAssignee")
+  ticketComments       TicketComment[]
+  maintenanceDone      MaintenanceChecklist[]
+  dispenserAssignments DispenserLocationHistory[]   @relation("AssignedByUser")
+  repairsPerformed     DispenserRepairHistory[]     @relation("RepairTechnician")
+  consumableInstalls   DispenserConsumableHistory[]
+  sparePartInstalls    DispenserSparePartHistory[]
+  stockTransfers       StockTransfer[]              @relation("TransferredByUser")
+  auditLogs            AuditLog[]
+  notifications        Notification[]
+
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+  MaintenanceApproval MaintenanceApproval[]
+
+  @@index([email])
+  @@index([role])
+  @@index([clientId])
+}
+
+model UserPlantAccess {
+  id      String @id @default(cuid())
+  userId  String
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plantId String
+  plant   Plant  @relation(fields: [plantId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, plantId])
+  @@index([userId])
+  @@index([plantId])
+}
+
+// ═══════════════════════════════════════════════════════
+// BUSINESS HIERARCHY: Client → Plant → Sector → Location → Dispenser
+// ═══════════════════════════════════════════════════════
+
+model Client {
+  id        String   @id @default(cuid())
+  nombre    String
+  email     String?
+  telefono  String?
+  direccion String?
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  plants       Plant[]
+  users        User[]
+  slaConfig    SlaConfig?
+  stockEntries StockEntry[]
+}
+
+model Plant {
+  id        String   @id @default(cuid())
+  clientId  String
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  nombre    String
+  direccion String?
+  lat       Float?
+  lng       Float?
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  sectors         PlantSector[]
+  locations       Location[]
+  userAccess      UserPlantAccess[]
+  stockEntries    StockEntry[]
+  consumables     Consumable[]
+  transfersFrom   StockTransfer[]   @relation("TransferFrom")
+  transfersTo     StockTransfer[]   @relation("TransferTo")
+  debtsAsCreditor InterPlantDebt[]  @relation("DebtCreditor")
+  debtsAsDebtor   InterPlantDebt[]  @relation("DebtDebtor")
+
+  @@index([clientId])
+}
+
+model Sector {
+  id          String   @id @default(cuid())
+  nombre      String
+  descripcion String?
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Reusable across plants via junction
+  plants    PlantSector[]
+  locations Location[]
+}
+
+model PlantSector {
+  id       String @id @default(cuid())
+  plantId  String
+  plant    Plant  @relation(fields: [plantId], references: [id], onDelete: Cascade)
+  sectorId String
+  sector   Sector @relation(fields: [sectorId], references: [id], onDelete: Cascade)
+
+  @@unique([plantId, sectorId])
+  @@index([plantId])
+  @@index([sectorId])
+}
+
+model Location {
+  id          String   @id // GLOBAL UNIQUE — user-defined or auto-generated
+  plantId     String
+  plant       Plant    @relation(fields: [plantId], references: [id], onDelete: Cascade)
+  sectorId    String?
+  sector      Sector?  @relation(fields: [sectorId], references: [id], onDelete: SetNull)
+  nombre      String
+  piso        String? // Floor
+  area        String? // Area within sector
+  descripcion String?
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Active dispenser (0 or 1 at a time, enforced via app logic)
+  dispensers      Dispenser[]
+  locationHistory DispenserLocationHistory[]
+  tickets         Ticket[]
+
+  @@index([plantId])
+  @@index([sectorId])
+}
+
+// ═══════════════════════════════════════════════════════
+// DISPENSER — Core Entity
+// ═══════════════════════════════════════════════════════
+
+enum DispenserStatus {
+  IN_SERVICE
+  UNDER_REPAIR
+  OUT_OF_SERVICE
+  BLOCKED // Requires OC release from Client Responsible
+  BACKUP // Reserve — lifecycle PAUSED
+  IN_TECHNICAL_SERVICE
+  BLOCKED_WAITING_OC
+}
+
+model Dispenser {
+  id     String          @id // GLOBAL UNIQUE — user-defined
+  marca  String // Brand
+  modelo String // Model
+  status DispenserStatus @default(IN_SERVICE)
+
+  // Current location (nullable if in BACKUP/REPAIR/OUT_OF_SERVICE)
+  locationId String?
+  location   Location? @relation(fields: [locationId], references: [id], onDelete: SetNull)
+
+  // Lifecycle tracking
+  lifecycleMonths               Int       @default(60) // e.g., 60 months = 5 years
+  lifecycleStartDate            DateTime?
+  lifecyclePausedAt             DateTime? // Set when status → BACKUP
+  lifecycleAccumulatedPauseDays Int       @default(0) // Total days paused over lifetime
+
+  // Blocked reason (when status = BLOCKED)
+  blockedReason String?
+  blockedAt     DateTime?
+
+  // Metadata
+  numeroSerie String? // Serial number
+  fechaCompra DateTime? // Purchase date
+  notas       String?   @db.Text
+  active      Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations — History
+  locationHistory   DispenserLocationHistory[]
+  repairHistory     DispenserRepairHistory[]
+  consumableHistory DispenserConsumableHistory[]
+  sparePartHistory  DispenserSparePartHistory[]
+
+  // Relations — Operations
+  tickets              Ticket[]
+  maintenanceSchedules MaintenanceSchedule[]
+  interPlantDebts      InterPlantDebt[]
+
+  @@index([status])
+  @@index([locationId])
+  @@index([marca])
+}
+
+// ═══════════════════════════════════════════════════════
+// DISPENSER HISTORY TABLES
+// ═══════════════════════════════════════════════════════
+
+model DispenserLocationHistory {
+  id           String    @id @default(cuid())
+  dispenserId  String
+  dispenser    Dispenser @relation(fields: [dispenserId], references: [id], onDelete: Cascade)
+  locationId   String
+  location     Location  @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  assignedAt   DateTime  @default(now())
+  removedAt    DateTime?
+  assignedById String?
+  assignedBy   User?     @relation("AssignedByUser", fields: [assignedById], references: [id], onDelete: SetNull)
+
+  @@index([dispenserId])
+  @@index([locationId])
+  @@index([assignedAt])
+}
+
+model DispenserRepairHistory {
+  id           String    @id @default(cuid())
+  dispenserId  String
+  dispenser    Dispenser @relation(fields: [dispenserId], references: [id], onDelete: Cascade)
+  technicianId String
+  technician   User      @relation("RepairTechnician", fields: [technicianId], references: [id], onDelete: Cascade)
+  descripcion  String    @db.Text
+  diagnostico  String?   @db.Text
+  startDate    DateTime  @default(now())
+  endDate      DateTime?
+  partesUsadas Json? // [{ materialCode, nombre, cantidad }]
+  costo        Float?
+
+  @@index([dispenserId])
+  @@index([technicianId])
+  @@index([startDate])
+}
+
+model DispenserConsumableHistory {
+  id            String      @id @default(cuid())
+  dispenserId   String
+  dispenser     Dispenser   @relation(fields: [dispenserId], references: [id], onDelete: Cascade)
+  consumableId  String?
+  consumable    Consumable? @relation(fields: [consumableId], references: [id], onDelete: SetNull)
+  materialCode  String
+  nombre        String
+  installedAt   DateTime    @default(now())
+  expiresAt     DateTime? // Calculated: installedAt + consumable.expirationMonths
+  installedById String?
+  installedBy   User?       @relation(fields: [installedById], references: [id], onDelete: SetNull)
+
+  @@index([dispenserId])
+  @@index([installedAt])
+  @@index([expiresAt])
+}
+
+model DispenserSparePartHistory {
+  id           String    @id @default(cuid())
+  dispenserId  String
+  dispenser    Dispenser @relation(fields: [dispenserId], references: [id], onDelete: Cascade)
+  materialCode String
+  nombre       String
+  cantidad     Int       @default(1)
+  replacedAt   DateTime  @default(now())
+  replacedById String?
+  replacedBy   User?     @relation(fields: [replacedById], references: [id], onDelete: SetNull)
+  notas        String?
+
+  @@index([dispenserId])
+  @@index([replacedAt])
+}
+
+// ═══════════════════════════════════════════════════════
+// INVENTORY — Consumables, Spare Parts, Stock
+// ═══════════════════════════════════════════════════════
+
+model Consumable {
+  id               String   @id @default(cuid())
+  uniqueId         String?  @unique // Optional unique tracking ID
+  materialCode     String
+  nombre           String
+  descripcion      String?
+  expirationMonths Int? // Months until expiration after installation
+  plantId          String // Ownership — belongs to this plant
+  plant            Plant    @relation(fields: [plantId], references: [id], onDelete: Cascade)
+  active           Boolean  @default(true)
+  createdAt        DateTime @default(now())
+
+  // Relations
+  dispenserHistory DispenserConsumableHistory[]
+  debts            InterPlantDebt[]
+
+  @@index([materialCode])
+  @@index([plantId])
+  @@index([uniqueId])
+}
+
+model SparePart {
+  materialCode String   @id
+  nombre       String
+  descripcion  String?
+  unidad       String   @default("unidad")
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+enum StockItemType {
+  CONSUMABLE
+  SPARE_PART
+}
+
+model StockEntry {
+  id           String        @id @default(cuid())
+  clientId     String
+  client       Client        @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  plantId      String
+  plant        Plant         @relation(fields: [plantId], references: [id], onDelete: Cascade)
+  itemType     StockItemType
+  materialCode String
+  nombre       String
+  cantidad     Float         @default(0)
+  minLevel     Float         @default(0)
+  maxLevel     Float         @default(0)
+  unidad       String        @default("unidad")
+  updatedAt    DateTime      @updatedAt
+
+  @@unique([plantId, itemType, materialCode])
+  @@index([clientId])
+  @@index([plantId])
+  @@index([materialCode])
+}
+
+enum TransferStatus {
+  PENDING
+  COMPLETED
+  CANCELLED
+}
+
+model StockTransfer {
+  id              String         @id @default(cuid())
+  fromPlantId     String
+  fromPlant       Plant          @relation("TransferFrom", fields: [fromPlantId], references: [id], onDelete: Cascade)
+  toPlantId       String
+  toPlant         Plant          @relation("TransferTo", fields: [toPlantId], references: [id], onDelete: Cascade)
+  itemType        StockItemType
+  materialCode    String
+  nombre          String
+  cantidad        Float
+  status          TransferStatus @default(PENDING)
+  transferredById String?
+  transferredBy   User?          @relation("TransferredByUser", fields: [transferredById], references: [id], onDelete: SetNull)
+  createdAt       DateTime       @default(now())
+  completedAt     DateTime?
+
+  @@index([fromPlantId])
+  @@index([toPlantId])
+  @@index([status])
+}
+
+enum DebtStatus {
+  PENDING
+  RESOLVED
+}
+
+model InterPlantDebt {
+  id              String      @id @default(cuid())
+  creditorPlantId String
+  creditorPlant   Plant       @relation("DebtCreditor", fields: [creditorPlantId], references: [id], onDelete: Cascade)
+  debtorPlantId   String
+  debtorPlant     Plant       @relation("DebtDebtor", fields: [debtorPlantId], references: [id], onDelete: Cascade)
+  consumableId    String?
+  consumable      Consumable? @relation(fields: [consumableId], references: [id], onDelete: SetNull)
+  materialCode    String
+  nombre          String
+  cantidad        Float       @default(1)
+  status          DebtStatus  @default(PENDING)
+
+  // Dispenser blocked because of this debt
+  dispenserBlockedId String?
+  dispenserBlocked   Dispenser? @relation(fields: [dispenserBlockedId], references: [id], onDelete: SetNull)
+
+  createdAt  DateTime  @default(now())
+  resolvedAt DateTime?
+
+  @@index([creditorPlantId])
+  @@index([debtorPlantId])
+  @@index([status])
+}
+
+// ═══════════════════════════════════════════════════════
+// TICKETING SYSTEM
+// ═══════════════════════════════════════════════════════
+
+enum TicketPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+model Ticket {
+  id          String     @id @default(cuid())
+  dispenserId String?
+  dispenser   Dispenser? @relation(fields: [dispenserId], references: [id], onDelete: SetNull)
+  locationId  String?
+  location    Location?  @relation(fields: [locationId], references: [id], onDelete: SetNull)
+
+  // Reporter
+  reportedById String
+  reportedBy   User   @relation("TicketReporter", fields: [reportedById], references: [id], onDelete: Cascade)
+
+  // Assignment
+  assignedToId String?
+  assignedTo   User?   @relation("TicketAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+
+  // Content
+  reason      String         @db.Text
+  description String?        @db.Text
+  priority    TicketPriority @default(MEDIUM)
+  status      TicketStatus   @default(OPEN)
+
+  // SLA
+  slaResponseDeadline   DateTime?
+  slaResolutionDeadline DateTime?
+  slaResponseBreached   Boolean   @default(false)
+  slaResolutionBreached Boolean   @default(false)
+  respondedAt           DateTime?
+  resolvedAt            DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  comments      TicketComment[]
+  statusHistory TicketStatusHistory[]
+
+  @@index([status])
+  @@index([priority])
+  @@index([dispenserId])
+  @@index([reportedById])
+  @@index([assignedToId])
+  @@index([createdAt])
+  @@index([slaResolutionDeadline])
+}
+
+model TicketComment {
+  id        String   @id @default(cuid())
+  ticketId  String
+  ticket    Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  message   String   @db.Text
+  createdAt DateTime @default(now())
+
+  @@index([ticketId])
+}
+
+model TicketStatusHistory {
+  id         String       @id @default(cuid())
+  ticketId   String
+  ticket     Ticket       @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  fromStatus TicketStatus
+  toStatus   TicketStatus
+  changedBy  String // User name snapshot
+  changedAt  DateTime     @default(now())
+  notes      String?
+
+  @@index([ticketId])
+  @@index([changedAt])
+}
+
+// ═══════════════════════════════════════════════════════
+// MAINTENANCE
+// ═══════════════════════════════════════════════════════
+
+enum MaintenanceStatus {
+  PENDING
+  COMPLETED
+  OVERDUE
+  EXPIRED
+  SIGNED
+}
+
+model MaintenanceApproval {
+  id               String   @id @default(cuid())
+  customerName     String?
+  customerIdentity String? // DNI or ID
+  signatureData    String?  @db.Text // Base64 image
+  createdAt        DateTime @default(now())
+
+  technicianId String
+  technician   User   @relation(fields: [technicianId], references: [id])
+
+  schedules MaintenanceSchedule[]
+}
+
+model MaintenanceSchedule {
+  id             String            @id @default(cuid())
+  dispenserId    String
+  dispenser      Dispenser         @relation(fields: [dispenserId], references: [id], onDelete: Cascade)
+  scheduledMonth String // Format: YYYY-MM
+  status         MaintenanceStatus @default(PENDING)
+  createdAt      DateTime          @default(now())
+
+  approvalId String?
+  approval   MaintenanceApproval? @relation(fields: [approvalId], references: [id])
+
+  checklist MaintenanceChecklist?
+
+  @@unique([dispenserId, scheduledMonth])
+  @@index([dispenserId])
+  @@index([scheduledMonth])
+  @@index([status])
+  @@index([approvalId])
+}
+
+enum ConditionRating {
+  GOOD
+  FAIR
+  POOR
+  CRITICAL
+}
+
+model MaintenanceChecklist {
+  id         String              @id @default(cuid())
+  scheduleId String              @unique
+  schedule   MaintenanceSchedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+
+  // Checklist fields
+  condicionGeneral       ConditionRating @default(GOOD)
+  fallas                 Json? // string[] — detected failures
+  problemasEstructurales Json? // string[] — structural issues
+  observaciones          String?         @db.Text
+  fotosUrls              Json? // string[] — photo URLs or base64
+
+  // Completion
+  completedById String
+  completedBy   User     @relation(fields: [completedById], references: [id], onDelete: Cascade)
+  completedAt   DateTime @default(now())
+}
+
+// ═══════════════════════════════════════════════════════
+// SLA CONFIGURATION
+// ═══════════════════════════════════════════════════════
+
+model SlaConfig {
+  id       String @id @default(cuid())
+  clientId String @unique
+  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  // Minutes
+  responseTimeLow      Int @default(480) // 8 hours
+  responseTimeMedium   Int @default(240) // 4 hours
+  responseTimeHigh     Int @default(120) // 2 hours
+  responseTimeCritical Int @default(60) // 1 hour
+
+  resolutionTimeLow      Int @default(4320) // 72 hours
+  resolutionTimeMedium   Int @default(1440) // 24 hours
+  resolutionTimeHigh     Int @default(480) // 8 hours
+  resolutionTimeCritical Int @default(240) // 4 hours
+
+  nearBreachPercent Int @default(80) // 80% of deadline
+}
+
+// ═══════════════════════════════════════════════════════
+// NOTIFICATIONS
+// ═══════════════════════════════════════════════════════
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  message   String
+  type      String // TICKET_ASSIGNED | SLA_NEAR_BREACH | SLA_BREACHED | MAINTENANCE_DUE | STOCK_LOW | DEBT_CREATED
+  relatedId String? // ID of related entity
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([read])
+  @@index([createdAt])
+}
+
+// ═══════════════════════════════════════════════════════
+// SYSTEM
+// ═══════════════════════════════════════════════════════
+
+model IdempotencyKey {
+  key       String   @id
+  response  Json?
+  createdAt DateTime @default(now())
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  userName  String?
+  action    String // CREATE | UPDATE | DELETE | ASSIGN | STATUS_CHANGE | TRANSFER | BLOCK | RELEASE
+  entity    String // DISPENSER | TICKET | STOCK | MAINTENANCE | USER | etc
+  entityId  String?
+  timestamp DateTime @default(now())
+  oldValue  Json?
+  newValue  Json?
+  metadata  Json? // { ip, deviceId, etc }
+
+  @@index([entity])
+  @@index([userId])
+  @@index([timestamp])
+}
+
+model SystemSetting {
+  id    String @id @default("default")
+  key   String @unique
+  value String
+
+  @@index([key])
+}

@@ -1,0 +1,50 @@
+import { NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
+import { requirePermission } from '@/lib/auth';
+
+// GET /api/tickets/[id]/comments
+export async function GET(req: Request, { params }: { params: { id: string } }) {
+  const user = await requirePermission('tickets:read');
+  if (user instanceof NextResponse) return user;
+
+  try {
+    const comments = await prisma.ticketComment.findMany({
+      where: { ticketId: params.id },
+      include: { user: { select: { nombre: true, role: true } } },
+      orderBy: { createdAt: 'asc' },
+    });
+    return NextResponse.json(comments);
+  } catch (error) {
+    console.error('[API] GET /api/tickets/[id]/comments error:', error);
+    return NextResponse.json({ error: 'Error al obtener comentarios' }, { status: 500 });
+  }
+}
+
+// POST /api/tickets/[id]/comments
+export async function POST(req: Request, { params }: { params: { id: string } }) {
+  const user = await requirePermission('tickets:write');
+  if (user instanceof NextResponse) return user;
+
+  try {
+    const body = await req.json();
+    const { message } = body;
+
+    if (!message?.trim()) {
+      return NextResponse.json({ error: 'El mensaje es requerido' }, { status: 400 });
+    }
+
+    const comment = await prisma.ticketComment.create({
+      data: {
+        ticketId: params.id,
+        userId: user.id,
+        message: message.trim(),
+      },
+      include: { user: { select: { nombre: true, role: true } } },
+    });
+
+    return NextResponse.json(comment, { status: 201 });
+  } catch (error) {
+    console.error('[API] POST /api/tickets/[id]/comments error:', error);
+    return NextResponse.json({ error: 'Error al crear comentario' }, { status: 500 });
+  }
+}

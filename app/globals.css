@@ -1,0 +1,346 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+@layer base {
+  :root {
+    --background: 210 20% 98%;
+    --foreground: 210 40% 10%;
+    --card: 0 0% 100%;
+    --card-foreground: 210 40% 10%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 210 40% 10%;
+    --primary: 187 65% 42%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 210 15% 93%;
+    --secondary-foreground: 210 40% 20%;
+    --muted: 210 15% 95%;
+    --muted-foreground: 210 10% 45%;
+    --accent: 187 50% 94%;
+    --accent-foreground: 187 65% 30%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --success: 152 60% 40%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 38 90% 10%;
+    --border: 210 15% 89%;
+    --input: 210 15% 89%;
+    --ring: 187 65% 42%;
+    --radius: 0.625rem;
+  }
+
+  .dark {
+    --background: 210 30% 8%;
+    --foreground: 210 15% 95%;
+    --card: 210 25% 12%;
+    --card-foreground: 210 15% 95%;
+    --popover: 210 25% 12%;
+    --popover-foreground: 210 15% 95%;
+    --primary: 187 65% 48%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 210 20% 18%;
+    --secondary-foreground: 210 15% 85%;
+    --muted: 210 20% 15%;
+    --muted-foreground: 210 10% 55%;
+    --accent: 187 40% 18%;
+    --accent-foreground: 187 65% 70%;
+    --destructive: 0 62% 50%;
+    --destructive-foreground: 0 0% 100%;
+    --success: 152 55% 45%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 85% 55%;
+    --warning-foreground: 38 90% 10%;
+    --border: 210 20% 20%;
+    --input: 210 20% 20%;
+    --ring: 187 65% 48%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+}
+
+@layer components {
+  /* ============================================= */
+  /* GLASS MORPHISM CARDS                          */
+  /* ============================================= */
+  .glass-card {
+    @apply bg-card/80 backdrop-blur-xl border border-border/50 rounded-lg shadow-sm;
+  }
+  .glass-card-hover {
+    @apply glass-card transition-all duration-300 hover:shadow-md hover:border-primary/30 hover:-translate-y-0.5;
+  }
+
+  /* ============================================= */
+  /* STATUS BADGES                                 */
+  /* ============================================= */
+  .badge {
+    @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold tracking-wide;
+  }
+  .badge-success {
+    @apply badge bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300;
+  }
+  .badge-warning {
+    @apply badge bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300;
+  }
+  .badge-danger {
+    @apply badge bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300;
+  }
+  .badge-info {
+    @apply badge bg-sky-100 text-sky-800 dark:bg-sky-900/40 dark:text-sky-300;
+  }
+  .badge-neutral {
+    @apply badge bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300;
+  }
+  .badge-primary {
+    @apply badge bg-primary/10 text-primary dark:bg-primary/20;
+  }
+
+  /* ============================================= */
+  /* SLA STATUS INDICATORS                         */
+  /* ============================================= */
+  .sla-on-time {
+    @apply bg-emerald-500;
+  }
+  .sla-near-breach {
+    @apply bg-amber-500 animate-pulse-soft;
+  }
+  .sla-breached {
+    @apply bg-red-500 animate-pulse;
+  }
+
+  /* ============================================= */
+  /* BUTTONS                                       */
+  /* ============================================= */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-md text-sm font-medium
+           transition-all duration-200 focus-visible:outline-none focus-visible:ring-2
+           focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50
+           disabled:pointer-events-none active:scale-[0.98];
+  }
+  .btn-primary {
+    @apply btn bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2.5 shadow-sm;
+  }
+  .btn-secondary {
+    @apply btn bg-secondary text-secondary-foreground hover:bg-secondary/80 px-4 py-2.5;
+  }
+  .btn-outline {
+    @apply btn border border-border bg-transparent hover:bg-accent hover:text-accent-foreground px-4 py-2.5;
+  }
+  .btn-ghost {
+    @apply btn hover:bg-accent hover:text-accent-foreground px-4 py-2.5;
+  }
+  .btn-destructive {
+    @apply btn bg-destructive text-destructive-foreground hover:bg-destructive/90 px-4 py-2.5 shadow-sm;
+  }
+  .btn-sm {
+    @apply px-3 py-1.5 text-xs;
+  }
+  .btn-lg {
+    @apply px-6 py-3 text-base;
+  }
+  .btn-icon {
+    @apply btn p-2 h-9 w-9;
+  }
+
+  /* ============================================= */
+  /* FORM INPUTS                                   */
+  /* ============================================= */
+  .input {
+    @apply flex h-10 w-full rounded-md border border-input bg-background px-3 py-2
+           text-sm ring-offset-background placeholder:text-muted-foreground
+           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring
+           focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50
+           transition-colors duration-200;
+  }
+  .input-error {
+    @apply input border-destructive focus-visible:ring-destructive;
+  }
+  .label {
+    @apply text-sm font-medium text-foreground leading-none;
+  }
+  .select {
+    @apply input appearance-none cursor-pointer;
+  }
+  .textarea {
+    @apply flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2
+           text-sm ring-offset-background placeholder:text-muted-foreground
+           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring
+           focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50
+           transition-colors duration-200;
+  }
+
+  /* ============================================= */
+  /* DATA TABLE                                    */
+  /* ============================================= */
+  .table-container {
+    @apply overflow-x-auto rounded-lg border border-border;
+  }
+  .table {
+    @apply w-full text-sm;
+  }
+  .table thead {
+    @apply bg-muted/50;
+  }
+  .table th {
+    @apply px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wider;
+  }
+  .table td {
+    @apply px-4 py-3 border-t border-border;
+  }
+  .table tbody tr {
+    @apply transition-colors hover:bg-muted/30;
+  }
+
+  /* ============================================= */
+  /* METRIC CARDS                                  */
+  /* ============================================= */
+  .metric-card {
+    @apply glass-card p-5 flex flex-col gap-2;
+  }
+  .metric-value {
+    @apply text-3xl font-bold tracking-tight;
+  }
+  .metric-label {
+    @apply text-sm text-muted-foreground font-medium;
+  }
+  .metric-trend-up {
+    @apply text-emerald-600 dark:text-emerald-400 text-xs font-semibold flex items-center gap-1;
+  }
+  .metric-trend-down {
+    @apply text-red-600 dark:text-red-400 text-xs font-semibold flex items-center gap-1;
+  }
+
+  /* ============================================= */
+  /* SIDEBAR                                       */
+  /* ============================================= */
+  .sidebar {
+    @apply fixed left-0 top-0 h-full bg-card border-r border-border z-40
+           transition-all duration-300 ease-in-out flex flex-col;
+  }
+  .sidebar-item {
+    @apply flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium
+           text-muted-foreground transition-all duration-200
+           hover:bg-accent hover:text-accent-foreground cursor-pointer;
+  }
+  .sidebar-item-active {
+    @apply sidebar-item bg-primary/10 text-primary hover:bg-primary/15;
+  }
+
+  /* ============================================= */
+  /* MODAL / DIALOG                                */
+  /* ============================================= */
+  .modal-overlay {
+    @apply fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4;
+  }
+  .modal-content {
+    @apply bg-card rounded-xl shadow-2xl border border-border w-full max-w-lg
+           max-h-[90vh] overflow-y-auto animate-fade-in;
+  }
+  .modal-header {
+    @apply px-6 py-4 border-b border-border flex items-center justify-between;
+  }
+  .modal-body {
+    @apply px-6 py-4;
+  }
+  .modal-footer {
+    @apply px-6 py-4 border-t border-border flex items-center justify-end gap-3;
+  }
+
+  /* ============================================= */
+  /* TABS                                          */
+  /* ============================================= */
+  .tabs {
+    @apply flex border-b border-border overflow-x-auto;
+  }
+  .tab {
+    @apply px-4 py-2.5 text-sm font-medium text-muted-foreground whitespace-nowrap
+           border-b-2 border-transparent transition-all duration-200
+           hover:text-foreground hover:border-border cursor-pointer;
+  }
+  .tab-active {
+    @apply tab text-primary border-primary;
+  }
+
+  /* ============================================= */
+  /* LIFECYCLE BAR                                 */
+  /* ============================================= */
+  .lifecycle-bar {
+    @apply h-2 rounded-full bg-muted overflow-hidden;
+  }
+  .lifecycle-fill {
+    @apply h-full rounded-full transition-all duration-500;
+  }
+
+  /* ============================================= */
+  /* KANBAN                                        */
+  /* ============================================= */
+  .kanban-column {
+    @apply flex-1 min-w-[280px] bg-muted/30 rounded-lg p-3 flex flex-col gap-3;
+  }
+  .kanban-card {
+    @apply glass-card-hover p-4 cursor-pointer;
+  }
+
+  /* ============================================= */
+  /* TOAST                                         */
+  /* ============================================= */
+  .toast {
+    @apply fixed bottom-4 right-4 z-[100] min-w-[320px] p-4 rounded-lg shadow-xl
+           border border-border animate-slide-in-right;
+  }
+  .toast-success {
+    @apply toast bg-emerald-50 dark:bg-emerald-950 border-emerald-200 dark:border-emerald-800;
+  }
+  .toast-error {
+    @apply toast bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800;
+  }
+  .toast-warning {
+    @apply toast bg-amber-50 dark:bg-amber-950 border-amber-200 dark:border-amber-800;
+  }
+
+  /* ============================================= */
+  /* SHIMMER LOADING                               */
+  /* ============================================= */
+  .skeleton {
+    @apply bg-gradient-to-r from-muted via-muted/60 to-muted bg-[length:200%_100%] animate-shimmer rounded;
+  }
+}
+
+@layer utilities {
+  .text-gradient {
+    @apply bg-gradient-to-r from-primary to-cyan-500 bg-clip-text text-transparent;
+  }
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--border)) transparent;
+  }
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: hsl(var(--border));
+    border-radius: 3px;
+  }
+}
+
+/* ============================================= */
+/* LEAFLET MAP OVERRIDES                         */
+/* ============================================= */
+.leaflet-container {
+  border-radius: var(--radius);
+  z-index: 1;
+}
