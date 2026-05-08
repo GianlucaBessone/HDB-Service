@@ -4,7 +4,8 @@ import { requirePermission } from '@/lib/auth';
 import { createAuditLog } from '@/lib/audit';
 
 // POST /api/stock/debts/[id]/resolve
-export async function POST(req: Request, { params }: { params: { id: string } }) {
+export async function POST(req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const user = await requirePermission('stock:write');
   if (user instanceof NextResponse) return user;
 

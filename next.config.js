@@ -12,9 +12,8 @@ const withPWA = require("@ducanh2912/next-pwa").default({
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  experimental: {
-    serverComponentsExternalPackages: ['@react-pdf/renderer'],
-  },
+  serverExternalPackages: ['@react-pdf/renderer'],
+  turbopack: {},
 };
 
 module.exports = withPWA(nextConfig);

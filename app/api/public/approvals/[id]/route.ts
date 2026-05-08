@@ -1,10 +1,12 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
-export async function GET(req: Request, { params }: { params: { id: string } }) {
+export async function GET(req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
+  const { id } = params;
   try {
     const approval = await prisma.maintenanceApproval.findUnique({
-      where: { id: params.id },
+      where: { id: id },
       include: {
         technician: { select: { id: true, nombre: true } },
         schedules: {
@@ -39,7 +41,9 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
   }
 }
 
-export async function PUT(req: Request, { params }: { params: { id: string } }) {
+export async function PUT(req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
+  const { id } = params;
   try {
     const { customerName, customerIdentity, signatureData } = await req.json();
 
@@ -48,7 +52,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
     }
 
     const approval = await prisma.maintenanceApproval.findUnique({
-      where: { id: params.id },
+      where: { id: id },
       include: { schedules: true }
     });
 
@@ -62,7 +66,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
 
     // Update approval with signature
     const updatedApproval = await prisma.maintenanceApproval.update({
-      where: { id: params.id },
+      where: { id: id },
       data: {
         customerName,
         customerIdentity,
@@ -72,7 +76,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
 
     // Update schedules to SIGNED
     await prisma.maintenanceSchedule.updateMany({
-      where: { approvalId: params.id },
+      where: { approvalId: id },
       data: { status: 'SIGNED' }
     });
 

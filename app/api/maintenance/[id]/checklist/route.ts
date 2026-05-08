@@ -3,7 +3,8 @@ import { prisma } from '@/lib/prisma';
 import { requirePermission } from '@/lib/auth';
 
 // POST /api/maintenance/[id]/checklist
-export async function POST(req: Request, { params }: { params: { id: string } }) {
+export async function POST(req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const user = await requirePermission('maintenance:write');
   if (user instanceof NextResponse) return user;
 

@@ -4,13 +4,15 @@ import { requirePermission } from '@/lib/auth';
 import { createAuditLog } from '@/lib/audit';
 
 // GET /api/dispensers/[id]
-export async function GET(req: Request, { params }: { params: { id: string } }) {
+export async function GET(req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
+  const { id } = params;
   const user = await requirePermission('dispensers:read');
   if (user instanceof NextResponse) return user;
 
   try {
     const dispenser = await prisma.dispenser.findUnique({
-      where: { id: params.id },
+      where: { id: id },
       include: {
         location: {
           include: {
@@ -101,7 +103,9 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
 }
 
 // PUT /api/dispensers/[id]
-export async function PUT(req: Request, { params }: { params: { id: string } }) {
+export async function PUT(req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
+  const { id } = params;
   const user = await requirePermission('dispensers:write');
   if (user instanceof NextResponse) return user;
 
@@ -109,13 +113,13 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
     const body = await req.json();
     const { marca, modelo, lifecycleMonths, numeroSerie, notas, active } = body;
 
-    const existing = await prisma.dispenser.findUnique({ where: { id: params.id } });
+    const existing = await prisma.dispenser.findUnique({ where: { id: id } });
     if (!existing) {
       return NextResponse.json({ error: 'Dispenser no encontrado' }, { status: 404 });
     }
 
     const updated = await prisma.dispenser.update({
-      where: { id: params.id },
+      where: { id: id },
       data: {
         ...(marca !== undefined && { marca: marca.trim() }),
         ...(modelo !== undefined && { modelo: modelo.trim() }),
@@ -131,7 +135,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
       userName: user.nombre,
       action: 'UPDATE',
       entity: 'DISPENSER',
-      entityId: params.id,
+      entityId: id,
       oldValue: existing,
       newValue: updated,
     });

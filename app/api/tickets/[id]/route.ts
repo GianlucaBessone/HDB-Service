@@ -6,13 +6,15 @@ import { sendPushNotification } from '@/lib/onesignal';
 import { TicketStatus } from '@prisma/client';
 
 // GET /api/tickets/[id]
-export async function GET(req: Request, { params }: { params: { id: string } }) {
+export async function GET(req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
+  const { id } = params;
   const user = await requirePermission('tickets:read');
   if (user instanceof NextResponse) return user;
 
   try {
     const ticket = await prisma.ticket.findUnique({
-      where: { id: params.id },
+      where: { id: id },
       include: {
         dispenser: {
           select: { 
@@ -55,7 +57,9 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
 }
 
 // PUT /api/tickets/[id] — Update ticket status
-export async function PUT(req: Request, { params }: { params: { id: string } }) {
+export async function PUT(req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
+  const { id } = params;
   const user = await requirePermission('tickets:write');
   if (user instanceof NextResponse) return user;
 
@@ -64,7 +68,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
     const { status, assignedToId, priority, notes } = body;
 
     const ticket = await prisma.ticket.findUnique({ 
-      where: { id: params.id },
+      where: { id: id },
       include: { reportedBy: { select: { id: true, onesignalPlayerId: true } } }
     });
     if (!ticket) {
@@ -108,7 +112,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
       // Create status history
       await prisma.ticketStatusHistory.create({
         data: {
-          ticketId: params.id,
+          ticketId: id,
           fromStatus: ticket.status,
           toStatus: status,
           changedBy: user.nombre,
@@ -136,7 +140,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
             playerIds: [tech.onesignalPlayerId],
             title: 'Ticket Asignado',
             message: `Se te asignó el ticket: ${ticket.reason.substring(0, 80)}`,
-            data: { ticketId: params.id, type: 'TICKET_ASSIGNED' },
+            data: { ticketId: id, type: 'TICKET_ASSIGNED' },
           });
         }
 
@@ -147,7 +151,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
             title: 'Ticket Asignado',
             message: ticket.reason.substring(0, 200),
             type: 'TICKET_ASSIGNED',
-            relatedId: params.id,
+            relatedId: id,
           },
         });
       }
@@ -156,7 +160,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
     if (priority) updateData.priority = priority;
 
     const updated = await prisma.ticket.update({
-      where: { id: params.id },
+      where: { id: id },
       data: updateData,
     });
 
@@ -165,7 +169,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
       userName: user.nombre,
       action: 'UPDATE',
       entity: 'TICKET',
-      entityId: params.id,
+      entityId: id,
       oldValue: { status: ticket.status, assignedToId: ticket.assignedToId },
       newValue: updateData,
     });
@@ -193,7 +197,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
           playerIds: onesignalIds,
           title: notificationTitle,
           message: notificationMessage,
-          data: { ticketId: params.id, type: 'TICKET_CLOSED_UNRESOLVED' },
+          data: { ticketId: id, type: 'TICKET_CLOSED_UNRESOLVED' },
         }).catch(err => console.error('Failed to send push notification:', err));
       }
 
@@ -205,7 +209,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
               title: notificationTitle,
               message: notificationMessage,
               type: 'TICKET_CLOSED_UNRESOLVED',
-              relatedId: params.id,
+              relatedId: id,
             },
           })
         )

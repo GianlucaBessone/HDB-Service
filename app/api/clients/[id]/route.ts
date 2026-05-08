@@ -4,13 +4,15 @@ import { requirePermission, canAccessClient } from '@/lib/auth';
 import { createAuditLog } from '@/lib/audit';
 
 // GET /api/clients/[id]
-export async function GET(req: Request, { params }: { params: { id: string } }) {
+export async function GET(req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
+  const { id } = params;
   const user = await requirePermission('clients:read');
   if (user instanceof NextResponse) return user;
 
   try {
     const client = await prisma.client.findUnique({
-      where: { id: params.id },
+      where: { id: id },
       include: {
         plants: {
           where: { active: true },
@@ -40,7 +42,9 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
 }
 
 // PUT /api/clients/[id]
-export async function PUT(req: Request, { params }: { params: { id: string } }) {
+export async function PUT(req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
+  const { id } = params;
   const user = await requirePermission('clients:write');
   if (user instanceof NextResponse) return user;
 
@@ -48,13 +52,13 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
     const body = await req.json();
     const { nombre, email, telefono, direccion, active } = body;
 
-    const existing = await prisma.client.findUnique({ where: { id: params.id } });
+    const existing = await prisma.client.findUnique({ where: { id: id } });
     if (!existing) {
       return NextResponse.json({ error: 'Cliente no encontrado' }, { status: 404 });
     }
 
     const updated = await prisma.client.update({
-      where: { id: params.id },
+      where: { id: id },
       data: {
         ...(nombre !== undefined && { nombre: nombre.trim() }),
         ...(email !== undefined && { email: email?.trim() || null }),
@@ -69,7 +73,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
       userName: user.nombre,
       action: 'UPDATE',
       entity: 'CLIENT',
-      entityId: params.id,
+      entityId: id,
       oldValue: existing,
       newValue: updated,
     });
@@ -82,13 +86,15 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
 }
 
 // DELETE /api/clients/[id] — soft delete
-export async function DELETE(req: Request, { params }: { params: { id: string } }) {
+export async function DELETE(req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
+  const { id } = params;
   const user = await requirePermission('clients:write');
   if (user instanceof NextResponse) return user;
 
   try {
     const updated = await prisma.client.update({
-      where: { id: params.id },
+      where: { id: id },
       data: { active: false },
     });
 
@@ -97,7 +103,7 @@ export async function DELETE(req: Request, { params }: { params: { id: string } 
       userName: user.nombre,
       action: 'DELETE',
       entity: 'CLIENT',
-      entityId: params.id,
+      entityId: id,
     });
 
     return NextResponse.json(updated);

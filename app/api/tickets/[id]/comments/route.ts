@@ -3,7 +3,8 @@ import { prisma } from '@/lib/prisma';
 import { requirePermission } from '@/lib/auth';
 
 // GET /api/tickets/[id]/comments
-export async function GET(req: Request, { params }: { params: { id: string } }) {
+export async function GET(req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const user = await requirePermission('tickets:read');
   if (user instanceof NextResponse) return user;
 
@@ -21,7 +22,8 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
 }
 
 // POST /api/tickets/[id]/comments
-export async function POST(req: Request, { params }: { params: { id: string } }) {
+export async function POST(req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const user = await requirePermission('tickets:write');
   if (user instanceof NextResponse) return user;
 

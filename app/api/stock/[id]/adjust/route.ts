@@ -11,7 +11,8 @@ export const dynamic = 'force-dynamic';
  * Perform an inventory adjustment (modify quantity or delete entry).
  * Requires justification. Logs audit trail and notifies supervisors.
  */
-export async function POST(req: Request, { params }: { params: { id: string } }) {
+export async function POST(req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const user = await requirePermission('stock:write');
   if (user instanceof NextResponse) return user;
 

@@ -13,7 +13,9 @@ import { createAuditLog } from '@/lib/audit';
  * - Sets lifecycle start date if first assignment
  * - Resumes lifecycle if coming from BACKUP
  */
-export async function POST(req: Request, { params }: { params: { id: string } }) {
+export async function POST(req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
+  const { id } = params;
   const user = await requirePermission('dispensers:assign');
   if (user instanceof NextResponse) return user;
 
@@ -85,7 +87,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     const updated = await prisma.$transaction(async (tx) => {
       // Update dispenser
       const d = await tx.dispenser.update({
-        where: { id: params.id },
+        where: { id: id },
         data: {
           locationId,
           status: 'IN_SERVICE',

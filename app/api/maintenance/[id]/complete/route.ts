@@ -4,7 +4,8 @@ import { requirePermission } from '@/lib/auth';
 import { createAuditLog } from '@/lib/audit';
 
 // POST /api/maintenance/[id]/complete
-export async function POST(req: Request, { params }: { params: { id: string } }) {
+export async function POST(req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const user = await requirePermission('maintenance:write');
   if (user instanceof NextResponse) return user;
 

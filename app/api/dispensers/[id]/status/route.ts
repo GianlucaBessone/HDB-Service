@@ -19,7 +19,8 @@ import { DispenserStatus } from '@prisma/client';
  *   → IN_SERVICE from BACKUP: lifecycle RESUMES
  *   → BLOCKED: requires blockedReason
  */
-export async function PUT(req: Request, { params }: { params: { id: string } }) {
+export async function PUT(req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const user = await requirePermission('dispensers:status');
   if (user instanceof NextResponse) return user;
 
