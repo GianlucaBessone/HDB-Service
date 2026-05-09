@@ -1,4 +1,5 @@
 import * as XLSX from 'xlsx';
+import { t } from './translations';
 
 export function exportDispenserToExcel(dispenser: any) {
   const wb = XLSX.utils.book_new();
@@ -9,7 +10,7 @@ export function exportDispenserToExcel(dispenser: any) {
     ['Marca', dispenser.marca],
     ['Modelo', dispenser.modelo],
     ['N° Serie', dispenser.numeroSerie || ''],
-    ['Estado', dispenser.status],
+    ['Estado', t(dispenser.status)],
     ['Ubicación Actual', dispenser.location ? `${dispenser.location.plant?.nombre} - ${dispenser.location.nombre}` : 'Sin Asignar'],
     ['Vida Útil (meses)', dispenser.lifecycleMonths],
     ['Fecha Compra', dispenser.fechaCompra ? new Date(dispenser.fechaCompra).toLocaleDateString('es-AR') : ''],

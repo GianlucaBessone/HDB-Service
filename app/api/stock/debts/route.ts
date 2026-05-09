@@ -26,7 +26,6 @@ export async function GET(req: Request) {
       include: {
         creditorPlant: { select: { nombre: true } },
         debtorPlant: { select: { nombre: true } },
-        dispenserBlocked: { select: { id: true, marca: true, modelo: true } },
       },
       orderBy: { createdAt: 'desc' },
     });

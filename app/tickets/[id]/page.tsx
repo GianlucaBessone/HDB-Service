@@ -5,24 +5,11 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   ArrowLeft, Ticket, GlassWater, MapPin, MessageSquare, Clock,
-  CheckCircle2, AlertTriangle, Archive, Send, Loader2, RefreshCw
+  CheckCircle2, Archive, Send, Loader2, RefreshCw
 } from 'lucide-react';
 import clsx from 'clsx';
 import toast from 'react-hot-toast';
-
-const STATUS_CONFIG: Record<string, { label: string; badge: string; icon: React.ElementType }> = {
-  OPEN:        { label: 'Abierto',     badge: 'badge-info',    icon: Ticket },
-  IN_PROGRESS: { label: 'En Progreso', badge: 'badge-warning', icon: Clock },
-  RESOLVED:    { label: 'Resuelto',    badge: 'badge-success', icon: CheckCircle2 },
-  CLOSED:      { label: 'Cerrado',     badge: 'badge-neutral', icon: Archive },
-};
-
-const PRIORITY_CONFIG: Record<string, { label: string; badge: string }> = {
-  LOW:      { label: 'Baja',     badge: 'badge-neutral' },
-  MEDIUM:   { label: 'Media',    badge: 'badge-info' },
-  HIGH:     { label: 'Alta',     badge: 'badge-warning' },
-  CRITICAL: { label: 'Crítica',  badge: 'badge-danger' },
-};
+import { t, getStatusColor } from '@/lib/translations';
 
 export default function TicketDetailPage() {
   const params = useParams();
@@ -80,10 +67,6 @@ export default function TicketDetailPage() {
     );
   }
 
-  const sc = STATUS_CONFIG[ticket.status] || STATUS_CONFIG['OPEN'];
-  const pc = PRIORITY_CONFIG[ticket.priority] || PRIORITY_CONFIG['MEDIUM'];
-  const StatusIcon = sc.icon;
-
   return (
     <div className="space-y-6 animate-fade-in max-w-5xl mx-auto">
       {/* Breadcrumb */}
@@ -102,9 +85,15 @@ export default function TicketDetailPage() {
           <div className="space-y-2">
             <h1 className="text-2xl font-bold tracking-tight">{ticket.reason}</h1>
             <div className="flex flex-wrap gap-2 items-center text-sm text-muted-foreground">
-              <span className={clsx('badge text-xs', pc.badge)}>Prioridad {pc.label}</span>
+              <span className={clsx('badge text-xs', getStatusColor(ticket.priority))}>{t(ticket.priority)}</span>
               <span>·</span>
-              <span className={clsx('badge text-xs', sc.badge)}><StatusIcon className="w-3.5 h-3.5 mr-1"/> {sc.label}</span>
+              <span className={clsx('badge text-xs', getStatusColor(ticket.status))}>
+                {ticket.status === 'OPEN' ? <Ticket className="w-3.5 h-3.5 mr-1"/> :
+                 ticket.status === 'IN_PROGRESS' ? <Clock className="w-3.5 h-3.5 mr-1"/> :
+                 ticket.status === 'RESOLVED' ? <CheckCircle2 className="w-3.5 h-3.5 mr-1"/> :
+                 <Archive className="w-3.5 h-3.5 mr-1"/>}
+                {t(ticket.status)}
+              </span>
               <span>·</span>
               <span>Creado: {new Date(ticket.createdAt).toLocaleString('es-AR')}</span>
             </div>
@@ -242,7 +231,6 @@ export default function TicketDetailPage() {
             <h3 className="font-semibold text-sm uppercase tracking-wider text-muted-foreground mb-4">Historial de Estados</h3>
             <div className="space-y-4">
               {ticket.statusHistory?.map((hist: any, index: number) => {
-                const HistIcon = STATUS_CONFIG[hist.toStatus]?.icon || Ticket;
                 return (
                   <div key={hist.id} className="relative pl-6">
                     {/* Vertical line connector */}
@@ -250,9 +238,9 @@ export default function TicketDetailPage() {
                       <div className="absolute left-2.5 top-5 bottom-[-20px] w-0.5 bg-border" />
                     )}
                     <div className="absolute left-0 top-0.5 w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center">
-                      <HistIcon className="w-3 h-3 text-primary" />
+                      <Clock className="w-3 h-3 text-primary" />
                     </div>
-                    <p className="text-sm font-medium">{STATUS_CONFIG[hist.toStatus]?.label || hist.toStatus}</p>
+                    <p className="text-sm font-medium">{t(hist.toStatus)}</p>
                     <p className="text-xs text-muted-foreground">{hist.changedBy} · {new Date(hist.changedAt).toLocaleString('es-AR')}</p>
                     {hist.notes && <p className="text-xs italic mt-0.5 text-muted-foreground">"{hist.notes}"</p>}
                   </div>
@@ -275,15 +263,18 @@ export default function TicketDetailPage() {
   );
 }
 
+import ConfirmModal from '@/components/ConfirmModal';
+
 function StatusModal({ ticket, onClose, onSuccess }: { ticket: any, onClose: () => void, onSuccess: () => void }) {
   const [status, setStatus] = useState(ticket.status);
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
-  const handleSave = async () => {
-    if (status === 'CLOSED' && ticket.status !== 'RESOLVED') {
-      const confirm = window.confirm('¿Desea cerrar el ticket sin resolverlo? Esto se le informará al solicitante y al supervisor.');
-      if (!confirm) return;
+  const handleSave = async (force = false) => {
+    if (!force && status === 'CLOSED' && ticket.status !== 'RESOLVED') {
+      setShowConfirm(true);
+      return;
     }
 
     setSaving(true);
@@ -300,37 +291,53 @@ function StatusModal({ ticket, onClose, onSuccess }: { ticket: any, onClose: () 
       toast.error('Error al actualizar estado');
     } finally {
       setSaving(false);
+      setShowConfirm(false);
     }
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content max-w-sm" onClick={e => e.stopPropagation()}>
-        <div className="modal-header">
-          <h2 className="text-lg font-semibold">Actualizar Estado</h2>
-        </div>
-        <div className="modal-body space-y-4">
-          <div>
-            <label className="label">Nuevo Estado</label>
-            <select className="select mt-1" value={status} onChange={e => setStatus(e.target.value)}>
-              <option value="OPEN">Abierto</option>
-              <option value="IN_PROGRESS">En Progreso</option>
-              <option value="RESOLVED">Resuelto</option>
-              <option value="CLOSED">Cerrado</option>
-            </select>
+    <>
+      <div className="modal-overlay" onClick={onClose}>
+        <div className="modal-content max-w-sm" onClick={e => e.stopPropagation()}>
+          <div className="modal-header">
+            <h2 className="text-lg font-semibold">Actualizar Estado</h2>
           </div>
-          <div>
-            <label className="label">Notas (opcional)</label>
-            <textarea className="textarea mt-1" rows={2} value={notes} onChange={e => setNotes(e.target.value)} />
+          <div className="modal-body space-y-4">
+            <div>
+              <label className="label">Nuevo Estado</label>
+              <select className="select mt-1" value={status} onChange={e => setStatus(e.target.value)}>
+                <option value="OPEN">Abierto</option>
+                <option value="IN_PROGRESS">En Progreso</option>
+                <option value="RESOLVED">Resuelto</option>
+                <option value="CLOSED">Cerrado</option>
+              </select>
+            </div>
+            <div>
+              <label className="label">Notas (opcional)</label>
+              <textarea className="textarea mt-1" rows={2} value={notes} onChange={e => setNotes(e.target.value)} />
+            </div>
           </div>
-        </div>
-        <div className="modal-footer">
-          <button onClick={onClose} className="btn-outline">Cancelar</button>
-          <button onClick={handleSave} disabled={saving || status === ticket.status} className="btn-primary gap-2">
-            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Guardar'}
-          </button>
+          <div className="modal-footer">
+            <button onClick={onClose} className="btn-outline">Cancelar</button>
+            <button onClick={() => handleSave()} disabled={saving || status === ticket.status} className="btn-primary gap-2">
+              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Guardar'}
+            </button>
+          </div>
         </div>
       </div>
-    </div>
+
+      {showConfirm && (
+        <ConfirmModal
+          title="Cerrar sin resolver"
+          description="¿Desea cerrar el ticket sin resolverlo? Esto se le informará al solicitante y al supervisor."
+          confirmLabel="Cerrar Ticket"
+          cancelLabel="Volver"
+          onConfirm={() => handleSave(true)}
+          onClose={() => setShowConfirm(false)}
+          isLoading={saving}
+          variant="warning"
+        />
+      )}
+    </>
   );
 }

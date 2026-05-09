@@ -1,12 +1,16 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import {
   Settings, Building2, MapPin, Layers, Plus, ChevronRight,
   ChevronDown, X, Loader2, Edit2, Trash2, GlassWater,
+  Download, FileSpreadsheet
 } from 'lucide-react';
 import clsx from 'clsx';
 import toast from 'react-hot-toast';
+import * as XLSX from 'xlsx';
+import { useConfigStore } from '@/lib/store/useConfigStore';
+import ConfirmModal from '@/components/ConfirmModal';
 
 type Client = { id: string; nombre: string; email: string | null; telefono: string | null; active: boolean };
 type Plant = { id: string; nombre: string; direccion: string | null; clientId: string; _count: { locations: number } };
@@ -20,8 +24,19 @@ type Location = {
 
 type ActiveSection = 'clients' | 'plants' | 'sectors' | 'locations';
 
+
+
 export default function ConfigPage() {
   const [section, setSection] = useState<ActiveSection>('plants');
+  const { fetchClients, fetchPlants, fetchSectors, fetchLocations } = useConfigStore();
+
+  useEffect(() => {
+    // Pre-fetch in background to keep cache warm
+    fetchClients();
+    fetchPlants();
+    fetchSectors();
+    fetchLocations();
+  }, [fetchClients, fetchPlants, fetchSectors, fetchLocations]);
 
   const navItems: { key: ActiveSection; label: string; icon: React.ElementType }[] = [
     { key: 'clients', label: 'Clientes', icon: Building2 },
@@ -69,26 +84,39 @@ export default function ConfigPage() {
 
 // ─── Clients Section ────────────────────────────────
 function ClientsSection() {
-  const [clients, setClients] = useState<Client[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { clients, fetchClients } = useConfigStore();
+  const [isLoading, setIsLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
+  const [editingClient, setEditingClient] = useState<Client | null>(null);
+  const [clientToDelete, setClientToDelete] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
-  const fetch_ = useCallback(async () => {
-    setIsLoading(true);
+  useEffect(() => {
+    if (clients.length === 0) {
+      setIsLoading(true);
+      fetchClients().finally(() => setIsLoading(false));
+    }
+  }, [clients.length, fetchClients]);
+
+  const handleDelete = async () => {
+    if (!clientToDelete) return;
+    setIsDeleting(true);
     try {
-      const res = await fetch('/api/clients');
-      const data = await res.json();
-      setClients(Array.isArray(data) ? data : []);
-    } catch { toast.error('Error al cargar clientes'); }
-    finally { setIsLoading(false); }
-  }, []);
-
-  useEffect(() => { fetch_(); }, [fetch_]);
+      const res = await fetch(`/api/clients/${clientToDelete}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error();
+      toast.success('Cliente eliminado');
+      fetchClients(true); // Force refresh cache
+    } catch { toast.error('Error al eliminar cliente'); }
+    finally {
+      setIsDeleting(false);
+      setClientToDelete(null);
+    }
+  };
 
   return (
     <div className="space-y-4">
       <div className="flex justify-end">
-        <button onClick={() => setShowModal(true)} className="btn-primary gap-2">
+        <button onClick={() => { setEditingClient(null); setShowModal(true); }} className="btn-primary gap-2">
           <Plus className="w-4 h-4" /> Nuevo Cliente
         </button>
       </div>
@@ -98,10 +126,30 @@ function ClientsSection() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {clients.map(c => (
-            <div key={c.id} className="glass-card-hover p-5">
-              <h3 className="font-semibold text-lg">{c.nombre}</h3>
-              {c.email && <p className="text-sm text-muted-foreground mt-1">{c.email}</p>}
-              {c.telefono && <p className="text-sm text-muted-foreground">{c.telefono}</p>}
+            <div key={c.id} className="glass-card-hover p-5 flex flex-col justify-between group">
+              <div>
+                <div className="flex items-start justify-between">
+                  <h3 className="font-semibold text-lg">{c.nombre}</h3>
+                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button 
+                      onClick={() => { setEditingClient(c); setShowModal(true); }}
+                      className="p-1.5 hover:bg-primary/10 text-primary rounded-md transition-colors"
+                      title="Editar"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </button>
+                    <button 
+                      onClick={() => setClientToDelete(c.id)}
+                      className="p-1.5 hover:bg-destructive/10 text-destructive rounded-md transition-colors"
+                      title="Eliminar"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+                {c.email && <p className="text-sm text-muted-foreground mt-1">{c.email}</p>}
+                {c.telefono && <p className="text-sm text-muted-foreground">{c.telefono}</p>}
+              </div>
             </div>
           ))}
         </div>
@@ -109,24 +157,44 @@ function ClientsSection() {
 
       {showModal && (
         <SimpleFormModal
-          title="Nuevo Cliente"
+          title={editingClient ? "Editar Cliente" : "Nuevo Cliente"}
+          initialData={editingClient ? {
+            nombre: editingClient.nombre,
+            email: editingClient.email || '',
+            telefono: editingClient.telefono || '',
+            direccion: (editingClient as any).direccion || '',
+          } : undefined}
           fields={[
             { name: 'nombre', label: 'Nombre *', required: true },
             { name: 'email', label: 'Email' },
             { name: 'telefono', label: 'Teléfono' },
             { name: 'direccion', label: 'Dirección' },
           ]}
-          onClose={() => setShowModal(false)}
+          onClose={() => { setShowModal(false); setEditingClient(null); }}
           onSubmit={async (data) => {
-            const res = await fetch('/api/clients', {
-              method: 'POST',
+            const url = editingClient ? `/api/clients/${editingClient.id}` : '/api/clients';
+            const method = editingClient ? 'PUT' : 'POST';
+            const res = await fetch(url, {
+              method,
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(data),
             });
             if (!res.ok) throw new Error((await res.json()).error);
-            toast.success('Cliente creado');
-            fetch_();
+            toast.success(editingClient ? 'Cliente actualizado' : 'Cliente creado');
+            fetchClients(true);
           }}
+        />
+      )}
+
+      {clientToDelete && (
+        <ConfirmModal
+          title="Eliminar Cliente"
+          description="¿Estás seguro de que deseas eliminar este cliente? Esta acción lo desactivará del sistema."
+          onConfirm={handleDelete}
+          onClose={() => setClientToDelete(null)}
+          isLoading={isDeleting}
+          confirmLabel="Eliminar"
+          variant="danger"
         />
       )}
     </div>
@@ -135,47 +203,53 @@ function ClientsSection() {
 
 // ─── Plants Section ─────────────────────────────────
 function PlantsSection() {
-  const [plants, setPlants] = useState<Plant[]>([]);
+  const { plants, locations, fetchPlants, fetchLocations } = useConfigStore();
   const [clients, setClients] = useState<Client[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [showModal, setShowModal] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [showModal, setShowModal] = useState<any>(null); // null, 'new', or plant object
+  const [deleteConfirm, setDeleteConfirm] = useState<any>(null);
   const [expandedPlant, setExpandedPlant] = useState<string | null>(null);
-  const [plantLocations, setPlantLocations] = useState<Record<string, Location[]>>({});
 
-  const fetchPlants = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const [plantsRes, clientsRes] = await Promise.all([
-        fetch('/api/plants'),
-        fetch('/api/clients'),
-      ]);
-      setPlants(await plantsRes.json());
-      setClients(await clientsRes.json());
-    } catch { toast.error('Error al cargar plantas'); }
-    finally { setIsLoading(false); }
-  }, []);
-
-  useEffect(() => { fetchPlants(); }, [fetchPlants]);
-
-  const toggleExpand = async (plantId: string) => {
-    if (expandedPlant === plantId) {
-      setExpandedPlant(null);
-      return;
+  useEffect(() => {
+    if (plants.length === 0) {
+      setIsLoading(true);
+      fetchPlants().finally(() => setIsLoading(false));
     }
-    setExpandedPlant(plantId);
-    if (!plantLocations[plantId]) {
-      try {
-        const res = await fetch(`/api/locations?plantId=${plantId}`);
-        const data = await res.json();
-        setPlantLocations(prev => ({ ...prev, [plantId]: data }));
-      } catch { /* ignore */ }
+    if (locations.length === 0) {
+      fetchLocations();
+    }
+    fetch('/api/clients').then(res => res.json()).then(setClients).catch(console.error);
+  }, [plants.length, locations.length, fetchPlants, fetchLocations]);
+
+  // Group locations by plantId for instant access
+  const locationsByPlant = useMemo(() => {
+    const map: Record<string, any[]> = {};
+    locations.forEach(loc => {
+      if (!loc.plant?.id) return;
+      if (!map[loc.plant.id]) map[loc.plant.id] = [];
+      map[loc.plant.id].push(loc);
+    });
+    return map;
+  }, [locations]);
+
+  const handleDelete = async () => {
+    if (!deleteConfirm) return;
+    try {
+      const res = await fetch(`/api/plants/${deleteConfirm.id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Error al eliminar');
+      toast.success('Planta eliminada');
+      fetchPlants(true);
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setDeleteConfirm(null);
     }
   };
 
   return (
     <div className="space-y-4">
       <div className="flex justify-end">
-        <button onClick={() => setShowModal(true)} className="btn-primary gap-2">
+        <button onClick={() => setShowModal('new')} className="btn-primary gap-2">
           <Plus className="w-4 h-4" /> Nueva Planta
         </button>
       </div>
@@ -184,79 +258,119 @@ function PlantsSection() {
         <EmptyState icon={Building2} text="Sin plantas registradas" />
       ) : (
         <div className="space-y-2">
-          {plants.map((p: any) => (
-            <div key={p.id} className="glass-card overflow-hidden">
-              <button
-                onClick={() => toggleExpand(p.id)}
-                className="w-full px-5 py-4 flex items-center justify-between hover:bg-muted/30 transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <Building2 className="w-5 h-5 text-primary" />
-                  <div className="text-left">
-                    <span className="font-semibold">{p.nombre}</span>
-                    <span className="text-xs text-muted-foreground ml-2">
-                      {p._count?.locations || 0} ubicaciones
-                    </span>
+          {plants.map((p: any) => {
+            const myLocations = locationsByPlant[p.id] || [];
+            const isExpanded = expandedPlant === p.id;
+            
+            return (
+              <div key={p.id} className="glass-card overflow-hidden">
+                <div className="flex items-center">
+                  <button
+                    onClick={() => setExpandedPlant(isExpanded ? null : p.id)}
+                    className="flex-1 px-5 py-4 flex items-center justify-between hover:bg-muted/30 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <Building2 className="w-5 h-5 text-primary" />
+                      <div className="text-left">
+                        <span className="font-semibold">{p.nombre}</span>
+                        <span className="text-xs text-muted-foreground ml-2">
+                          {myLocations.length} ubicaciones
+                        </span>
+                      </div>
+                    </div>
+                    {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                  </button>
+                  <div className="flex items-center gap-1 pr-4">
+                    <button
+                      onClick={() => setShowModal(p)}
+                      className="btn-ghost btn-icon"
+                      title="Editar Planta"
+                    >
+                      <Edit2 className="w-4 h-4 text-blue-600" />
+                    </button>
+                    <button
+                      onClick={() => setDeleteConfirm(p)}
+                      className="btn-ghost btn-icon"
+                      title="Eliminar Planta"
+                    >
+                      <Trash2 className="w-4 h-4 text-red-600" />
+                    </button>
                   </div>
                 </div>
-                {expandedPlant === p.id ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-              </button>
 
-              {expandedPlant === p.id && (
-                <div className="px-5 pb-4 border-t border-border">
-                  <div className="mt-3 space-y-2">
-                    {(plantLocations[p.id] || []).length === 0 ? (
-                      <p className="text-sm text-muted-foreground py-2">Sin ubicaciones en esta planta</p>
-                    ) : (
-                      plantLocations[p.id]?.map((loc: any) => (
-                        <div key={loc.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/20">
-                          <div className="flex items-center gap-2">
-                            <MapPin className="w-4 h-4 text-muted-foreground" />
-                            <span className="text-sm font-medium">{loc.nombre}</span>
-                            {loc.sector && (
-                              <span className="badge-neutral text-xs">{loc.sector.nombre}</span>
-                            )}
+                {isExpanded && (
+                  <div className="px-5 pb-4 border-t border-border animate-in slide-in-from-top-1 duration-200">
+                    <div className="mt-3 space-y-2">
+                      {myLocations.length === 0 ? (
+                        <p className="text-sm text-muted-foreground py-2">Sin ubicaciones en esta planta</p>
+                      ) : (
+                        myLocations.map((loc: any) => (
+                          <div key={loc.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/20">
+                            <div className="flex items-center gap-2">
+                              <MapPin className="w-4 h-4 text-muted-foreground" />
+                              <span className="text-sm font-medium">{loc.nombre}</span>
+                              {loc.sector && (
+                                <span className="badge-neutral text-xs">{loc.sector.nombre}</span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2">
+                              {loc.dispensers?.length > 0 ? (
+                                <span className="badge-success text-xs gap-1">
+                                  <GlassWater className="w-3 h-3" />
+                                  {loc.dispensers[0].id}
+                                </span>
+                              ) : (
+                                <span className="text-xs text-muted-foreground italic">Vacía</span>
+                              )}
+                            </div>
                           </div>
-                          <div className="flex items-center gap-2">
-                            {loc.dispensers?.length > 0 ? (
-                              <span className="badge-success text-xs flex items-center gap-1">
-                                <GlassWater className="w-3 h-3" />
-                                {loc.dispensers[0].id}
-                              </span>
-                            ) : (
-                              <span className="text-xs text-muted-foreground italic">Vacía</span>
-                            )}
-                          </div>
-                        </div>
-                      ))
-                    )}
+                        ))
+                      )}
+                    </div>
                   </div>
-                </div>
-              )}
-            </div>
-          ))}
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
 
       {showModal && (
         <SimpleFormModal
-          title="Nueva Planta"
+          title={showModal === 'new' ? "Nueva Planta" : "Editar Planta"}
+          initialData={showModal === 'new' ? undefined : {
+            nombre: showModal.nombre,
+            direccion: showModal.direccion || '',
+            clientId: showModal.clientId
+          }}
           fields={[
             { name: 'clientId', label: 'Cliente *', type: 'select', options: clients.map(c => ({ value: c.id, label: c.nombre })), required: true },
             { name: 'nombre', label: 'Nombre *', required: true },
             { name: 'direccion', label: 'Dirección' },
           ]}
-          onClose={() => setShowModal(false)}
+          onClose={() => setShowModal(null)}
           onSubmit={async (data) => {
-            const res = await fetch('/api/plants', {
-              method: 'POST',
+            const isEdit = showModal !== 'new';
+            const url = isEdit ? `/api/plants/${showModal.id}` : '/api/plants';
+            const res = await fetch(url, {
+              method: isEdit ? 'PUT' : 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(data),
             });
             if (!res.ok) throw new Error((await res.json()).error);
-            toast.success('Planta creada');
-            fetchPlants();
+            toast.success(isEdit ? 'Planta actualizada' : 'Planta creada');
+            fetchPlants(true);
+            if (!isEdit) fetchLocations('', true);
           }}
+        />
+      )}
+
+      {deleteConfirm && (
+        <ConfirmModal
+          title="Eliminar Planta"
+          description={`¿Estás seguro de que deseas eliminar la planta "${deleteConfirm.nombre}"? Esta acción no se puede deshacer.`}
+          onConfirm={handleDelete}
+          onClose={() => setDeleteConfirm(null)}
         />
       )}
     </div>
@@ -265,26 +379,36 @@ function PlantsSection() {
 
 // ─── Sectors Section ────────────────────────────────
 function SectorsSection() {
-  const [sectors, setSectors] = useState<Sector[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [showModal, setShowModal] = useState(false);
+  const { sectors, fetchSectors } = useConfigStore();
+  const [isLoading, setIsLoading] = useState(false);
+  const [showModal, setShowModal] = useState<any>(null); // null, 'new', or sector object
+  const [deleteConfirm, setDeleteConfirm] = useState<any>(null);
 
-  const fetchSectors = useCallback(async () => {
-    setIsLoading(true);
+  useEffect(() => {
+    if (sectors.length === 0) {
+      setIsLoading(true);
+      fetchSectors().finally(() => setIsLoading(false));
+    }
+  }, [sectors.length, fetchSectors]);
+
+  const handleDelete = async () => {
+    if (!deleteConfirm) return;
     try {
-      const res = await fetch('/api/sectors');
-      const data = await res.json();
-      setSectors(Array.isArray(data) ? data : []);
-    } catch { toast.error('Error al cargar sectores'); }
-    finally { setIsLoading(false); }
-  }, []);
-
-  useEffect(() => { fetchSectors(); }, [fetchSectors]);
+      const res = await fetch(`/api/sectors/${deleteConfirm.id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Error al eliminar');
+      toast.success('Sector eliminado');
+      fetchSectors(true);
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setDeleteConfirm(null);
+    }
+  };
 
   return (
     <div className="space-y-4">
       <div className="flex justify-end">
-        <button onClick={() => setShowModal(true)} className="btn-primary gap-2">
+        <button onClick={() => setShowModal('new')} className="btn-primary gap-2">
           <Plus className="w-4 h-4" /> Nuevo Sector
         </button>
       </div>
@@ -294,9 +418,19 @@ function SectorsSection() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
           {sectors.map(s => (
-            <div key={s.id} className="glass-card-hover p-4 flex items-center gap-3">
-              <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center shrink-0">
-                <Layers className="w-5 h-5 text-primary" />
+            <div key={s.id} className="glass-card-hover p-4 flex flex-col gap-3">
+              <div className="flex items-center justify-between">
+                <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center shrink-0">
+                  <Layers className="w-5 h-5 text-primary" />
+                </div>
+                <div className="flex items-center gap-1">
+                  <button onClick={() => setShowModal(s)} className="btn-ghost btn-icon p-1">
+                    <Edit2 className="w-4 h-4 text-blue-600" />
+                  </button>
+                  <button onClick={() => setDeleteConfirm(s)} className="btn-ghost btn-icon p-1">
+                    <Trash2 className="w-4 h-4 text-red-600" />
+                  </button>
+                </div>
               </div>
               <div>
                 <p className="font-semibold text-sm">{s.nombre}</p>
@@ -311,22 +445,37 @@ function SectorsSection() {
 
       {showModal && (
         <SimpleFormModal
-          title="Nuevo Sector"
+          title={showModal === 'new' ? "Nuevo Sector" : "Editar Sector"}
+          initialData={showModal === 'new' ? undefined : {
+            nombre: showModal.nombre,
+            descripcion: showModal.descripcion || ''
+          }}
           fields={[
             { name: 'nombre', label: 'Nombre *', required: true },
             { name: 'descripcion', label: 'Descripción' },
           ]}
-          onClose={() => setShowModal(false)}
+          onClose={() => setShowModal(null)}
           onSubmit={async (data) => {
-            const res = await fetch('/api/sectors', {
-              method: 'POST',
+            const isEdit = showModal !== 'new';
+            const url = isEdit ? `/api/sectors/${showModal.id}` : '/api/sectors';
+            const res = await fetch(url, {
+              method: isEdit ? 'PUT' : 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(data),
             });
             if (!res.ok) throw new Error((await res.json()).error);
-            toast.success('Sector creado');
-            fetchSectors();
+            toast.success(isEdit ? 'Sector actualizado' : 'Sector creado');
+            fetchSectors(true);
           }}
+        />
+      )}
+
+      {deleteConfirm && (
+        <ConfirmModal
+          title="Eliminar Sector"
+          description={`¿Estás seguro de que deseas eliminar el sector "${deleteConfirm.nombre}"? Esta acción no se puede deshacer.`}
+          onConfirm={handleDelete}
+          onClose={() => setDeleteConfirm(null)}
         />
       )}
     </div>
@@ -334,79 +483,156 @@ function SectorsSection() {
 }
 
 // ─── Locations Section ──────────────────────────────
+// ─── Locations Section ──────────────────────────────
 function LocationsSection() {
-  const [locations, setLocations] = useState<Location[]>([]);
-  const [plants, setPlants] = useState<Plant[]>([]);
-  const [sectors, setSectors] = useState<Sector[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { locations, plants, sectors, fetchLocations, fetchPlants, fetchSectors } = useConfigStore();
+  const [isLoading, setIsLoading] = useState(false);
   const [plantFilter, setPlantFilter] = useState('');
-  const [showModal, setShowModal] = useState(false);
+  const [sectorFilter, setSectorFilter] = useState('');
+  const [showModal, setShowModal] = useState<any>(null); // null, 'new', or location object
+  const [deleteConfirm, setDeleteConfirm] = useState<any>(null);
 
-  const fetchAll = useCallback(async () => {
-    setIsLoading(true);
+  useEffect(() => {
+    const init = async () => {
+      if (locations.length === 0 || plants.length === 0 || sectors.length === 0) {
+        setIsLoading(true);
+        await Promise.all([
+          fetchLocations(),
+          fetchPlants(),
+          fetchSectors()
+        ]);
+        setIsLoading(false);
+      }
+    };
+    init();
+  }, [locations.length, plants.length, sectors.length, fetchLocations, fetchPlants, fetchSectors]);
+
+  // Sort locations numerically (natural sort)
+  const sortedLocations = useMemo(() => {
+    return [...locations].sort((a, b) => 
+      a.id.localeCompare(b.id, undefined, { numeric: true, sensitivity: 'base' })
+    );
+  }, [locations]);
+
+  const filtered = useMemo(() => {
+    return sortedLocations.filter(l => {
+      const matchPlant = !plantFilter || l.plant?.id === plantFilter;
+      const matchSector = !sectorFilter || l.sector?.id === sectorFilter;
+      return matchPlant && matchSector;
+    });
+  }, [sortedLocations, plantFilter, sectorFilter]);
+
+  const handleDelete = async () => {
+    if (!deleteConfirm) return;
     try {
-      const params = new URLSearchParams();
-      if (plantFilter) params.set('plantId', plantFilter);
-      const [locRes, plantsRes, sectorsRes] = await Promise.all([
-        fetch(`/api/locations?${params}`),
-        fetch('/api/plants'),
-        fetch('/api/sectors'),
-      ]);
-      setLocations(await locRes.json());
-      setPlants(await plantsRes.json());
-      setSectors(await sectorsRes.json());
-    } catch { toast.error('Error al cargar ubicaciones'); }
-    finally { setIsLoading(false); }
-  }, [plantFilter]);
+      const res = await fetch(`/api/locations/${deleteConfirm.id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Error al eliminar');
+      toast.success('Ubicación eliminada');
+      fetchLocations('', true);
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setDeleteConfirm(null);
+    }
+  };
 
-  useEffect(() => { fetchAll(); }, [fetchAll]);
+  const exportToExcel = () => {
+    const data = filtered.map(loc => ({
+      ID: loc.id,
+      Nombre: loc.nombre,
+      Planta: loc.plant?.nombre,
+      Sector: loc.sector?.nombre || 'N/A',
+      Dispenser: loc.dispensers?.[0]?.id || 'Vacía'
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Ubicaciones');
+    XLSX.writeFile(wb, `ubicaciones_${new Date().toISOString().split('T')[0]}.xlsx`);
+    toast.success('Excel exportado correctamente');
+  };
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
-        <select
-          value={plantFilter}
-          onChange={e => setPlantFilter(e.target.value)}
-          className="select max-w-xs"
-        >
-          <option value="">Todas las plantas</option>
-          {plants.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
-        </select>
-        <button onClick={() => setShowModal(true)} className="btn-primary gap-2 shrink-0">
+      <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
+        <div className="flex flex-row flex-wrap items-center gap-2">
+          <select
+            value={plantFilter}
+            onChange={e => setPlantFilter(e.target.value)}
+            className="select select-sm md:select-md w-auto min-w-[140px]"
+          >
+            <option value="">Todas las plantas</option>
+            {plants.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
+          </select>
+
+          <select
+            value={sectorFilter}
+            onChange={e => setSectorFilter(e.target.value)}
+            className="select select-sm md:select-md w-auto min-w-[140px]"
+          >
+            <option value="">Todos los sectores</option>
+            {sectors.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
+          </select>
+          
+          {filtered.length > 0 && (
+            <button 
+              onClick={exportToExcel}
+              className="btn-outline btn-sm md:btn-md gap-2 px-3"
+              title="Exportar a Excel"
+            >
+              <FileSpreadsheet className="w-4 h-4 text-green-600" />
+              <span className="hidden sm:inline">Exportar Excel</span>
+            </button>
+          )}
+        </div>
+        <button onClick={() => setShowModal('new')} className="btn-primary btn-sm md:btn-md gap-2 shrink-0">
           <Plus className="w-4 h-4" /> Nueva Ubicación
         </button>
       </div>
 
-      {isLoading ? <LoadingSkeleton /> : locations.length === 0 ? (
+      {isLoading ? <LoadingSkeleton /> : filtered.length === 0 ? (
         <EmptyState icon={MapPin} text="Sin ubicaciones registradas" />
       ) : (
         <div className="table-container">
           <table className="table">
             <thead>
               <tr>
-                <th>ID</th>
-                <th>Nombre</th>
-                <th>Planta</th>
-                <th>Sector</th>
-                <th>Dispenser</th>
+                <th className="text-center">ID</th>
+                <th className="text-center">Nombre</th>
+                <th className="text-center">Planta</th>
+                <th className="text-center">Sector</th>
+                <th className="text-center">Dispenser</th>
+                <th className="text-center">Acciones</th>
               </tr>
             </thead>
             <tbody>
-              {locations.map((loc: any) => (
+              {filtered.map((loc: any) => (
                 <tr key={loc.id}>
-                  <td className="font-mono text-xs">{loc.id}</td>
-                  <td className="font-medium">{loc.nombre}</td>
-                  <td>{loc.plant?.nombre}</td>
-                  <td>{loc.sector?.nombre || <span className="text-muted-foreground italic">—</span>}</td>
-                  <td>
-                    {loc.dispensers?.length > 0 ? (
-                      <span className="badge-success text-xs gap-1">
-                        <GlassWater className="w-3 h-3" />
-                        {loc.dispensers[0].id}
-                      </span>
-                    ) : (
-                      <span className="text-xs text-muted-foreground italic">Vacía</span>
-                    )}
+                  <td className="font-mono text-xs text-center">{loc.id}</td>
+                  <td className="font-medium text-center">{loc.nombre}</td>
+                  <td className="text-center">{loc.plant?.nombre}</td>
+                  <td className="text-center">{loc.sector?.nombre || <span className="text-muted-foreground italic">—</span>}</td>
+                  <td className="text-center">
+                    <div className="flex justify-center">
+                      {loc.dispensers?.length > 0 ? (
+                        <span className="badge-success text-xs gap-1">
+                          <GlassWater className="w-3 h-3" />
+                          {loc.dispensers[0].id}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-muted-foreground italic">Vacía</span>
+                      )}
+                    </div>
+                  </td>
+                  <td className="text-center">
+                    <div className="flex justify-center gap-1">
+                      <button onClick={() => setShowModal(loc)} className="btn-ghost btn-icon p-1">
+                        <Edit2 className="w-4 h-4 text-blue-600" />
+                      </button>
+                      <button onClick={() => setDeleteConfirm(loc)} className="btn-ghost btn-icon p-1">
+                        <Trash2 className="w-4 h-4 text-red-600" />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -417,25 +643,43 @@ function LocationsSection() {
 
       {showModal && (
         <SimpleFormModal
-          title="Nueva Ubicación"
+          title={showModal === 'new' ? "Nueva Ubicación" : "Editar Ubicación"}
+          initialData={showModal === 'new' ? undefined : {
+            id: showModal.id,
+            plantId: showModal.plantId,
+            sectorId: showModal.sectorId || '',
+            nombre: showModal.nombre,
+            piso: showModal.piso || '',
+          }}
           fields={[
-            { name: 'id', label: 'ID Ubicación *', placeholder: 'LOC-XXX', required: true },
+            ...(showModal === 'new' ? [{ name: 'id', label: 'ID Ubicación *', placeholder: 'LOC-XXX', required: true }] : []),
             { name: 'plantId', label: 'Planta *', type: 'select', options: plants.map(p => ({ value: p.id, label: p.nombre })), required: true },
             { name: 'sectorId', label: 'Sector', type: 'select', options: [{ value: '', label: 'Sin sector' }, ...sectors.map(s => ({ value: s.id, label: s.nombre }))] },
             { name: 'nombre', label: 'Nombre *', required: true },
             { name: 'piso', label: 'Piso' },
           ]}
-          onClose={() => setShowModal(false)}
+          onClose={() => setShowModal(null)}
           onSubmit={async (data) => {
-            const res = await fetch('/api/locations', {
-              method: 'POST',
+            const isEdit = showModal !== 'new';
+            const url = isEdit ? `/api/locations/${showModal.id}` : '/api/locations';
+            const res = await fetch(url, {
+              method: isEdit ? 'PUT' : 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(data),
             });
             if (!res.ok) throw new Error((await res.json()).error);
-            toast.success('Ubicación creada');
-            fetchAll();
+            toast.success(isEdit ? 'Ubicación actualizada' : 'Ubicación creada');
+            fetchLocations('', true);
           }}
+        />
+      )}
+
+      {deleteConfirm && (
+        <ConfirmModal
+          title="Eliminar Ubicación"
+          description={`¿Estás seguro de que deseas eliminar la ubicación "${deleteConfirm.nombre}"? Esta acción no se puede deshacer.`}
+          onConfirm={handleDelete}
+          onClose={() => setDeleteConfirm(null)}
         />
       )}
     </div>
@@ -453,15 +697,16 @@ type FormField = {
 };
 
 function SimpleFormModal({
-  title, fields, onClose, onSubmit
+  title, fields, initialData, onClose, onSubmit
 }: {
   title: string;
   fields: FormField[];
+  initialData?: Record<string, string>;
   onClose: () => void;
   onSubmit: (data: Record<string, string>) => Promise<void>;
 }) {
   const [form, setForm] = useState<Record<string, string>>(
-    Object.fromEntries(fields.map(f => [f.name, '']))
+    initialData || Object.fromEntries(fields.map(f => [f.name, '']))
   );
   const [saving, setSaving] = useState(false);
 

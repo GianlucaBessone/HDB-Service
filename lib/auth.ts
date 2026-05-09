@@ -3,6 +3,14 @@ import { UserRole } from '@prisma/client';
 import { hasPermission, Permission } from './rbac';
 import { createClient } from '@/utils/supabase/server';
 import { prisma } from './prisma';
+import fs from 'fs';
+import path from 'path';
+
+function logToFile(msg: string) {
+  const logPath = path.join(process.cwd(), 'scratch', 'auth-debug.log');
+  const timestamp = new Date().toISOString();
+  fs.appendFileSync(logPath, `[${timestamp}] ${msg}\n`);
+}
 
 export type SessionUser = {
   id: string;
@@ -16,24 +24,62 @@ export type SessionUser = {
  * Get the current user from Supabase Auth and map to Prisma User.
  */
 export async function getCurrentUser(): Promise<SessionUser | null> {
-  const supabase = await createClient();
-  const { data: { user: authUser } } = await supabase.auth.getUser();
-  
-  if (!authUser?.email) return null;
+  try {
+    logToFile('--- getCurrentUser Start ---');
+    const supabase = await createClient();
+    const { data: { user: authUser }, error } = await supabase.auth.getUser();
+    
+    if (error) {
+      logToFile(`Supabase getUser error: ${error.message}`);
+      // Log cookies if there's an error
+      try {
+        const { cookies } = await import('next/headers');
+        const cookieStore = await cookies();
+        const names = cookieStore.getAll().map(c => c.name);
+        logToFile(`Present cookies: ${names.join(', ') || 'NONE'}`);
+      } catch (cErr) {
+        logToFile('Could not read cookies in error handler');
+      }
+    }
 
-  const user = await prisma.user.findUnique({
-    where: { email: authUser.email },
-  });
+    if (!authUser) {
+      logToFile('No auth user found in session');
+      return null;
+    }
 
-  if (!user || !user.active) return null;
+    if (!authUser.email) {
+      logToFile('Auth user has no email');
+      return null;
+    }
 
-  return {
-    id: user.id,
-    email: user.email,
-    nombre: user.nombre,
-    role: user.role,
-    clientId: user.clientId,
-  };
+    logToFile(`Authenticated as: ${authUser.email}`);
+
+    const user = await prisma.user.findUnique({
+      where: { email: authUser.email },
+    });
+
+    if (!user) {
+      logToFile(`User not found in Prisma: ${authUser.email}`);
+      return null;
+    }
+
+    if (!user.active) {
+      logToFile(`User is inactive in Prisma: ${authUser.email}`);
+      return null;
+    }
+
+    logToFile(`Prisma user found: ${user.id} (${user.role})`);
+    return {
+      id: user.id,
+      email: user.email,
+      nombre: user.nombre,
+      role: user.role,
+      clientId: user.clientId,
+    };
+  } catch (err: any) {
+    logToFile(`getCurrentUser CRASH: ${err.message}`);
+    return null;
+  }
 }
 
 /**
@@ -52,6 +98,7 @@ export async function getSession() {
 export async function requireAuth(): Promise<SessionUser | NextResponse> {
   const user = await getCurrentUser();
   if (!user) {
+    logToFile('requireAuth failed -> 401');
     return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
   }
   return user;

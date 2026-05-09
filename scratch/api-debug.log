@@ -1,0 +1,34 @@
+[2026-05-09T03:55:21.499Z] GET /api/dispensers START
+[2026-05-09T03:55:22.164Z] GET /api/dispensers: status=null, search=null
+[2026-05-09T03:55:22.164Z] GET /api/dispensers: Fetching from Prisma
+[2026-05-09T03:55:24.686Z] GET /api/dispensers: SUCCESS, found 4 dispensers
+[2026-05-09T03:55:37.739Z] GET /api/dispensers START
+[2026-05-09T03:55:37.743Z] GET /api/dispensers: requirePermission failed
+[2026-05-09T04:24:33.760Z] GET /api/dispensers START
+[2026-05-09T04:24:34.294Z] GET /api/dispensers: status=null, search=null
+[2026-05-09T04:24:34.294Z] GET /api/dispensers: Fetching from Prisma
+[2026-05-09T04:24:35.985Z] GET /api/dispensers: SUCCESS, found 4 dispensers in 2225ms
+[2026-05-09T04:57:18.748Z] GET /api/dispensers START
+[2026-05-09T04:57:19.759Z] GET /api/dispensers: status=null, search=null
+[2026-05-09T04:57:19.759Z] GET /api/dispensers: Fetching from Prisma
+[2026-05-09T04:57:21.591Z] GET /api/dispensers: SUCCESS, found 4 dispensers in 2844ms
+[2026-05-09T05:00:33.579Z] GET /api/dispensers START
+[2026-05-09T05:00:36.059Z] GET /api/dispensers: status=null, search=null
+[2026-05-09T05:00:36.059Z] GET /api/dispensers: Fetching from Prisma
+[2026-05-09T05:00:38.426Z] GET /api/dispensers: SUCCESS, found 4 dispensers in 4846ms
+[2026-05-09T05:00:39.199Z] GET /api/dispensers START
+[2026-05-09T05:00:39.594Z] GET /api/dispensers: status=null, search=null
+[2026-05-09T05:00:39.594Z] GET /api/dispensers: Fetching from Prisma
+[2026-05-09T05:00:42.536Z] GET /api/dispensers: SUCCESS, found 4 dispensers in 3337ms
+[2026-05-09T05:02:53.343Z] GET /api/dispensers START
+[2026-05-09T05:02:54.004Z] GET /api/dispensers: status=null, search=null
+[2026-05-09T05:02:54.004Z] GET /api/dispensers: Fetching from Prisma
+[2026-05-09T05:02:55.538Z] GET /api/dispensers: SUCCESS, found 4 dispensers in 2195ms
+[2026-05-09T05:03:12.608Z] GET /api/dispensers START
+[2026-05-09T05:03:13.134Z] GET /api/dispensers: status=null, search=null
+[2026-05-09T05:03:13.134Z] GET /api/dispensers: Fetching from Prisma
+[2026-05-09T05:03:14.157Z] GET /api/dispensers: SUCCESS, found 4 dispensers in 1549ms
+[2026-05-09T05:04:00.780Z] GET /api/dispensers START
+[2026-05-09T05:04:01.147Z] GET /api/dispensers: status=null, search=null
+[2026-05-09T05:04:01.147Z] GET /api/dispensers: Fetching from Prisma
+[2026-05-09T05:04:02.240Z] GET /api/dispensers: SUCCESS, found 4 dispensers in 1460ms

@@ -3,23 +3,33 @@ import { prisma } from '@/lib/prisma';
 import { requirePermission } from '@/lib/auth';
 import { withIdempotency } from '@/lib/idempotency';
 import { createAuditLog } from '@/lib/audit';
+import fs from 'fs';
+import path from 'path';
+
+function logToFile(msg: string) {
+  const logPath = path.join(process.cwd(), 'scratch', 'api-debug.log');
+  const timestamp = new Date().toISOString();
+  fs.appendFileSync(logPath, `[${timestamp}] ${msg}\n`);
+}
 
 // GET /api/dispensers — List dispensers with filters
 export async function GET(req: Request) {
+  const startTime = Date.now();
+  logToFile('GET /api/dispensers START');
+  
   const user = await requirePermission('dispensers:read');
-  if (user instanceof NextResponse) return user;
+  if (user instanceof NextResponse) {
+    logToFile('GET /api/dispensers: requirePermission failed');
+    return user;
+  }
 
   try {
     const { searchParams } = new URL(req.url);
     const status = searchParams.get('status');
-    const clientId = searchParams.get('clientId');
-    const plantId = searchParams.get('plantId');
     const search = searchParams.get('search');
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '50');
+    logToFile(`GET /api/dispensers: status=${status}, search=${search}`);
 
     const where: any = { active: true };
-
     if (status) where.status = status;
     if (search) {
       where.OR = [
@@ -30,18 +40,7 @@ export async function GET(req: Request) {
       ];
     }
 
-    // Scope by plant/client
-    if (plantId) {
-      where.location = { plantId };
-    } else if (clientId) {
-      where.location = { plant: { clientId } };
-    }
-
-    // Client users: scope to their client
-    if ((user.role === 'CLIENT_RESPONSIBLE' || user.role === 'CLIENT_REQUESTER') && user.clientId) {
-      where.location = { ...where.location, plant: { ...where.location?.plant, clientId: user.clientId } };
-    }
-
+    logToFile('GET /api/dispensers: Fetching from Prisma');
     const [dispensers, total] = await Promise.all([
       prisma.dispenser.findMany({
         where,
@@ -53,18 +52,20 @@ export async function GET(req: Request) {
             },
           },
           _count: {
-            select: { tickets: true, repairHistory: true, maintenanceSchedules: true },
+            select: { tickets: true }, // Optimized: only count tickets for the list view
           },
         },
         orderBy: { updatedAt: 'desc' },
-        skip: (page - 1) * limit,
-        take: limit,
+        take: 50,
       }),
       prisma.dispenser.count({ where }),
     ]);
 
-    return NextResponse.json({ dispensers, total, page, limit });
-  } catch (error) {
+    const duration = Date.now() - startTime;
+    logToFile(`GET /api/dispensers: SUCCESS, found ${dispensers.length} dispensers in ${duration}ms`);
+    return NextResponse.json({ dispensers, total });
+  } catch (error: any) {
+    logToFile(`GET /api/dispensers: ERROR: ${error.message}`);
     console.error('[API] GET /api/dispensers error:', error);
     return NextResponse.json({ error: 'Error al obtener dispensers' }, { status: 500 });
   }

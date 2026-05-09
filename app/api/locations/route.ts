@@ -52,18 +52,39 @@ export async function POST(req: Request) {
   return withIdempotency(req, async () => {
     try {
       const body = await req.json();
-      const { id, plantId, sectorId, nombre, piso, area, descripcion } = body;
+      let { id, plantId, sectorId, nombre, piso, area, descripcion } = body;
 
-      if (!id?.trim() || !plantId || !nombre?.trim()) {
+      if (!plantId || !nombre?.trim()) {
         return NextResponse.json(
-          { error: 'ID, plantId y nombre son requeridos' },
+          { error: 'plantId y nombre son requeridos' },
           { status: 400 }
         );
+      }
+
+      // AUTO-INCREMENTAL ID LOGIC
+      if (!id || !id.trim()) {
+        const lastLocation = await prisma.location.findFirst({
+          where: { id: { startsWith: 'LOC-' } },
+          orderBy: { id: 'desc' },
+        });
+
+        if (lastLocation) {
+          const match = lastLocation.id.match(/LOC-(\d+)/);
+          if (match) {
+            const nextNum = parseInt(match[1]) + 1;
+            id = `LOC-${nextNum.toString().padStart(3, '0')}`;
+          } else {
+            id = `LOC-${Math.random().toString(36).substr(2, 5).toUpperCase()}`;
+          }
+        } else {
+          id = 'LOC-001';
+        }
       }
 
       // Verify ID uniqueness (GLOBAL)
       const existing = await prisma.location.findUnique({ where: { id: id.trim() } });
       if (existing) {
+        // If auto-generated failed or manual collision
         return NextResponse.json(
           { error: `Ya existe una ubicación con ID "${id}"` },
           { status: 409 }

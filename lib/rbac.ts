@@ -159,7 +159,7 @@ export const NAV_ITEMS: NavItem[] = [
   { key: '/map', label: 'Mapa', icon: 'MapPin', roles: ['ADMIN', 'SUPERVISOR', 'TECHNICIAN'] },
   { key: '/qr/scan', label: 'Escanear QR', icon: 'ScanLine', roles: ['ADMIN', 'SUPERVISOR', 'TECHNICIAN', 'CLIENT_RESPONSIBLE', 'CLIENT_REQUESTER'] },
   { key: '/users', label: 'Usuarios', icon: 'Users', roles: ['ADMIN', 'SUPERVISOR'] },
-  { key: '/reports', label: 'Reportes', icon: 'FileText', roles: ['ADMIN', 'SUPERVISOR', 'TECHNICIAN', 'CLIENT_RESPONSIBLE'] },
+  { key: '/maintenance/reports', label: 'Reportes', icon: 'FileText', roles: ['ADMIN', 'SUPERVISOR', 'TECHNICIAN', 'CLIENT_RESPONSIBLE'] },
 ];
 
 /**

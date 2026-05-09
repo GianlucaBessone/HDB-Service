@@ -219,7 +219,6 @@ model Dispenser {
   // Relations — Operations
   tickets              Ticket[]
   maintenanceSchedules MaintenanceSchedule[]
-  interPlantDebts      InterPlantDebt[]
 
   @@index([status])
   @@index([locationId])
@@ -403,10 +402,6 @@ model InterPlantDebt {
   nombre          String
   cantidad        Float       @default(1)
   status          DebtStatus  @default(PENDING)
-
-  // Dispenser blocked because of this debt
-  dispenserBlockedId String?
-  dispenserBlocked   Dispenser? @relation(fields: [dispenserBlockedId], references: [id], onDelete: SetNull)
 
   createdAt  DateTime  @default(now())
   resolvedAt DateTime?

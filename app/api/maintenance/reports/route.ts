@@ -23,10 +23,13 @@ export async function GET(req: Request) {
     }
 
     if (clientId || plantId || sectorId) {
-      whereClause.dispenser = { location: {} };
-      if (clientId) whereClause.dispenser.location.plant = { clientId };
-      if (plantId) whereClause.dispenser.location.plantId = plantId;
-      if (sectorId) whereClause.dispenser.location.sectorId = sectorId;
+      whereClause.dispenser = {
+        location: {
+          plant: clientId ? { clientId } : undefined,
+          plantId: plantId || undefined,
+          sectorId: sectorId || undefined,
+        }
+      };
     }
 
     const schedules = await prisma.maintenanceSchedule.findMany({

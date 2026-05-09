@@ -4,6 +4,7 @@ import { createClient } from '@/utils/supabase/client';
 import { Bell, Menu, LogOut, User as UserIcon } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { UserRole } from '@prisma/client';
+import { t } from '@/lib/translations';
 import { useNotificationStore } from '@/lib/store/useNotificationStore';
 
 export default function TopBar({ user }: { user: { nombre: string; email: string; role: UserRole } }) {
@@ -52,8 +53,8 @@ export default function TopBar({ user }: { user: { nombre: string; email: string
         <div className="flex items-center gap-3">
           <div className="hidden md:flex flex-col items-end">
             <span className="text-sm font-semibold leading-none">{user.nombre}</span>
-            <span className="text-xs text-muted-foreground mt-1 capitalize">
-              {user.role.replace('_', ' ').toLowerCase()}
+            <span className="text-xs text-muted-foreground mt-1">
+              {t(user.role)}
             </span>
           </div>
           <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">

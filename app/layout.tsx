@@ -29,7 +29,7 @@ export default async function RootLayout({
 
   return (
     <html lang="es" suppressHydrationWarning>
-      <body className={`${inter.className} min-h-screen bg-background`}>
+      <body className={`${inter.className} min-h-screen bg-background`} suppressHydrationWarning>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           {session ? (
             <div className="flex h-screen overflow-hidden">

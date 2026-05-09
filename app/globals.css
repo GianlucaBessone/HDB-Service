@@ -339,6 +339,21 @@
 /* ============================================= */
 /* LEAFLET MAP OVERRIDES                         */
 /* ============================================= */
+@keyframes scan-line {
+  0% { top: 10%; opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { top: 90%; opacity: 0; }
+}
+
+.animate-scan-line {
+  animation: scan-line 2s linear infinite;
+}
+
+.animate-spin-slow {
+  animation: spin 3s linear infinite;
+}
+
 .leaflet-container {
   border-radius: var(--radius);
   z-index: 1;

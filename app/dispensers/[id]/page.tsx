@@ -7,20 +7,14 @@ import {
   ArrowLeft, GlassWater, MapPin, Wrench, Package, Ticket,
   Clock, CheckCircle2, AlertTriangle, Archive, CalendarClock,
   ChevronRight, Loader2, X, RefreshCw, QrCode, Download, Pencil,
+  PlusCircle, ShieldCheck
 } from 'lucide-react';
 import clsx from 'clsx';
 import toast from 'react-hot-toast';
 import { exportDispenserToExcel } from '@/lib/exportExcel';
-
-const STATUS_CONFIG: Record<string, { label: string; badge: string; icon: React.ElementType }> = {
-  IN_SERVICE:           { label: 'En Servicio',           badge: 'badge-success', icon: CheckCircle2 },
-  UNDER_REPAIR:         { label: 'En Reparación',         badge: 'badge-warning', icon: Wrench },
-  IN_TECHNICAL_SERVICE: { label: 'En Servicio Técnico',   badge: 'badge-warning', icon: Wrench },
-  BLOCKED:              { label: 'Bloqueado',             badge: 'badge-danger',  icon: AlertTriangle },
-  BLOCKED_WAITING_OC:   { label: 'Bloqueado (Esperando OC)',badge: 'badge-danger', icon: AlertTriangle },
-  OUT_OF_SERVICE:       { label: 'Fuera de Servicio',     badge: 'badge-neutral', icon: Archive },
-  BACKUP:               { label: 'Backup',                badge: 'badge-info',    icon: Archive },
-};
+import { t, getStatusColor } from '@/lib/translations';
+import ChecklistModal from '@/components/ChecklistModal';
+import CreateTicketModal from '@/components/CreateTicketModal';
 
 const ALL_STATUSES = ['IN_SERVICE', 'UNDER_REPAIR', 'IN_TECHNICAL_SERVICE', 'BLOCKED', 'BLOCKED_WAITING_OC', 'OUT_OF_SERVICE', 'BACKUP'];
 
@@ -36,6 +30,9 @@ export default function DispenserDetailPage() {
   const [activeTab, setActiveTab] = useState<Tab>('info');
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showChecklistModal, setShowChecklistModal] = useState(false);
+  const [showTicketModal, setShowTicketModal] = useState(false);
+  const [currentSchedule, setCurrentSchedule] = useState<any>(null);
 
   const fetchDispenser = async () => {
     setIsLoading(true);
@@ -44,6 +41,18 @@ export default function DispenserDetailPage() {
       if (!res.ok) throw new Error('Not found');
       const data = await res.json();
       setDispenser(data);
+
+      // Fetch current month maintenance schedule
+      const month = new Date().toISOString().slice(0, 7);
+      const maintRes = await fetch(`/api/maintenance?dispenserId=${dispenserId}&month=${month}`);
+      if (maintRes.ok) {
+        const schedules = await maintRes.json();
+        if (schedules.length > 0) {
+          setCurrentSchedule(schedules[0]);
+        } else {
+          setCurrentSchedule(null);
+        }
+      }
     } catch {
       toast.error('Dispenser no encontrado');
       router.push('/dispensers');
@@ -63,9 +72,6 @@ export default function DispenserDetailPage() {
     );
   }
 
-  const sc = STATUS_CONFIG[dispenser.status] || STATUS_CONFIG['BACKUP'];
-  const StatusIcon = sc.icon;
-
   const tabs: { key: Tab; label: string; icon: React.ElementType }[] = [
     { key: 'info', label: 'Información', icon: GlassWater },
     { key: 'location', label: 'Ubicaciones', icon: MapPin },
@@ -74,7 +80,7 @@ export default function DispenserDetailPage() {
   ];
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-6 animate-fade-in pb-20">
       {/* Breadcrumb + Back */}
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <Link href="/dispensers" className="hover:text-foreground transition-colors flex items-center gap-1">
@@ -85,165 +91,245 @@ export default function DispenserDetailPage() {
         <span className="text-foreground font-medium">{dispenser.id}</span>
       </div>
 
-      {/* Header Card */}
-      <div className="glass-card p-6">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 bg-primary/10 rounded-xl flex items-center justify-center shrink-0">
-              <GlassWater className="w-7 h-7 text-primary" />
+      {/* Main Actions Bar (Sticky on Mobile) */}
+      <div className="glass-card p-4 flex flex-wrap items-center justify-between gap-4 border-l-4 border-l-primary">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center shrink-0">
+            <GlassWater className="w-6 h-6 text-primary" />
+          </div>
+          <div>
+            <h1 className="text-xl font-bold tracking-tight leading-none mb-1">{dispenser.id}</h1>
+            <p className="text-xs text-muted-foreground">{dispenser.marca} {dispenser.modelo}</p>
+          </div>
+        </div>
+        
+        <div className="flex items-center gap-2">
+          {currentSchedule ? (
+            <button
+              onClick={() => setShowChecklistModal(true)}
+              className={clsx(
+                "btn-sm gap-2 rounded-full px-4",
+                currentSchedule.status === 'PENDING' ? "btn-primary shadow-lg shadow-primary/20" : "btn-outline text-emerald-600 border-emerald-200 bg-emerald-50"
+              )}
+            >
+              {currentSchedule.status === 'PENDING' ? (
+                <>
+                  <ShieldCheck className="w-4 h-4" />
+                  Hacer Mtto Mensual
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 className="w-4 h-4" />
+                  Mtto Realizado
+                </>
+              )}
+            </button>
+          ) : (
+            <button
+              disabled
+              className="btn-outline btn-sm gap-2 rounded-full opacity-50 cursor-not-allowed"
+              title="No hay mantenimiento programado para este mes"
+            >
+              <CalendarClock className="w-4 h-4" />
+              Sin Mtto Planif.
+            </button>
+          )}
+
+          <button
+            onClick={() => setShowTicketModal(true)}
+            className="btn-outline btn-sm gap-2 rounded-full px-4 hover:border-primary/50"
+          >
+            <PlusCircle className="w-4 h-4 text-primary" />
+            Nuevo Ticket
+          </button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Header Info Card */}
+        <div className="lg:col-span-2 space-y-6">
+          <div className="glass-card p-6">
+            <div className="flex items-center justify-between mb-6">
+              <span className={clsx('badge text-sm gap-1.5 border py-1.5 px-4', getStatusColor(dispenser.status))}>
+                <RefreshCw className="w-4 h-4" />
+                {t(dispenser.status)}
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => window.open(`/dispensers/print-qr?ids=${dispenser.id}`, '_blank')}
+                  className="btn-ghost btn-sm text-muted-foreground"
+                  title="Imprimir QR"
+                >
+                  <QrCode className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => exportDispenserToExcel(dispenser)}
+                  className="btn-ghost btn-sm text-muted-foreground"
+                  title="Descargar Excel"
+                >
+                  <Download className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => setShowEditModal(true)}
+                  className="btn-ghost btn-sm text-muted-foreground"
+                  title="Editar"
+                >
+                  <Pencil className="w-4 h-4" />
+                </button>
+              </div>
             </div>
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight">{dispenser.id}</h1>
-              <p className="text-muted-foreground">
-                {dispenser.marca} — {dispenser.modelo}
-                {dispenser.numeroSerie && dispenser.numeroSerie !== dispenser.id && (
-                  <span className="ml-2">· S/N: {dispenser.numeroSerie}</span>
-                )}
-              </p>
+
+            {/* Location Detail */}
+            <div className="p-4 bg-muted/30 rounded-xl border border-border/50 mb-6">
+              <div className="flex items-start gap-3">
+                <div className="p-2 bg-background rounded-lg border">
+                  <MapPin className="w-5 h-5 text-primary" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm">Ubicación Actual</h3>
+                  {dispenser.location ? (
+                    <p className="text-sm text-muted-foreground">
+                      {dispenser.location.plant?.nombre} · {dispenser.location.sector?.nombre} · {dispenser.location.nombre}
+                    </p>
+                  ) : (
+                    <p className="text-sm text-red-500 font-medium italic">Sin ubicación asignada</p>
+                  )}
+                </div>
+                <button 
+                  onClick={() => setShowEditModal(true)}
+                  className="ml-auto text-xs text-primary font-medium hover:underline"
+                >
+                  Cambiar
+                </button>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                onClick={() => setShowStatusModal(true)}
+                className="btn-primary btn-sm gap-2 rounded-lg"
+              >
+                <RefreshCw className="w-4 h-4" />
+                Cambiar Estado del Equipo
+              </button>
             </div>
           </div>
-          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-            <span className={`${sc.badge} text-sm`}>
-              <StatusIcon className="w-4 h-4" />
-              {sc.label}
-            </span>
-            <button
-              onClick={() => window.open(`/dispensers/print-qr?ids=${dispenser.id}`, '_blank')}
-              className="btn-outline btn-sm gap-1.5"
-              title="Imprimir QR"
-            >
-              <QrCode className="w-4 h-4" />
-              <span className="hidden sm:inline">QR</span>
-            </button>
-            <button
-              onClick={() => exportDispenserToExcel(dispenser)}
-              className="btn-outline btn-sm gap-1.5"
-              title="Descargar Excel"
-            >
-              <Download className="w-4 h-4" />
-              <span className="hidden sm:inline">Excel</span>
-            </button>
-            <button
-              onClick={() => setShowEditModal(true)}
-              className="btn-outline btn-sm gap-1.5"
-              title="Editar"
-            >
-              <Pencil className="w-4 h-4" />
-              <span className="hidden sm:inline">Editar</span>
-            </button>
-            <button
-              onClick={() => setShowStatusModal(true)}
-              className="btn-primary btn-sm gap-1.5"
-            >
-              <RefreshCw className="w-4 h-4" />
-              Estado
-            </button>
+
+          {/* Tabs Section */}
+          <div className="space-y-4">
+            <div className="tabs">
+              {tabs.map(tab => {
+                const TabIcon = tab.icon;
+                return (
+                  <button
+                    key={tab.key}
+                    onClick={() => setActiveTab(tab.key)}
+                    className={activeTab === tab.key ? 'tab-active' : 'tab'}
+                  >
+                    <TabIcon className="w-4 h-4 inline mr-1.5 -mt-0.5" />
+                    {tab.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="glass-card p-6 min-h-[300px]">
+              {activeTab === 'info' && <InfoTab dispenser={dispenser} />}
+              {activeTab === 'location' && <LocationTab history={dispenser.locationHistory || []} />}
+              {activeTab === 'repairs' && <RepairsTab repairs={dispenser.repairHistory || []} />}
+              {activeTab === 'consumables' && <ConsumablesTab consumables={dispenser.consumableHistory || []} />}
+            </div>
           </div>
         </div>
 
-        {/* Location info */}
-        {dispenser.location && (
-          <div className="mt-4 pt-4 border-t border-border flex items-center gap-2 text-sm">
-            <MapPin className="w-4 h-4 text-muted-foreground" />
-            <span className="font-medium">{dispenser.location.plant?.nombre}</span>
-            <span className="text-muted-foreground">·</span>
-            <span>{dispenser.location.sector?.nombre}</span>
-            <span className="text-muted-foreground">·</span>
-            <span>{dispenser.location.nombre}</span>
-          </div>
-        )}
-
-        {/* Lifecycle Bar */}
-        {dispenser.lifecycleStartDate && (
-          <div className="mt-4 pt-4 border-t border-border">
-            <div className="flex justify-between text-xs text-muted-foreground mb-1">
-              <span className="flex items-center gap-1">
-                <CalendarClock className="w-3.5 h-3.5" />
-                Ciclo de vida: {dispenser.lifecycleMonths} meses
-              </span>
-              <span>
-                {dispenser.lifecycleRemainingDays != null
-                  ? `${dispenser.lifecycleRemainingDays} días restantes`
-                  : 'N/A'}
-              </span>
-            </div>
-            <div className="lifecycle-bar">
-              <div
-                className={clsx('lifecycle-fill', {
-                  'bg-emerald-500': (dispenser.lifecycleRemainingDays ?? 0) > 365,
-                  'bg-amber-500': (dispenser.lifecycleRemainingDays ?? 0) <= 365 && (dispenser.lifecycleRemainingDays ?? 0) > 90,
-                  'bg-red-500': (dispenser.lifecycleRemainingDays ?? 0) <= 90,
-                })}
-                style={{
-                  width: `${Math.min(100, Math.max(5, ((dispenser.lifecycleMonths * 30 - (dispenser.lifecycleRemainingDays ?? 0)) / (dispenser.lifecycleMonths * 30)) * 100))}%`
-                }}
-              />
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Tabs */}
-      <div className="tabs">
-        {tabs.map(tab => {
-          const TabIcon = tab.icon;
-          return (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
-              className={activeTab === tab.key ? 'tab-active' : 'tab'}
-            >
-              <TabIcon className="w-4 h-4 inline mr-1.5 -mt-0.5" />
-              {tab.label}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Tab Content */}
-      <div className="glass-card p-6">
-        {activeTab === 'info' && <InfoTab dispenser={dispenser} />}
-        {activeTab === 'location' && <LocationTab history={dispenser.locationHistory || []} />}
-        {activeTab === 'repairs' && <RepairsTab repairs={dispenser.repairHistory || []} />}
-        {activeTab === 'consumables' && <ConsumablesTab consumables={dispenser.consumableHistory || []} />}
-      </div>
-
-      {/* Tickets section */}
-      {dispenser.tickets?.length > 0 && (
-        <div className="glass-card p-6">
-          <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
-            <Ticket className="w-5 h-5 text-primary" />
-            Últimos Tickets
-          </h3>
-          <div className="space-y-2">
-            {dispenser.tickets.map((t: any) => (
-              <div key={t.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
-                <div>
-                  <span className="font-medium text-sm">{t.reason}</span>
-                  <span className="text-xs text-muted-foreground ml-2">
-                    {new Date(t.createdAt).toLocaleDateString('es-AR')}
+        {/* Sidebar: Tickets & Lifecycle */}
+        <div className="space-y-6">
+          {/* Lifecycle Bar Card */}
+          <div className="glass-card p-5">
+            <h3 className="text-sm font-bold flex items-center gap-2 mb-4">
+              <CalendarClock className="w-4 h-4 text-primary" />
+              Ciclo de Vida
+            </h3>
+            {dispenser.lifecycleStartDate ? (
+              <div className="space-y-4">
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>Total: {dispenser.lifecycleMonths} meses</span>
+                  <span className="font-bold text-foreground">
+                    {dispenser.lifecycleRemainingDays != null
+                      ? `${dispenser.lifecycleRemainingDays} días restantes`
+                      : 'N/A'}
                   </span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className={clsx('badge', {
-                    'badge-danger': t.priority === 'CRITICAL',
-                    'badge-warning': t.priority === 'HIGH',
-                    'badge-info': t.priority === 'MEDIUM',
-                    'badge-neutral': t.priority === 'LOW',
-                  })}>{t.priority}</span>
-                  <span className={clsx('badge', {
-                    'badge-success': t.status === 'RESOLVED' || t.status === 'CLOSED',
-                    'badge-warning': t.status === 'IN_PROGRESS',
-                    'badge-info': t.status === 'OPEN',
-                  })}>{t.status}</span>
+                <div className="lifecycle-bar h-3">
+                  <div
+                    className={clsx('lifecycle-fill', {
+                      'bg-emerald-500': (dispenser.lifecycleRemainingDays ?? 0) > 365,
+                      'bg-amber-500': (dispenser.lifecycleRemainingDays ?? 0) <= 365 && (dispenser.lifecycleRemainingDays ?? 0) > 90,
+                      'bg-red-500': (dispenser.lifecycleRemainingDays ?? 0) <= 90,
+                    })}
+                    style={{
+                      width: `${Math.min(100, Math.max(5, ((dispenser.lifecycleMonths * 30 - (dispenser.lifecycleRemainingDays ?? 0)) / (dispenser.lifecycleMonths * 30)) * 100))}%`
+                    }}
+                  />
                 </div>
+                <p className="text-[10px] text-muted-foreground text-center italic">
+                  Inicio: {new Date(dispenser.lifecycleStartDate).toLocaleDateString('es-AR')}
+                </p>
               </div>
-            ))}
+            ) : (
+              <p className="text-xs text-muted-foreground italic text-center py-4">No se ha registrado el inicio del ciclo.</p>
+            )}
+          </div>
+
+          {/* Recent Tickets Sidebar */}
+          <div className="glass-card p-5">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-bold flex items-center gap-2">
+                <Ticket className="w-4 h-4 text-primary" />
+                Tickets Recientes
+              </h3>
+              <Link href={`/tickets?search=${dispenser.id}`} className="text-[10px] font-bold text-primary hover:underline uppercase tracking-wider">Ver todos</Link>
+            </div>
+            
+            <div className="space-y-3">
+              {dispenser.tickets?.length > 0 ? (
+                dispenser.tickets.slice(0, 5).map((ticketData: any) => (
+                  <Link 
+                    key={ticketData.id} 
+                    href={`/tickets/${ticketData.id}`}
+                    className="block p-3 rounded-xl bg-muted/30 border border-transparent hover:border-primary/20 transition-all group"
+                  >
+                    <p className="text-xs font-bold line-clamp-1 group-hover:text-primary transition-colors">{ticketData.reason}</p>
+                    <div className="flex items-center justify-between mt-2">
+                      <span className="text-[10px] text-muted-foreground">
+                        {new Date(ticketData.createdAt).toLocaleDateString('es-AR')}
+                      </span>
+                      <span className={clsx('badge text-[8px] px-1.5 py-0 border leading-tight', getStatusColor(ticketData.status))}>
+                        {t(ticketData.status)}
+                      </span>
+                    </div>
+                  </Link>
+                ))
+              ) : (
+                <div className="py-8 text-center">
+                  <Ticket className="w-8 h-8 text-muted-foreground/20 mx-auto mb-2" />
+                  <p className="text-xs text-muted-foreground italic">Sin tickets activos</p>
+                </div>
+              )}
+            </div>
+
+            <button 
+              onClick={() => setShowTicketModal(true)}
+              className="w-full mt-4 btn-outline btn-sm gap-2 border-dashed"
+            >
+              <PlusCircle className="w-3.5 h-3.5" />
+              Crear Nuevo Ticket
+            </button>
           </div>
         </div>
-      )}
+      </div>
 
-      {/* Status Change Modal */}
+      {/* Modals */}
       {showStatusModal && (
         <StatusChangeModal
           currentStatus={dispenser.status}
@@ -253,7 +339,6 @@ export default function DispenserDetailPage() {
         />
       )}
 
-      {/* Edit Modal */}
       {showEditModal && (
         <EditDispenserModal
           dispenser={dispenser}
@@ -261,94 +346,111 @@ export default function DispenserDetailPage() {
           onChanged={() => { setShowEditModal(false); fetchDispenser(); }}
         />
       )}
+
+      {showChecklistModal && currentSchedule && (
+        <ChecklistModal 
+          schedule={currentSchedule}
+          onClose={() => setShowChecklistModal(false)}
+          onSuccess={() => { setShowChecklistModal(false); fetchDispenser(); }}
+        />
+      )}
+
+      {showTicketModal && (
+        <CreateTicketModal 
+          initialDispenserId={dispenser.id}
+          onClose={() => setShowTicketModal(false)}
+          onCreated={() => { setShowTicketModal(false); fetchDispenser(); }}
+        />
+      )}
     </div>
   );
 }
 
-// ─── Info Tab ───────────────────────────────────────
+// ─── Tabs Components (Reuse existing logic but stylized) ──────────
+
 function InfoTab({ dispenser }: { dispenser: any }) {
   const fields = [
-    { label: 'ID', value: dispenser.id },
+    { label: 'ID Dispenser', value: dispenser.id, mono: true },
     { label: 'Marca', value: dispenser.marca },
     { label: 'Modelo', value: dispenser.modelo },
-    { label: 'N° Serie', value: dispenser.numeroSerie || '—' },
+    { label: 'N° Serie', value: dispenser.numeroSerie || '—', mono: true },
     { label: 'Vida Útil', value: `${dispenser.lifecycleMonths} meses` },
     { label: 'Inicio Ciclo', value: dispenser.lifecycleStartDate ? new Date(dispenser.lifecycleStartDate).toLocaleDateString('es-AR') : '—' },
     { label: 'Fecha Compra', value: dispenser.fechaCompra ? new Date(dispenser.fechaCompra).toLocaleDateString('es-AR') : '—' },
-    { label: 'Total Reparaciones', value: dispenser._count?.repairHistory || 0 },
-    { label: 'Total Tickets', value: dispenser._count?.tickets || 0 },
-    { label: 'Creado', value: new Date(dispenser.createdAt).toLocaleDateString('es-AR') },
+    { label: 'Creado el', value: new Date(dispenser.createdAt).toLocaleDateString('es-AR') },
   ];
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4">
       {fields.map(f => (
-        <div key={f.label} className="p-3 rounded-lg bg-muted/30">
-          <p className="text-xs text-muted-foreground font-medium">{f.label}</p>
-          <p className="text-sm font-semibold mt-0.5">{f.value}</p>
+        <div key={f.label} className="flex justify-between items-center py-2 border-b border-border/50">
+          <span className="text-xs text-muted-foreground font-medium">{f.label}</span>
+          <span className={clsx("text-sm font-bold", f.mono && "font-mono text-primary")}>{f.value}</span>
         </div>
       ))}
       {dispenser.notas && (
-        <div className="p-3 rounded-lg bg-muted/30 sm:col-span-2 lg:col-span-3">
-          <p className="text-xs text-muted-foreground font-medium">Notas</p>
-          <p className="text-sm mt-0.5">{dispenser.notas}</p>
+        <div className="sm:col-span-2 pt-4">
+          <p className="text-xs text-muted-foreground font-medium mb-1">Notas internas</p>
+          <div className="p-3 bg-muted/30 rounded-lg text-sm text-foreground italic">
+            "{dispenser.notas}"
+          </div>
         </div>
       )}
     </div>
   );
 }
 
-// ─── Location History Tab ──────────────────────────
 function LocationTab({ history }: { history: any[] }) {
   if (history.length === 0) return <EmptyState text="Sin historial de ubicaciones" />;
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       {history.map((h, i) => (
-        <div key={h.id} className="flex items-start gap-3 p-3 rounded-lg bg-muted/30">
+        <div key={h.id} className="flex items-start gap-4 p-4 rounded-xl bg-muted/20 border border-border/50 relative overflow-hidden group">
+          {i === 0 && !h.removedAt && <div className="absolute top-0 right-0 w-2 h-full bg-emerald-500"></div>}
           <div className={clsx(
-            'w-8 h-8 rounded-full flex items-center justify-center shrink-0',
-            i === 0 && !h.removedAt ? 'bg-emerald-100 dark:bg-emerald-900/40' : 'bg-muted'
+            'w-10 h-10 rounded-full flex items-center justify-center shrink-0 border shadow-sm transition-transform group-hover:scale-110',
+            i === 0 && !h.removedAt ? 'bg-emerald-50 border-emerald-200 text-emerald-600' : 'bg-background border-border text-muted-foreground'
           )}>
-            <MapPin className={clsx('w-4 h-4', i === 0 && !h.removedAt ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted-foreground')} />
+            <MapPin className="w-5 h-5" />
           </div>
           <div className="flex-1">
-            <p className="text-sm font-medium">
-              {h.location?.plant?.nombre} — {h.location?.nombre || h.locationId}
-            </p>
-            <p className="text-xs text-muted-foreground">
-              Asignado: {new Date(h.assignedAt).toLocaleDateString('es-AR')}
-              {h.assignedBy && ` por ${h.assignedBy.nombre}`}
-              {h.removedAt && ` · Retirado: ${new Date(h.removedAt).toLocaleDateString('es-AR')}`}
+            <div className="flex items-center gap-2 mb-1">
+              <p className="text-sm font-bold">
+                {h.location?.plant?.nombre} — {h.location?.nombre || h.locationId}
+              </p>
+              {i === 0 && !h.removedAt && <span className="badge-success text-[8px] px-1.5 py-0">ACTUAL</span>}
+            </div>
+            <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-semibold">
+              {new Date(h.assignedAt).toLocaleDateString('es-AR')}
+              {h.assignedBy && ` · POR ${h.assignedBy.nombre}`}
+              {h.removedAt && ` · RETIRADO: ${new Date(h.removedAt).toLocaleDateString('es-AR')}`}
             </p>
           </div>
-          {i === 0 && !h.removedAt && <span className="badge-success text-xs">Actual</span>}
         </div>
       ))}
     </div>
   );
 }
 
-// ─── Repairs Tab ────────────────────────────────────
 function RepairsTab({ repairs }: { repairs: any[] }) {
   if (repairs.length === 0) return <EmptyState text="Sin historial de reparaciones" />;
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       {repairs.map(r => (
-        <div key={r.id} className="p-4 rounded-lg bg-muted/30">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-sm font-medium">{r.descripcion}</p>
-              {r.diagnostico && <p className="text-xs text-muted-foreground mt-1">{r.diagnostico}</p>}
+        <div key={r.id} className="p-4 rounded-xl bg-muted/20 border border-border/50 hover:bg-muted/30 transition-colors">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex-1">
+              <p className="text-sm font-bold leading-tight mb-1">{r.descripcion}</p>
+              {r.diagnostico && <p className="text-xs text-muted-foreground italic mb-2">"{r.diagnostico}"</p>}
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[10px] text-muted-foreground font-bold uppercase tracking-wider">
+                <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {new Date(r.startDate).toLocaleDateString('es-AR')}</span>
+                {r.technician && <span>TÉC: {r.technician.nombre}</span>}
+                {r.costo != null && <span className="text-primary">${r.costo}</span>}
+              </div>
             </div>
-            <span className={clsx('badge', r.endDate ? 'badge-success' : 'badge-warning')}>
+            <span className={clsx('badge text-[10px] uppercase font-bold px-2 py-0.5', r.endDate ? 'badge-success' : 'badge-warning')}>
               {r.endDate ? 'Completada' : 'En curso'}
             </span>
-          </div>
-          <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
-            <span>Técnico: {r.technician?.nombre || '—'}</span>
-            <span>Inicio: {new Date(r.startDate).toLocaleDateString('es-AR')}</span>
-            {r.endDate && <span>Fin: {new Date(r.endDate).toLocaleDateString('es-AR')}</span>}
-            {r.costo != null && <span>Costo: ${r.costo}</span>}
           </div>
         </div>
       ))}
@@ -356,26 +458,35 @@ function RepairsTab({ repairs }: { repairs: any[] }) {
   );
 }
 
-// ─── Consumables Tab ────────────────────────────────
 function ConsumablesTab({ consumables }: { consumables: any[] }) {
   if (consumables.length === 0) return <EmptyState text="Sin historial de consumibles" />;
   return (
-    <div className="space-y-3">
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
       {consumables.map(c => {
         const isExpired = c.expiresAt && new Date(c.expiresAt) < new Date();
         return (
-          <div key={c.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
-            <div>
-              <p className="text-sm font-medium">{c.nombre}</p>
-              <p className="text-xs text-muted-foreground">
-                Código: {c.materialCode} · Instalado: {new Date(c.installedAt).toLocaleDateString('es-AR')}
-              </p>
+          <div key={c.id} className="flex flex-col p-3 rounded-xl bg-muted/20 border border-border/50">
+            <div className="flex justify-between items-start mb-2">
+              <p className="text-sm font-bold truncate pr-2">{c.nombre}</p>
+              {c.expiresAt && (
+                <span className={clsx('text-[8px] font-bold px-1.5 py-0.5 rounded uppercase', isExpired ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700')}>
+                  {isExpired ? 'Vencido' : 'Vigente'}
+                </span>
+              )}
             </div>
-            {c.expiresAt && (
-              <span className={isExpired ? 'badge-danger' : 'badge-success'}>
-                {isExpired ? 'Vencido' : `Vence: ${new Date(c.expiresAt).toLocaleDateString('es-AR')}`}
-              </span>
-            )}
+            <div className="space-y-1">
+              <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Cód: {c.materialCode}</p>
+              <div className="flex justify-between text-[10px] font-bold">
+                <span className="text-muted-foreground uppercase">Instalado:</span>
+                <span>{new Date(c.installedAt).toLocaleDateString('es-AR')}</span>
+              </div>
+              {c.expiresAt && (
+                <div className="flex justify-between text-[10px] font-bold">
+                  <span className="text-muted-foreground uppercase">Vencimiento:</span>
+                  <span className={isExpired ? 'text-red-600' : 'text-foreground'}>{new Date(c.expiresAt).toLocaleDateString('es-AR')}</span>
+                </div>
+              )}
+            </div>
           </div>
         );
       })}
@@ -383,17 +494,16 @@ function ConsumablesTab({ consumables }: { consumables: any[] }) {
   );
 }
 
-// ─── Empty State ────────────────────────────────────
 function EmptyState({ text }: { text: string }) {
   return (
-    <div className="py-12 flex flex-col items-center text-center">
-      <Clock className="w-12 h-12 text-muted-foreground/20 mb-3" />
-      <p className="text-muted-foreground">{text}</p>
+    <div className="py-20 flex flex-col items-center text-center opacity-40">
+      <Archive className="w-12 h-12 text-muted-foreground mb-4" />
+      <p className="text-sm font-medium">{text}</p>
     </div>
   );
 }
 
-// ─── Status Change Modal ────────────────────────────
+// ─── Status Change Modal (Styled version) ────────────────────────────
 function StatusChangeModal({
   currentStatus, dispenserId, onClose, onChanged
 }: {
@@ -427,55 +537,64 @@ function StatusChangeModal({
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content max-w-md" onClick={e => e.stopPropagation()}>
-        <div className="modal-header">
-          <h2 className="text-lg font-semibold">Cambiar Estado</h2>
-          <button onClick={onClose} className="btn-ghost btn-icon"><X className="w-5 h-5" /></button>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="bg-card rounded-2xl shadow-2xl border border-border w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-muted/30">
+          <h2 className="text-lg font-bold flex items-center gap-2">
+            <RefreshCw className="w-5 h-5 text-primary" />
+            Cambiar Estado del Equipo
+          </h2>
+          <button onClick={onClose} className="p-2 hover:bg-accent rounded-full transition-colors text-muted-foreground">
+            <X className="w-5 h-5" />
+          </button>
         </div>
-        <div className="modal-body space-y-4">
-          <div className="grid grid-cols-1 gap-2">
-            {ALL_STATUSES.map(s => {
-              const cfg = STATUS_CONFIG[s];
-              const Icon = cfg.icon;
-              return (
-                <button
-                  key={s}
-                  onClick={() => setNewStatus(s)}
-                  className={clsx(
-                    'flex items-center gap-3 p-3 rounded-lg border transition-all text-left',
-                    newStatus === s
-                      ? 'border-primary bg-primary/5 ring-2 ring-primary/20'
-                      : 'border-border hover:border-primary/30'
-                  )}
-                >
-                  <Icon className="w-5 h-5" />
-                  <span className="font-medium text-sm">{cfg.label}</span>
-                  {s === currentStatus && (
-                    <span className="badge-neutral ml-auto text-xs">Actual</span>
-                  )}
-                </button>
-              );
-            })}
+        <div className="px-6 py-4 space-y-4">
+          <div className="grid grid-cols-1 gap-2 max-h-[300px] overflow-y-auto pr-2 scrollbar-thin">
+            {ALL_STATUSES.map(s => (
+              <button
+                key={s}
+                onClick={() => setNewStatus(s)}
+                className={clsx(
+                  'flex items-center gap-3 p-3 rounded-xl border transition-all text-left group',
+                  newStatus === s
+                    ? 'border-primary bg-primary/5 ring-1 ring-primary'
+                    : 'border-border hover:border-primary/30 hover:bg-muted/30'
+                )}
+              >
+                <div className={clsx("w-8 h-8 rounded-full flex items-center justify-center shrink-0 border", newStatus === s ? "bg-primary text-white border-primary" : "bg-muted text-muted-foreground border-border")}>
+                  <RefreshCw className={clsx("w-4 h-4", newStatus === s && "animate-spin-slow")} />
+                </div>
+                <div className="flex-1">
+                  <span className={clsx("text-sm font-bold block", newStatus === s ? "text-primary" : "text-foreground")}>{t(s)}</span>
+                  {s === currentStatus && <span className="text-[10px] font-bold text-muted-foreground uppercase">Estado Actual</span>}
+                </div>
+                {newStatus === s && <div className="w-2 h-2 rounded-full bg-primary animate-pulse"></div>}
+              </button>
+            ))}
           </div>
-          {(newStatus === 'BLOCKED' || newStatus === 'OUT_OF_SERVICE') && (
-            <div>
-              <label className="label">Motivo</label>
+          
+          {(newStatus === 'BLOCKED' || newStatus === 'OUT_OF_SERVICE' || newStatus === 'BLOCKED_WAITING_OC') && (
+            <div className="animate-in slide-in-from-top-2">
+              <label className="text-sm font-semibold mb-1 block">Motivo del Cambio</label>
               <textarea
-                className="textarea mt-1"
+                className="textarea"
                 rows={2}
-                placeholder="Razón del cambio..."
+                placeholder="Explique brevemente por qué cambia el estado..."
                 value={reason}
                 onChange={e => setReason(e.target.value)}
               />
             </div>
           )}
         </div>
-        <div className="modal-footer">
+        <div className="px-6 py-4 border-t border-border bg-muted/30 flex items-center justify-end gap-3">
           <button onClick={onClose} className="btn-outline">Cancelar</button>
-          <button onClick={handleSave} disabled={saving || newStatus === currentStatus} className="btn-primary gap-2">
+          <button 
+            onClick={handleSave} 
+            disabled={saving || newStatus === currentStatus} 
+            className="btn-primary px-8 gap-2"
+          >
             {saving && <Loader2 className="w-4 h-4 animate-spin" />}
-            Guardar
+            Confirmar Cambio
           </button>
         </div>
       </div>
@@ -483,7 +602,7 @@ function StatusChangeModal({
   );
 }
 
-// ─── Edit Dispenser Modal ────────────────────────────
+// ─── Edit Dispenser Modal (Styled version) ────────────────────────────
 function EditDispenserModal({
   dispenser, onClose, onChanged
 }: {
@@ -511,7 +630,6 @@ function EditDispenserModal({
   const handleSave = async () => {
     setSaving(true);
     try {
-      // 1. Update basic info
       const res = await fetch(`/api/dispensers/${dispenser.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -528,7 +646,6 @@ function EditDispenserModal({
         throw new Error(err.error || 'Error al actualizar dispenser');
       }
 
-      // 2. Update location if changed
       if (form.locationId && form.locationId !== dispenser.locationId) {
         const assignRes = await fetch(`/api/dispensers/${dispenser.id}/assign`, {
           method: 'POST',
@@ -541,7 +658,7 @@ function EditDispenserModal({
         }
       }
 
-      toast.success('Dispenser actualizado');
+      toast.success('Información actualizada');
       onChanged();
     } catch (error: any) {
       toast.error(error.message || 'Error de conexión');
@@ -551,86 +668,92 @@ function EditDispenserModal({
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content max-w-lg" onClick={e => e.stopPropagation()}>
-        <div className="modal-header">
-          <h2 className="text-lg font-semibold">Editar Dispenser</h2>
-          <button onClick={onClose} className="btn-ghost btn-icon"><X className="w-5 h-5" /></button>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="bg-card rounded-2xl shadow-2xl border border-border w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-muted/30">
+          <h2 className="text-lg font-bold flex items-center gap-2">
+            <Pencil className="w-5 h-5 text-primary" />
+            Editar Información del Equipo
+          </h2>
+          <button onClick={onClose} className="p-2 hover:bg-accent rounded-full transition-colors text-muted-foreground">
+            <X className="w-5 h-5" />
+          </button>
         </div>
-        <div className="modal-body space-y-4">
-          
-          <div className="grid grid-cols-2 gap-4">
+        <div className="px-6 py-4 space-y-4 max-h-[70vh] overflow-y-auto scrollbar-thin">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="label">Marca</label>
+              <label className="text-sm font-semibold mb-1 block">Marca</label>
               <input 
-                className="input mt-1" 
+                className="input" 
                 value={form.marca} 
                 onChange={e => setForm({ ...form, marca: e.target.value })} 
               />
             </div>
             <div>
-              <label className="label">Modelo</label>
+              <label className="text-sm font-semibold mb-1 block">Modelo</label>
               <input 
-                className="input mt-1" 
+                className="input" 
                 value={form.modelo} 
                 onChange={e => setForm({ ...form, modelo: e.target.value })} 
               />
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="label">N° de Serie</label>
+              <label className="text-sm font-semibold mb-1 block">N° de Serie</label>
               <input 
-                className="input mt-1" 
+                className="input font-mono" 
                 value={form.numeroSerie} 
                 onChange={e => setForm({ ...form, numeroSerie: e.target.value })} 
               />
             </div>
             <div>
-              <label className="label">Vida Útil (meses)</label>
+              <label className="text-sm font-semibold mb-1 block">Vida Útil (meses)</label>
               <input 
                 type="number"
-                className="input mt-1" 
+                className="input" 
                 value={form.lifecycleMonths} 
                 onChange={e => setForm({ ...form, lifecycleMonths: parseInt(e.target.value) || 0 })} 
               />
             </div>
           </div>
 
-          <div>
-            <label className="label">Ubicación</label>
+          <div className="p-4 bg-primary/5 border border-primary/20 rounded-xl">
+            <label className="text-sm font-bold text-primary mb-2 flex items-center gap-2">
+              <MapPin className="w-4 h-4" />
+              Ubicación de Instalación
+            </label>
             <select
-              className="select mt-1"
+              className="select"
               value={form.locationId}
               onChange={e => setForm({ ...form, locationId: e.target.value })}
             >
-              <option value="">-- Sin asignar --</option>
+              <option value="">-- Sin asignar / Retirado --</option>
               {locations.map(loc => (
                 <option key={loc.id} value={loc.id}>
                   {loc.plant.nombre} — {loc.nombre}
                 </option>
               ))}
             </select>
-            <p className="text-xs text-muted-foreground mt-1">
-              Al reasignar, si hay otro dispenser activo en esa ubicación será reemplazado.
+            <p className="text-[10px] text-muted-foreground mt-2 italic">
+              Al asignar una nueva ubicación, el equipo se marcará como instalado en dicha planta/sector.
             </p>
           </div>
 
           <div>
-            <label className="label">Notas</label>
+            <label className="text-sm font-semibold mb-1 block">Notas Internas</label>
             <textarea
-              className="textarea mt-1"
+              className="textarea"
               rows={3}
               value={form.notas}
               onChange={e => setForm({ ...form, notas: e.target.value })}
             />
           </div>
-
         </div>
-        <div className="modal-footer">
+        <div className="px-6 py-4 border-t border-border bg-muted/30 flex items-center justify-end gap-3">
           <button onClick={onClose} className="btn-outline">Cancelar</button>
-          <button onClick={handleSave} disabled={saving} className="btn-primary gap-2">
+          <button onClick={handleSave} disabled={saving} className="btn-primary px-8 gap-2">
             {saving && <Loader2 className="w-4 h-4 animate-spin" />}
             Guardar Cambios
           </button>

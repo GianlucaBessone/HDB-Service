@@ -28,9 +28,10 @@ export default function PrintQRPage() {
       }
       
       const ids = idsParam.split(',');
+      const origin = window.location.origin;
       const generated = await Promise.all(
         ids.map(async (id) => {
-          const url = `https://hdb-service.com/qr/${id}`;
+          const url = `${origin}/qr/${id}`;
           const qrDataUrl = await QRCode.toDataURL(url, {
             margin: 2,
             width: 300,

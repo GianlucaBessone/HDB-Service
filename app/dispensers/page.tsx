@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import clsx from 'clsx';
 import toast from 'react-hot-toast';
+import { t, getStatusColor } from '@/lib/translations';
 
 type Dispenser = {
   id: string;
@@ -27,16 +28,6 @@ type Dispenser = {
   _count: { tickets: number; repairHistory: number; maintenanceSchedules: number };
 };
 
-const STATUS_CONFIG: Record<string, { label: string; badge: string; icon: React.ElementType }> = {
-  IN_SERVICE:           { label: 'En Servicio',           badge: 'badge-success', icon: CheckCircle2 },
-  UNDER_REPAIR:         { label: 'En Reparación',         badge: 'badge-warning', icon: Wrench },
-  IN_TECHNICAL_SERVICE: { label: 'En Servicio Técnico',   badge: 'badge-warning', icon: Wrench },
-  BLOCKED:              { label: 'Bloqueado',             badge: 'badge-danger',  icon: AlertTriangle },
-  BLOCKED_WAITING_OC:   { label: 'Bloqueado (Esperando OC)',badge: 'badge-danger', icon: AlertTriangle },
-  OUT_OF_SERVICE:       { label: 'Fuera de Servicio',     badge: 'badge-neutral', icon: Archive },
-  BACKUP:               { label: 'Backup',                badge: 'badge-info',    icon: Archive },
-};
-
 export default function DispensersPage() {
   const [dispensers, setDispensers] = useState<Dispenser[]>([]);
   const [total, setTotal] = useState(0);
@@ -54,7 +45,10 @@ export default function DispensersPage() {
       if (search) params.set('search', search);
       if (statusFilter) params.set('status', statusFilter);
       const res = await fetch(`/api/dispensers?${params}`);
-      if (!res.ok) throw new Error('Failed to fetch');
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || `Failed to fetch: ${res.status}`);
+      }
       const data = await res.json();
       setDispensers(data.dispensers || []);
       setTotal(data.total || 0);
@@ -169,9 +163,13 @@ export default function DispensersPage() {
             className="select pl-10 min-w-[180px]"
           >
             <option value="">Todos los estados</option>
-            {Object.entries(STATUS_CONFIG).map(([key, cfg]) => (
-              <option key={key} value={key}>{cfg.label}</option>
-            ))}
+            <option value="IN_SERVICE">En Servicio</option>
+            <option value="UNDER_REPAIR">En Reparación</option>
+            <option value="IN_TECHNICAL_SERVICE">En Servicio Técnico</option>
+            <option value="BLOCKED">Bloqueado</option>
+            <option value="BLOCKED_WAITING_OC">Bloqueado (Esperando OC)</option>
+            <option value="OUT_OF_SERVICE">Fuera de Servicio</option>
+            <option value="BACKUP">Backup / Reserva</option>
           </select>
         </div>
       </div>
@@ -212,8 +210,6 @@ export default function DispensersPage() {
             </thead>
             <tbody>
               {sorted.map(d => {
-                const sc = STATUS_CONFIG[d.status] || STATUS_CONFIG['BACKUP'];
-                const StatusIcon = sc.icon;
                 return (
                   <tr key={d.id}>
                     <td>
@@ -239,9 +235,12 @@ export default function DispensersPage() {
                       )}
                     </td>
                     <td>
-                      <span className={sc.badge}>
-                        <StatusIcon className="w-3.5 h-3.5" />
-                        {sc.label}
+                      <span className={clsx('badge gap-1.5 border', getStatusColor(d.status))}>
+                        {d.status === 'IN_SERVICE' ? <CheckCircle2 className="w-3.5 h-3.5" /> :
+                         d.status === 'BLOCKED' || d.status === 'BLOCKED_WAITING_OC' ? <AlertTriangle className="w-3.5 h-3.5" /> :
+                         d.status === 'UNDER_REPAIR' || d.status === 'IN_TECHNICAL_SERVICE' ? <Wrench className="w-3.5 h-3.5" /> :
+                         <Archive className="w-3.5 h-3.5" />}
+                        {t(d.status)}
                       </span>
                     </td>
                     <td>

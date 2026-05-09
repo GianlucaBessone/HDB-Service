@@ -12,7 +12,6 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
   try {
     const debt = await prisma.interPlantDebt.findUnique({
       where: { id: params.id },
-      include: { dispenserBlocked: true },
     });
 
     if (!debt) {
@@ -23,35 +22,9 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
       return NextResponse.json({ error: 'La deuda ya está resuelta' }, { status: 400 });
     }
 
-    const resolvedDebt = await prisma.$transaction(async (tx) => {
-      // 1. Resolve debt
-      const updatedDebt = await tx.interPlantDebt.update({
-        where: { id: params.id },
-        data: { status: 'RESOLVED', resolvedAt: new Date() },
-      });
-
-      // 2. Unblock dispenser if it was blocked by this debt
-      if (debt.dispenserBlockedId && debt.dispenserBlocked?.status === 'BLOCKED') {
-        await tx.dispenser.update({
-          where: { id: debt.dispenserBlockedId },
-          data: {
-            status: 'IN_SERVICE',
-            blockedReason: null,
-            blockedAt: null,
-          },
-        });
-
-        // Log unblock
-        await tx.auditLog.create({
-          data: {
-            userId: user.id, userName: user.nombre,
-            action: 'RELEASE', entity: 'DISPENSER', entityId: debt.dispenserBlockedId,
-            newValue: { reason: 'Debt resolved' },
-          },
-        });
-      }
-
-      return updatedDebt;
+    const resolvedDebt = await prisma.interPlantDebt.update({
+      where: { id: params.id },
+      data: { status: 'RESOLVED', resolvedAt: new Date() },
     });
 
     await createAuditLog({
