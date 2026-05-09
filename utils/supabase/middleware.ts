@@ -12,9 +12,14 @@ export const updateSession = async (request: NextRequest) => {
     },
   });
 
+  if (!supabaseUrl || !supabaseKey) {
+    console.error('[MIDDLEWARE] Supabase URL or Key missing');
+    return supabaseResponse;
+  }
+
   const supabase = createServerClient(
-    supabaseUrl!,
-    supabaseKey!,
+    supabaseUrl,
+    supabaseKey,
     {
       cookies: {
         getAll() {

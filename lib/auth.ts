@@ -7,9 +7,7 @@ import fs from 'fs';
 import path from 'path';
 
 function logToFile(msg: string) {
-  const logPath = path.join(process.cwd(), 'scratch', 'auth-debug.log');
-  const timestamp = new Date().toISOString();
-  fs.appendFileSync(logPath, `[${timestamp}] ${msg}\n`);
+  console.log(`[AUTH] ${msg}`);
 }
 
 export type SessionUser = {
