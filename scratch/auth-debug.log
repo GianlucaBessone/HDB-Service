@@ -1582,3 +1582,123 @@ Please make sure your database server is running at `ep-solitary-dust-aqx3maky-p
 [2026-05-09T05:16:09.892Z] Authenticated as: gbessone.hdb@gmail.com
 [2026-05-09T05:16:11.683Z] Prisma user found: cmouxu8fh0002cnifvy8dnpjp (ADMIN)
 [2026-05-09T05:16:11.684Z] Prisma user found: cmouxu8fh0002cnifvy8dnpjp (ADMIN)
+[2026-05-09T05:20:14.105Z] --- getCurrentUser Start ---
+[2026-05-09T05:20:15.094Z] Authenticated as: gbessone.hdb@gmail.com
+[2026-05-09T05:20:15.499Z] Prisma user found: cmouxu8fh0002cnifvy8dnpjp (ADMIN)
+[2026-05-09T05:20:15.886Z] --- getCurrentUser Start ---
+[2026-05-09T05:20:16.114Z] Authenticated as: gbessone.hdb@gmail.com
+[2026-05-09T05:20:16.318Z] Prisma user found: cmouxu8fh0002cnifvy8dnpjp (ADMIN)
+[2026-05-09T05:20:17.843Z] --- getCurrentUser Start ---
+[2026-05-09T05:20:18.064Z] Authenticated as: gbessone.hdb@gmail.com
+[2026-05-09T05:20:18.263Z] Prisma user found: cmouxu8fh0002cnifvy8dnpjp (ADMIN)
+[2026-05-09T05:20:19.710Z] --- getCurrentUser Start ---
+[2026-05-09T05:20:19.930Z] Authenticated as: gbessone.hdb@gmail.com
+[2026-05-09T05:20:20.211Z] Prisma user found: cmouxu8fh0002cnifvy8dnpjp (ADMIN)
+[2026-05-09T05:20:24.983Z] --- getCurrentUser Start ---
+[2026-05-09T05:20:25.231Z] Authenticated as: gbessone.hdb@gmail.com
+[2026-05-09T05:20:25.432Z] Prisma user found: cmouxu8fh0002cnifvy8dnpjp (ADMIN)
+[2026-05-09T05:20:27.860Z] --- getCurrentUser Start ---
+[2026-05-09T05:20:28.098Z] Authenticated as: gbessone.hdb@gmail.com
+[2026-05-09T05:20:28.299Z] Prisma user found: cmouxu8fh0002cnifvy8dnpjp (ADMIN)
+[2026-05-09T05:20:40.591Z] --- getCurrentUser Start ---
+[2026-05-09T05:20:40.624Z] --- getCurrentUser Start ---
+[2026-05-09T05:20:40.808Z] Authenticated as: gbessone.hdb@gmail.com
+[2026-05-09T05:20:40.999Z] Authenticated as: gbessone.hdb@gmail.com
+[2026-05-09T05:20:41.164Z] Prisma user found: cmouxu8fh0002cnifvy8dnpjp (ADMIN)
+[2026-05-09T05:20:41.331Z] Prisma user found: cmouxu8fh0002cnifvy8dnpjp (ADMIN)
+[2026-05-09T05:20:41.677Z] --- getCurrentUser Start ---
+[2026-05-09T05:20:41.882Z] Authenticated as: gbessone.hdb@gmail.com
+[2026-05-09T05:20:42.047Z] Prisma user found: cmouxu8fh0002cnifvy8dnpjp (ADMIN)
+[2026-05-09T05:20:42.504Z] --- getCurrentUser Start ---
+[2026-05-09T05:20:42.713Z] Authenticated as: gbessone.hdb@gmail.com
+[2026-05-09T05:20:42.879Z] Prisma user found: cmouxu8fh0002cnifvy8dnpjp (ADMIN)
+[2026-05-09T05:20:49.111Z] --- getCurrentUser Start ---
+[2026-05-09T05:20:49.316Z] Authenticated as: gbessone.hdb@gmail.com
+[2026-05-09T05:20:49.496Z] Prisma user found: cmouxu8fh0002cnifvy8dnpjp (ADMIN)
+[2026-05-09T05:20:51.715Z] --- getCurrentUser Start ---
+[2026-05-09T05:20:52.251Z] Authenticated as: gbessone.hdb@gmail.com
+[2026-05-09T05:20:52.416Z] Prisma user found: cmouxu8fh0002cnifvy8dnpjp (ADMIN)
+[2026-05-09T05:22:25.181Z] --- getCurrentUser Start ---
+[2026-05-09T05:22:25.440Z] --- getCurrentUser Start ---
+[2026-05-09T05:22:25.773Z] Authenticated as: gbessone.hdb@gmail.com
+[2026-05-09T05:22:25.874Z] --- getCurrentUser Start ---
+[2026-05-09T05:22:25.939Z] Authenticated as: gbessone.hdb@gmail.com
+[2026-05-09T05:22:25.956Z] --- getCurrentUser Start ---
+[2026-05-09T05:22:25.991Z] Authenticated as: gbessone.hdb@gmail.com
+[2026-05-09T05:22:25.998Z] Authenticated as: gbessone.hdb@gmail.com
+[2026-05-09T05:22:26.228Z] --- getCurrentUser Start ---
+[2026-05-09T05:22:26.250Z] Authenticated as: gbessone.hdb@gmail.com
+[2026-05-09T05:22:26.276Z] --- getCurrentUser Start ---
+[2026-05-09T05:22:26.311Z] Authenticated as: gbessone.hdb@gmail.com
+[2026-05-09T05:22:27.361Z] Prisma user found: cmouxu8fh0002cnifvy8dnpjp (ADMIN)
+[2026-05-09T05:22:27.511Z] Prisma user found: cmouxu8fh0002cnifvy8dnpjp (ADMIN)
+[2026-05-09T05:22:27.519Z] Prisma user found: cmouxu8fh0002cnifvy8dnpjp (ADMIN)
+[2026-05-09T05:22:27.634Z] Prisma user found: cmouxu8fh0002cnifvy8dnpjp (ADMIN)
+[2026-05-09T05:22:27.851Z] Prisma user found: cmouxu8fh0002cnifvy8dnpjp (ADMIN)
+[2026-05-09T05:22:27.883Z] Prisma user found: cmouxu8fh0002cnifvy8dnpjp (ADMIN)
+[2026-05-09T05:22:38.656Z] --- getCurrentUser Start ---
+[2026-05-09T05:22:39.090Z] --- getCurrentUser Start ---
+[2026-05-09T05:22:39.284Z] --- getCurrentUser Start ---
+[2026-05-09T05:22:39.368Z] Authenticated as: gbessone.hdb@gmail.com
+[2026-05-09T05:22:39.495Z] Authenticated as: gbessone.hdb@gmail.com
+[2026-05-09T05:22:39.517Z] Authenticated as: gbessone.hdb@gmail.com
+[2026-05-09T05:22:39.581Z] Prisma user found: cmouxu8fh0002cnifvy8dnpjp (ADMIN)
+[2026-05-09T05:22:39.782Z] Prisma user found: cmouxu8fh0002cnifvy8dnpjp (ADMIN)
+[2026-05-09T05:22:39.796Z] Prisma user found: cmouxu8fh0002cnifvy8dnpjp (ADMIN)
+[2026-05-09T05:22:39.879Z] --- getCurrentUser Start ---
+[2026-05-09T05:22:39.937Z] Authenticated as: gbessone.hdb@gmail.com
+[2026-05-09T05:22:39.976Z] --- getCurrentUser Start ---
+[2026-05-09T05:22:40.012Z] Authenticated as: gbessone.hdb@gmail.com
+[2026-05-09T05:22:40.185Z] Prisma user found: cmouxu8fh0002cnifvy8dnpjp (ADMIN)
+[2026-05-09T05:22:40.194Z] Prisma user found: cmouxu8fh0002cnifvy8dnpjp (ADMIN)
+[2026-05-09T05:24:08.457Z] --- getCurrentUser Start ---
+[2026-05-09T05:24:08.714Z] --- getCurrentUser Start ---
+[2026-05-09T05:24:08.751Z] Authenticated as: gbessone.hdb@gmail.com
+[2026-05-09T05:24:09.079Z] Authenticated as: gbessone.hdb@gmail.com
+[2026-05-09T05:24:09.250Z] Prisma user found: cmouxu8fh0002cnifvy8dnpjp (ADMIN)
+[2026-05-09T05:24:09.864Z] Prisma user found: cmouxu8fh0002cnifvy8dnpjp (ADMIN)
+[2026-05-09T05:25:23.443Z] --- getCurrentUser Start ---
+[2026-05-09T05:25:23.462Z] Authenticated as: gbessone.hdb@gmail.com
+[2026-05-09T05:25:23.748Z] --- getCurrentUser Start ---
+[2026-05-09T05:25:23.776Z] Authenticated as: gbessone.hdb@gmail.com
+[2026-05-09T05:25:24.043Z] Prisma user found: cmouxu8fh0002cnifvy8dnpjp (ADMIN)
+[2026-05-09T05:25:24.153Z] --- getCurrentUser Start ---
+[2026-05-09T05:25:24.171Z] Authenticated as: gbessone.hdb@gmail.com
+[2026-05-09T05:25:24.340Z] Prisma user found: cmouxu8fh0002cnifvy8dnpjp (ADMIN)
+[2026-05-09T05:25:24.360Z] Prisma user found: cmouxu8fh0002cnifvy8dnpjp (ADMIN)
+[2026-05-09T05:25:24.470Z] --- getCurrentUser Start ---
+[2026-05-09T05:25:24.497Z] Authenticated as: gbessone.hdb@gmail.com
+[2026-05-09T05:25:24.711Z] Prisma user found: cmouxu8fh0002cnifvy8dnpjp (ADMIN)
+[2026-05-09T05:25:24.752Z] --- getCurrentUser Start ---
+[2026-05-09T05:25:24.804Z] Authenticated as: gbessone.hdb@gmail.com
+[2026-05-09T05:25:25.058Z] Prisma user found: cmouxu8fh0002cnifvy8dnpjp (ADMIN)
+[2026-05-09T05:25:25.086Z] --- getCurrentUser Start ---
+[2026-05-09T05:25:25.115Z] Authenticated as: gbessone.hdb@gmail.com
+[2026-05-09T05:25:25.302Z] Prisma user found: cmouxu8fh0002cnifvy8dnpjp (ADMIN)
+[2026-05-09T05:25:25.351Z] --- getCurrentUser Start ---
+[2026-05-09T05:25:25.383Z] Authenticated as: gbessone.hdb@gmail.com
+[2026-05-09T05:25:25.597Z] Prisma user found: cmouxu8fh0002cnifvy8dnpjp (ADMIN)
+[2026-05-09T05:25:25.646Z] --- getCurrentUser Start ---
+[2026-05-09T05:25:25.665Z] Authenticated as: gbessone.hdb@gmail.com
+[2026-05-09T05:25:25.838Z] Prisma user found: cmouxu8fh0002cnifvy8dnpjp (ADMIN)
+[2026-05-09T05:25:25.928Z] --- getCurrentUser Start ---
+[2026-05-09T05:25:25.956Z] Authenticated as: gbessone.hdb@gmail.com
+[2026-05-09T05:25:26.127Z] Prisma user found: cmouxu8fh0002cnifvy8dnpjp (ADMIN)
+[2026-05-09T05:25:26.183Z] --- getCurrentUser Start ---
+[2026-05-09T05:25:26.218Z] Authenticated as: gbessone.hdb@gmail.com
+[2026-05-09T05:25:26.447Z] Prisma user found: cmouxu8fh0002cnifvy8dnpjp (ADMIN)
+[2026-05-09T05:25:26.500Z] --- getCurrentUser Start ---
+[2026-05-09T05:25:26.535Z] Authenticated as: gbessone.hdb@gmail.com
+[2026-05-09T05:25:26.723Z] Prisma user found: cmouxu8fh0002cnifvy8dnpjp (ADMIN)
+[2026-05-09T05:25:26.821Z] --- getCurrentUser Start ---
+[2026-05-09T05:25:26.843Z] Authenticated as: gbessone.hdb@gmail.com
+[2026-05-09T05:25:27.044Z] Prisma user found: cmouxu8fh0002cnifvy8dnpjp (ADMIN)
+[2026-05-09T05:25:27.095Z] --- getCurrentUser Start ---
+[2026-05-09T05:25:27.131Z] Authenticated as: gbessone.hdb@gmail.com
+[2026-05-09T05:25:27.312Z] Prisma user found: cmouxu8fh0002cnifvy8dnpjp (ADMIN)
+[2026-05-09T05:25:27.351Z] --- getCurrentUser Start ---
+[2026-05-09T05:25:27.370Z] Authenticated as: gbessone.hdb@gmail.com
+[2026-05-09T05:25:27.548Z] Prisma user found: cmouxu8fh0002cnifvy8dnpjp (ADMIN)
+[2026-05-09T05:25:27.590Z] --- getCurrentUser Start ---
+[2026-05-09T05:25:27.619Z] Authenticated as: gbessone.hdb@gmail.com
+[2026-05-09T05:25:27.792Z] Prisma user found: cmouxu8fh0002cnifvy8dnpjp (ADMIN)

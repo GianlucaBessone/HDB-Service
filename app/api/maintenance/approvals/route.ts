@@ -44,10 +44,46 @@ export async function GET(req: Request) {
   if (user instanceof NextResponse) return user;
 
   try {
+    const { searchParams } = new URL(req.url);
+    const plantId = searchParams.get('plantId');
+    const startDate = searchParams.get('startDate');
+    const endDate = searchParams.get('endDate');
+    const search = searchParams.get('search');
+
+    const where: any = {
+      signatureData: { not: null }
+    };
+
+    if (startDate || endDate) {
+      where.createdAt = {};
+      if (startDate) where.createdAt.gte = new Date(startDate);
+      if (endDate) {
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        where.createdAt.lte = end;
+      }
+    }
+
+    if (search) {
+      where.OR = [
+        { customerName: { contains: search, mode: 'insensitive' } },
+        { customerIdentity: { contains: search, mode: 'insensitive' } },
+        { schedules: { some: { dispenserId: { contains: search, mode: 'insensitive' } } } }
+      ];
+    }
+
+    if (plantId) {
+      where.schedules = {
+        some: {
+          dispenser: {
+            location: { plantId }
+          }
+        }
+      };
+    }
+
     const approvals = await prisma.maintenanceApproval.findMany({
-      where: {
-        signatureData: { not: null }
-      },
+      where,
       include: {
         technician: {
           select: { nombre: true, email: true }
