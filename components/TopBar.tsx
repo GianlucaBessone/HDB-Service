@@ -1,6 +1,6 @@
 'use client';
 
-import { authClient } from '@/lib/auth/client';
+import { createClient } from '@/utils/supabase/client';
 import { Bell, Menu, LogOut, User as UserIcon } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { UserRole } from '@prisma/client';
@@ -9,6 +9,12 @@ import { useNotificationStore } from '@/lib/store/useNotificationStore';
 export default function TopBar({ user }: { user: { nombre: string; email: string; role: UserRole } }) {
   const { theme, setTheme } = useTheme();
   const unreadCount = useNotificationStore(state => state.unreadCount);
+  const supabase = createClient();
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    window.location.href = '/login';
+  };
 
   return (
     <header className="h-16 bg-card border-b border-border flex items-center justify-between px-4 md:px-6 sticky top-0 z-40">
@@ -54,7 +60,7 @@ export default function TopBar({ user }: { user: { nombre: string; email: string
             {user.nombre.charAt(0).toUpperCase()}
           </div>
           <button 
-            onClick={() => authClient.signOut({ fetchOptions: { onSuccess: () => { window.location.href = '/login'; } } })}
+            onClick={handleSignOut}
             className="p-2 text-muted-foreground hover:bg-red-500/10 hover:text-red-500 rounded-full transition-colors ml-1"
             title="Cerrar sesión"
           >

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { authClient } from '@/lib/auth/client';
+import { createClient } from '@/utils/supabase/client';
 import {
   Ticket,
   GlassWater,
@@ -23,26 +23,29 @@ interface DashboardStats {
 }
 
 export default function DashboardPage() {
-  const { data } = authClient.useSession();
-  const user = data?.user;
+  const supabase = createClient();
+  const [user, setUser] = useState<any>(null);
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    async function fetchStats() {
+    async function initDashboard() {
       try {
+        const { data: { user: authUser } } = await supabase.auth.getUser();
+        setUser(authUser);
+
         const res = await fetch('/api/dashboard');
         if (res.ok) {
           const data = await res.json();
           setStats(data);
         }
       } catch (error) {
-        console.error('Failed to fetch dashboard stats:', error);
+        console.error('Dashboard init failed:', error);
       } finally {
         setIsLoading(false);
       }
     }
-    fetchStats();
+    initDashboard();
   }, []);
 
   if (isLoading || !stats) {

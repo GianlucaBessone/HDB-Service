@@ -1,9 +1,8 @@
 import { NextResponse } from 'next/server';
 import { UserRole } from '@prisma/client';
 import { hasPermission, Permission } from './rbac';
-import { auth } from './auth/server';
+import { createClient } from '@/utils/supabase/server';
 import { prisma } from './prisma';
-import { headers } from 'next/headers';
 
 export type SessionUser = {
   id: string;
@@ -14,14 +13,16 @@ export type SessionUser = {
 };
 
 /**
- * Get the current user from Neon Auth and map to Prisma User.
+ * Get the current user from Supabase Auth and map to Prisma User.
  */
 export async function getCurrentUser(): Promise<SessionUser | null> {
-  const { data: session } = await auth.getSession();
-  if (!session?.user?.email) return null;
+  const supabase = await createClient();
+  const { data: { user: authUser } } = await supabase.auth.getUser();
+  
+  if (!authUser?.email) return null;
 
   const user = await prisma.user.findUnique({
-    where: { email: session.user.email },
+    where: { email: authUser.email },
   });
 
   if (!user || !user.active) return null;
