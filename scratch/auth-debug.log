@@ -1702,3 +1702,45 @@ Please make sure your database server is running at `ep-solitary-dust-aqx3maky-p
 [2026-05-09T05:25:27.590Z] --- getCurrentUser Start ---
 [2026-05-09T05:25:27.619Z] Authenticated as: gbessone.hdb@gmail.com
 [2026-05-09T05:25:27.792Z] Prisma user found: cmouxu8fh0002cnifvy8dnpjp (ADMIN)
+[2026-05-09T05:30:31.773Z] --- getCurrentUser Start ---
+[2026-05-09T05:30:31.779Z] getCurrentUser CRASH: Dynamic server usage: Route /clients couldn't be rendered statically because it used `cookies`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error
+[2026-05-09T05:30:31.801Z] --- getCurrentUser Start ---
+[2026-05-09T05:30:31.805Z] getCurrentUser CRASH: Dynamic server usage: Route /_not-found couldn't be rendered statically because it used `cookies`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error
+[2026-05-09T05:30:31.859Z] --- getCurrentUser Start ---
+[2026-05-09T05:30:31.859Z] getCurrentUser CRASH: Dynamic server usage: Route /dashboard couldn't be rendered statically because it used `cookies`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error
+[2026-05-09T05:30:31.882Z] --- getCurrentUser Start ---
+[2026-05-09T05:30:31.883Z] getCurrentUser CRASH: Dynamic server usage: Route /dispensers couldn't be rendered statically because it used `cookies`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error
+[2026-05-09T05:30:31.898Z] --- getCurrentUser Start ---
+[2026-05-09T05:30:31.899Z] getCurrentUser CRASH: Dynamic server usage: Route /dispensers/print-qr couldn't be rendered statically because it used `cookies`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error
+[2026-05-09T05:32:00.955Z] --- getCurrentUser Start ---
+[2026-05-09T05:32:00.968Z] getCurrentUser CRASH: Dynamic server usage: Route /clients couldn't be rendered statically because it used `cookies`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error
+[2026-05-09T05:32:00.970Z] --- getCurrentUser Start ---
+[2026-05-09T05:32:00.976Z] getCurrentUser CRASH: Dynamic server usage: Route /_not-found couldn't be rendered statically because it used `cookies`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error
+[2026-05-09T05:32:01.133Z] --- getCurrentUser Start ---
+[2026-05-09T05:32:01.135Z] getCurrentUser CRASH: Dynamic server usage: Route /dashboard couldn't be rendered statically because it used `cookies`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error
+[2026-05-09T05:32:01.172Z] --- getCurrentUser Start ---
+[2026-05-09T05:32:01.172Z] getCurrentUser CRASH: Dynamic server usage: Route /dispensers couldn't be rendered statically because it used `cookies`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error
+[2026-05-09T05:32:01.195Z] --- getCurrentUser Start ---
+[2026-05-09T05:32:01.196Z] getCurrentUser CRASH: Dynamic server usage: Route /inventory couldn't be rendered statically because it used `cookies`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error
+[2026-05-09T05:32:01.216Z] --- getCurrentUser Start ---
+[2026-05-09T05:32:01.218Z] getCurrentUser CRASH: Dynamic server usage: Route /dispensers/print-qr couldn't be rendered statically because it used `cookies`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error
+[2026-05-09T05:32:01.632Z] --- getCurrentUser Start ---
+[2026-05-09T05:32:01.633Z] getCurrentUser CRASH: Dynamic server usage: Route /login couldn't be rendered statically because it used `cookies`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error
+[2026-05-09T05:32:01.645Z] --- getCurrentUser Start ---
+[2026-05-09T05:32:01.646Z] getCurrentUser CRASH: Dynamic server usage: Route /maintenance/approvals couldn't be rendered statically because it used `cookies`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error
+[2026-05-09T05:32:01.664Z] --- getCurrentUser Start ---
+[2026-05-09T05:32:01.665Z] getCurrentUser CRASH: Dynamic server usage: Route /maintenance/reports couldn't be rendered statically because it used `cookies`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error
+[2026-05-09T05:32:01.673Z] --- getCurrentUser Start ---
+[2026-05-09T05:32:01.675Z] getCurrentUser CRASH: Dynamic server usage: Route /map couldn't be rendered statically because it used `cookies`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error
+[2026-05-09T05:32:01.688Z] --- getCurrentUser Start ---
+[2026-05-09T05:32:01.688Z] getCurrentUser CRASH: Dynamic server usage: Route /maintenance couldn't be rendered statically because it used `cookies`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error
+[2026-05-09T05:32:01.701Z] --- getCurrentUser Start ---
+[2026-05-09T05:32:01.702Z] --- getCurrentUser Start ---
+[2026-05-09T05:32:01.702Z] getCurrentUser CRASH: Dynamic server usage: Route / couldn't be rendered statically because it used `cookies`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error
+[2026-05-09T05:32:01.702Z] getCurrentUser CRASH: Dynamic server usage: Route / couldn't be rendered statically because it used `cookies`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error
+[2026-05-09T05:32:01.712Z] --- getCurrentUser Start ---
+[2026-05-09T05:32:01.714Z] getCurrentUser CRASH: Dynamic server usage: Route /tickets couldn't be rendered statically because it used `cookies`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error
+[2026-05-09T05:32:01.722Z] --- getCurrentUser Start ---
+[2026-05-09T05:32:01.722Z] getCurrentUser CRASH: Dynamic server usage: Route /qr/scan couldn't be rendered statically because it used `cookies`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error
+[2026-05-09T05:32:01.815Z] --- getCurrentUser Start ---
+[2026-05-09T05:32:01.816Z] getCurrentUser CRASH: Dynamic server usage: Route /users couldn't be rendered statically because it used `cookies`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error

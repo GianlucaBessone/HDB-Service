@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import QRCode from 'qrcode';
@@ -13,7 +13,7 @@ const PDFViewer = dynamic(
 
 import { DispenserQRPDF } from '@/components/DispenserQRPDF';
 
-export default function PrintQRPage() {
+function PrintQRContent() {
   const searchParams = useSearchParams();
   const idsParam = searchParams.get('ids');
   
@@ -71,5 +71,13 @@ export default function PrintQRPage() {
         </PDFViewer>
       </div>
     </div>
+  );
+}
+
+export default function PrintQRPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center">Cargando...</div>}>
+      <PrintQRContent />
+    </Suspense>
   );
 }
