@@ -62,7 +62,7 @@ export async function PATCH(
     } else {
       const { data: { users }, error: listError } = await supabaseAdmin.auth.admin.listUsers();
       if (!listError) {
-        const found = users.find(u => u.email === existingUser.email);
+        const found = users.find((u: any) => u.email === existingUser.email);
         if (found) supabaseUserId = found.id;
       }
     }
@@ -112,7 +112,7 @@ export async function DELETE(
         supabaseUserId = id;
       } else {
         const { data: { users } } = await supabaseAdmin.auth.admin.listUsers();
-        const found = users?.find(u => u.email === existingUser.email);
+        const found = users?.find((u: any) => u.email === existingUser.email);
         if (found) supabaseUserId = found.id;
       }
 
