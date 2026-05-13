@@ -765,7 +765,8 @@ function EditDispenserModal({
 
   useEffect(() => {
     fetch('/api/locations')
-      .then(data => setLocations(data || []))
+      .then(res => res.json())
+      .then(data => setLocations(Array.isArray(data) ? data : []))
       .catch(err => console.error(err));
 
     fetch('/api/plants')
