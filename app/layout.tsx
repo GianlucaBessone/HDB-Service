@@ -7,6 +7,8 @@ import Sidebar from '@/components/Sidebar';
 import TopBar from '@/components/TopBar';
 import OneSignalInit from '@/components/OneSignalInit';
 import { Toaster } from 'react-hot-toast';
+import { headers } from 'next/headers';
+import { Analytics } from '@vercel/analytics/next';
 
 const inter = Inter({ subsets: ['latin'] });
 
