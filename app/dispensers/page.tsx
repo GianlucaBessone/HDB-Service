@@ -194,49 +194,49 @@ export default function DispensersPage() {
           <table className="table">
             <thead>
               <tr>
-                <th className="cursor-pointer select-none" onClick={() => toggleSort('id')}>
+                <th className="cursor-pointer select-none text-center" onClick={() => toggleSort('id')}>
                   ID / Serie <SortIcon field="id" />
                 </th>
-                <th className="cursor-pointer select-none" onClick={() => toggleSort('marca')}>
+                <th className="cursor-pointer select-none text-center" onClick={() => toggleSort('marca')}>
                   Marca / Modelo <SortIcon field="marca" />
                 </th>
-                <th className="cursor-pointer select-none" onClick={() => toggleSort('planta_duena')}>
+                <th className="cursor-pointer select-none text-center" onClick={() => toggleSort('planta_duena')}>
                   Planta Dueña <SortIcon field="planta_duena" />
                 </th>
-                <th className="cursor-pointer select-none" onClick={() => toggleSort('planta')}>
+                <th className="cursor-pointer select-none text-center" onClick={() => toggleSort('planta')}>
                   Ubicación Actual <SortIcon field="planta" />
                 </th>
-                <th className="cursor-pointer select-none" onClick={() => toggleSort('status')}>
+                <th className="cursor-pointer select-none text-center" onClick={() => toggleSort('status')}>
                   Estado <SortIcon field="status" />
                 </th>
-                <th>Tickets</th>
-                <th className="text-right">Acciones</th>
+                <th className="text-center">Tickets</th>
+                <th className="text-center">Acciones</th>
               </tr>
             </thead>
             <tbody>
               {sorted.map(d => {
                 return (
                   <tr key={d.id}>
-                    <td>
+                    <td className="text-center">
                       <div className="font-semibold text-foreground">{d.id}</div>
                       {d.numeroSerie && d.numeroSerie !== d.id && (
                         <div className="text-xs text-muted-foreground">S/N: {d.numeroSerie}</div>
                       )}
                     </td>
-                    <td>
+                    <td className="text-center">
                       <div className="font-medium">{d.marca}</div>
                       <div className="text-xs text-muted-foreground">{d.modelo}</div>
                     </td>
-                    <td>
+                    <td className="text-center">
                       {d.plant ? (
                         <div className="font-medium text-primary">{d.plant.nombre}</div>
                       ) : (
                         <span className="text-muted-foreground text-xs italic">No definida</span>
                       )}
                     </td>
-                    <td>
+                    <td className="text-center">
                       {d.location ? (
-                        <div>
+                        <div className="flex flex-col items-center">
                           <div className="font-medium">{d.location.plant.nombre}</div>
                           <div className="text-xs text-muted-foreground">
                             {d.location.sector?.nombre} — {d.location.nombre}
@@ -246,26 +246,30 @@ export default function DispensersPage() {
                         <span className="text-muted-foreground text-sm italic">Sin asignar</span>
                       )}
                     </td>
-                    <td>
-                      <span className={clsx('badge gap-1.5 border', getStatusColor(d.status))}>
-                        {d.status === 'IN_SERVICE' ? <CheckCircle2 className="w-3.5 h-3.5" /> :
-                         d.status === 'BLOCKED' || d.status === 'BLOCKED_WAITING_OC' ? <AlertTriangle className="w-3.5 h-3.5" /> :
-                         d.status === 'UNDER_REPAIR' || d.status === 'IN_TECHNICAL_SERVICE' ? <Wrench className="w-3.5 h-3.5" /> :
-                         <Archive className="w-3.5 h-3.5" />}
-                        {t(d.status)}
-                      </span>
+                    <td className="text-center">
+                      <div className="flex justify-center">
+                        <span className={clsx('badge gap-1.5 border', getStatusColor(d.status))}>
+                          {d.status === 'IN_SERVICE' ? <CheckCircle2 className="w-3.5 h-3.5" /> :
+                           d.status === 'BLOCKED' || d.status === 'BLOCKED_WAITING_OC' ? <AlertTriangle className="w-3.5 h-3.5" /> :
+                           d.status === 'UNDER_REPAIR' || d.status === 'IN_TECHNICAL_SERVICE' ? <Wrench className="w-3.5 h-3.5" /> :
+                           <Archive className="w-3.5 h-3.5" />}
+                          {t(d.status)}
+                        </span>
+                      </div>
                     </td>
-                    <td>
+                    <td className="text-center">
                       <span className="text-sm text-muted-foreground">{d._count.tickets}</span>
                     </td>
-                    <td className="text-right">
-                      <Link
-                        href={`/dispensers/${d.id}`}
-                        className="btn-ghost btn-sm gap-1.5 text-primary hover:text-primary/80"
-                      >
-                        <Eye className="w-4 h-4" />
-                        Ver
-                      </Link>
+                    <td className="text-center">
+                      <div className="flex justify-center">
+                        <Link
+                          href={`/dispensers/${d.id}`}
+                          className="btn-ghost btn-sm gap-1.5 text-primary hover:text-primary/80"
+                        >
+                          <Eye className="w-4 h-4" />
+                          Ver
+                        </Link>
+                      </div>
                     </td>
                   </tr>
                 );

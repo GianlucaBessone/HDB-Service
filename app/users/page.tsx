@@ -164,15 +164,15 @@ export default function UsersPage() {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left">
+          <table className="w-full">
             <thead>
               <tr className="bg-muted/50 text-muted-foreground text-xs uppercase tracking-wider">
-                <th className="px-6 py-4 font-semibold">Usuario</th>
-                <th className="px-6 py-4 font-semibold">Rol</th>
-                <th className="px-6 py-4 font-semibold">Cliente / Empresa</th>
-                <th className="px-6 py-4 font-semibold">Estado</th>
-                <th className="px-6 py-4 font-semibold">Fecha Registro</th>
-                <th className="px-6 py-4 font-semibold text-right">Acciones</th>
+                <th className="px-6 py-4 font-semibold text-center">Usuario</th>
+                <th className="px-6 py-4 font-semibold text-center">Rol</th>
+                <th className="px-6 py-4 font-semibold text-center">Cliente / Empresa</th>
+                <th className="px-6 py-4 font-semibold text-center">Estado</th>
+                <th className="px-6 py-4 font-semibold text-center">Fecha Registro</th>
+                <th className="px-6 py-4 font-semibold text-center">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -195,11 +195,11 @@ export default function UsersPage() {
                 filteredUsers.map((user) => (
                   <tr key={user.id} className="hover:bg-accent/30 transition-colors group">
                     <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
+                      <div className="flex items-center justify-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold shrink-0">
                           {user.nombre.charAt(0)}
                         </div>
-                        <div>
+                        <div className="text-left">
                           <p className="font-semibold text-foreground leading-none">
                             {user.nombre} {user.apellido}
                           </p>
@@ -210,12 +210,12 @@ export default function UsersPage() {
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-4 text-center">
                       {getRoleBadge(user.role)}
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-4 text-center">
                       {user.client ? (
-                        <div className="flex items-center gap-2 text-sm text-foreground">
+                        <div className="flex items-center justify-center gap-2 text-sm text-foreground">
                           <Building2 className="w-4 h-4 text-muted-foreground" />
                           {user.client.nombre}
                         </div>
@@ -223,24 +223,26 @@ export default function UsersPage() {
                         <span className="text-xs text-muted-foreground">— Interno —</span>
                       )}
                     </td>
-                    <td className="px-6 py-4">
-                      {user.active ? (
-                        <span className="flex items-center gap-1.5 text-emerald-600 text-sm font-medium">
-                          <UserCheck className="w-4 h-4" />
-                          Activo
-                        </span>
-                      ) : (
-                        <span className="flex items-center gap-1.5 text-red-500 text-sm font-medium">
-                          <Ban className="w-4 h-4" />
-                          Bloqueado
-                        </span>
-                      )}
+                    <td className="px-6 py-4 text-center">
+                      <div className="flex justify-center">
+                        {user.active ? (
+                          <span className="flex items-center gap-1.5 text-emerald-600 text-sm font-medium">
+                            <UserCheck className="w-4 h-4" />
+                            Activo
+                          </span>
+                        ) : (
+                          <span className="flex items-center gap-1.5 text-red-500 text-sm font-medium">
+                            <Ban className="w-4 h-4" />
+                            Bloqueado
+                          </span>
+                        )}
+                      </div>
                     </td>
-                    <td className="px-6 py-4 text-sm text-muted-foreground">
+                    <td className="px-6 py-4 text-center text-sm text-muted-foreground">
                       {new Date(user.createdAt).toLocaleDateString()}
                     </td>
-                    <td className="px-6 py-4 text-right relative">
-                      <div className="flex justify-end gap-1">
+                    <td className="px-6 py-4 text-center relative">
+                      <div className="flex justify-center gap-1">
                         <button 
                           onClick={() => { setSelectedUser(user); setIsModalOpen(true); }}
                           className="p-2 hover:bg-primary/10 rounded-lg transition-colors text-primary"
