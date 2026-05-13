@@ -44,18 +44,29 @@ export const updateSession = async (request: NextRequest) => {
   // refreshing the auth token
   const { data: { user } } = await supabase.auth.getUser();
 
+  const isLoginPage = request.nextUrl.pathname.startsWith('/login');
   const isPublicRoute = 
-    request.nextUrl.pathname.startsWith('/login') || 
+    isLoginPage || 
     request.nextUrl.pathname.startsWith('/qr/') ||
-    request.nextUrl.pathname.startsWith('/api/') || 
     request.nextUrl.pathname.startsWith('/_next') ||
     request.nextUrl.pathname.includes('.');
 
+  // If no user and not a public route, redirect to login
   if (!user && !isPublicRoute) {
     const url = request.nextUrl.clone();
     url.pathname = '/login';
     return NextResponse.redirect(url);
   }
+
+  // If user IS logged in and trying to access login page, redirect to dashboard
+  if (user && isLoginPage) {
+    const url = request.nextUrl.clone();
+    url.pathname = '/dashboard';
+    return NextResponse.redirect(url);
+  }
+
+  // Set current pathname in headers so layout can access it
+  supabaseResponse.headers.set('x-pathname', request.nextUrl.pathname);
 
   return supabaseResponse;
 };

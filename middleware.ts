@@ -14,6 +14,6 @@ export const config = {
      * - Next.js internal: _next/static, _next/image
      * - Static assets: favicon.ico, icons, manifest.json, service workers, etc.
      */
-    '/((?!api/|login|qr/|_next/static|_next/image|favicon.ico|icons|manifest.json|OneSignalSDKWorker.js|sw.js|workbox-.*|offline.html).*)',
+    '/((?!login|_next/static|_next/image|favicon.ico|icons|manifest.json|OneSignalSDKWorker.js|sw.js|workbox-.*|offline.html).*)',
   ],
 };

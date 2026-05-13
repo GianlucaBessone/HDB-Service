@@ -38,21 +38,25 @@ export default async function RootLayout({
   children: React.ReactNode;
 }) {
   const session = await getSession();
+  const headersList = await headers();
+  const pathname = headersList.get('x-pathname') || '';
+
+  const showSidebar = session && !pathname.startsWith('/login');
 
   return (
     <html lang="es" suppressHydrationWarning>
       <body className={`${inter.className} min-h-screen bg-background`} suppressHydrationWarning>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          {session ? (
+          {showSidebar ? (
             <div className="flex h-screen overflow-hidden">
-              <Sidebar userRole={session.user.role} />
+              <Sidebar userRole={session!.user.role} />
               <div className="flex flex-col flex-1 overflow-hidden ml-0 md:ml-64 transition-all duration-300">
-                <TopBar user={session.user} />
+                <TopBar user={session!.user} />
                 <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
                   {children}
                 </main>
               </div>
-              {session.user.role !== 'CLIENT_REQUESTER' && <OneSignalInit user={session.user} />}
+              {session!.user.role !== 'CLIENT_REQUESTER' && <OneSignalInit user={session!.user} />}
             </div>
           ) : (
             <main className="h-screen flex items-center justify-center">
@@ -60,6 +64,7 @@ export default async function RootLayout({
             </main>
           )}
           <Toaster position="bottom-right" />
+          <Analytics />
         </ThemeProvider>
       </body>
     </html>
