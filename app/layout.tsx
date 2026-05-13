@@ -14,10 +14,22 @@ export const metadata: Metadata = {
   title: 'HDB-Service | Water Dispenser Management',
   description: 'Gestión de mantenimiento y servicio de dispensers de agua',
   manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'HDB Service',
+  },
+  icons: {
+    apple: '/icon-192x192.png',
+  },
 };
 
 export const viewport = {
   themeColor: '#0b8296',
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
 };
 
 export default async function RootLayout({

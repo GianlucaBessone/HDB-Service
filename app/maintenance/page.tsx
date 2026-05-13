@@ -110,6 +110,7 @@ export default function MaintenancePage() {
     total: schedules.length,
     pending: schedules.filter(s => s.status === 'PENDING').length,
     completed: schedules.filter(s => s.status === 'COMPLETED').length,
+    signed: schedules.filter(s => s.status === 'SIGNED').length,
     overdue: schedules.filter(s => s.status === 'OVERDUE').length,
   };
 
@@ -132,9 +133,10 @@ export default function MaintenancePage() {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         <KpiCard label="Total del Mes" value={kpis.total} color="primary" />
         <KpiCard label="Completados" value={kpis.completed} color="emerald" />
+        <KpiCard label="Firmados" value={kpis.signed} color="blue" />
         <KpiCard label="Pendientes" value={kpis.pending} color="amber" />
         <KpiCard label="Vencidos" value={kpis.overdue} color="red" />
       </div>
@@ -285,6 +287,7 @@ function KpiCard({ label, value, color }: { label: string; value: number; color:
   const colorMap: Record<string, string> = {
     primary: 'border-t-primary text-primary',
     emerald: 'border-t-emerald-500 text-emerald-600 dark:text-emerald-400',
+    blue: 'border-t-blue-500 text-blue-600 dark:text-blue-400',
     amber: 'border-t-amber-500 text-amber-600 dark:text-amber-400',
     red: 'border-t-red-500 text-red-600 dark:text-red-400',
   };

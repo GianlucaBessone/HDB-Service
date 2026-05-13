@@ -82,6 +82,7 @@ export async function GET(req: Request) {
     const maintOverdue = maintenanceStats.find(s => s.status === 'OVERDUE')?._count || 0;
 
     return NextResponse.json({
+      user: { nombre: user.nombre },
       tickets: { open: openTickets, total: tickets.length, slaCompliance },
       dispensers: { total: totalDispensers, inService: inServiceDispensers, repair: repairDispensers, blocked: blockedDispensers },
       stock: { lowAlerts: realLowStockCount },

@@ -78,17 +78,26 @@ export async function POST(req: Request) {
 
   try {
     const body = await req.json();
-    const { clientId, plantId, itemType, materialCode, nombre, cantidad, minLevel, maxLevel, unidad, uniqueId, expirationMonths } = body;
+    const { clientId, plantId, materialCode, cantidad, minLevel, maxLevel, unidad, uniqueId } = body;
 
-    if (!clientId || !plantId || !itemType || !materialCode || !nombre) {
+    if (!clientId || !plantId || !materialCode) {
       return NextResponse.json(
-        { error: 'clientId, plantId, itemType, materialCode y nombre son requeridos' },
+        { error: 'clientId, plantId y materialCode son requeridos' },
         { status: 400 }
       );
     }
 
-    // If it's a serialized consumable, create the consumable record first
-    if (itemType === 'CONSUMABLE' && uniqueId) {
+    // Fetch material from catalog to ensure it's standardized
+    const catalogItem = await prisma.materialCatalog.findUnique({
+      where: { code: materialCode.trim() }
+    });
+
+    if (!catalogItem) {
+      return NextResponse.json({ error: 'Código de material no encontrado en el catálogo estandarizado.' }, { status: 400 });
+    }
+
+    // If it's a serialized material, create the consumable record first
+    if (catalogItem.requiresSerial && uniqueId) {
       const existing = await prisma.consumable.findUnique({ where: { uniqueId: uniqueId.trim() } });
       if (existing) {
         return NextResponse.json({ error: 'Ese N° de Serie ya está registrado.' }, { status: 400 });
@@ -96,39 +105,41 @@ export async function POST(req: Request) {
       await prisma.consumable.create({
         data: {
           uniqueId: uniqueId.trim(),
-          materialCode: materialCode.trim(),
-          nombre: nombre.trim(),
+          materialCode: catalogItem.code,
+          nombre: catalogItem.nombre,
           plantId,
-          expirationMonths: expirationMonths || null,
+          expirationMonths: catalogItem.expirationMonths,
         }
       });
+    } else if (catalogItem.requiresSerial && !uniqueId) {
+      return NextResponse.json({ error: 'Este material requiere un número de serie.' }, { status: 400 });
     }
 
     // For serialized, we always ADD 1. For bulk, we INCREMENT to avoid overwriting existing stock
-    const isSerialized = itemType === 'CONSUMABLE' && !!uniqueId;
+    const isSerialized = catalogItem.requiresSerial;
     const amount = isSerialized ? 1 : (parseFloat(cantidad) || 0);
 
     const entry = await prisma.stockEntry.upsert({
       where: {
         plantId_itemType_materialCode: { 
           plantId, 
-          itemType: itemType as any, 
-          materialCode: materialCode.trim() 
+          itemType: catalogItem.type as any, 
+          materialCode: catalogItem.code 
         },
       },
       update: {
         cantidad: { increment: amount },
         minLevel: minLevel ?? undefined,
         maxLevel: maxLevel ?? undefined,
-        nombre: nombre.trim(),
+        nombre: catalogItem.nombre,
         unidad: unidad || 'unidad',
       },
       create: {
         clientId,
         plantId,
-        itemType: itemType as any,
-        materialCode: materialCode.trim(),
-        nombre: nombre.trim(),
+        itemType: catalogItem.type as any,
+        materialCode: catalogItem.code,
+        nombre: catalogItem.nombre,
         cantidad: amount,
         minLevel: minLevel ?? 0,
         maxLevel: maxLevel ?? 0,

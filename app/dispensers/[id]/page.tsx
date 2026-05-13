@@ -248,12 +248,12 @@ export default function DispenserDetailPage() {
           <div className="glass-card p-5">
             <h3 className="text-sm font-bold flex items-center gap-2 mb-4">
               <CalendarClock className="w-4 h-4 text-primary" />
-              Ciclo de Vida
+              Ciclo de Vida del Equipo
             </h3>
             {dispenser.lifecycleStartDate ? (
               <div className="space-y-4">
                 <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>Total: {dispenser.lifecycleMonths} meses</span>
+                  <span>Vida Útil: {dispenser.lifecycleMonths} meses</span>
                   <span className="font-bold text-foreground">
                     {dispenser.lifecycleRemainingDays != null
                       ? `${dispenser.lifecycleRemainingDays} días restantes`
@@ -279,6 +279,52 @@ export default function DispenserDetailPage() {
             ) : (
               <p className="text-xs text-muted-foreground italic text-center py-4">No se ha registrado el inicio del ciclo.</p>
             )}
+          </div>
+
+          {/* Consumables Status Widget */}
+          <div className="glass-card p-5">
+            <h3 className="text-sm font-bold flex items-center gap-2 mb-4">
+              <ShieldCheck className="w-4 h-4 text-primary" />
+              Estado de Insumos
+            </h3>
+            <div className="space-y-3">
+              {dispenser.consumableHistory?.filter((c: any) => !c.removedAt).length > 0 ? (
+                dispenser.consumableHistory
+                  .filter((c: any) => !c.removedAt)
+                  .map((c: any) => {
+                    const isExpired = c.expiresAt && new Date(c.expiresAt) < new Date();
+                    const daysLeft = c.expiresAt 
+                      ? Math.ceil((new Date(c.expiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+                      : null;
+                    
+                    return (
+                      <div key={c.id} className="p-3 rounded-xl bg-muted/30 border border-transparent flex flex-col gap-1">
+                        <div className="flex justify-between items-center">
+                          <p className="text-[11px] font-bold truncate">{c.nombre}</p>
+                          {daysLeft !== null && (
+                            <span className={clsx(
+                              "text-[9px] font-bold px-1.5 py-0.5 rounded-full",
+                              isExpired ? "bg-red-100 text-red-700" : daysLeft < 30 ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-700"
+                            )}>
+                              {isExpired ? 'VENCIDO' : `${daysLeft}d`}
+                            </span>
+                          )}
+                        </div>
+                        {c.expiresAt && (
+                          <div className="flex justify-between items-center text-[10px] text-muted-foreground">
+                            <span>Vence: {new Date(c.expiresAt).toLocaleDateString('es-AR')}</span>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })
+              ) : (
+                <div className="py-6 text-center">
+                  <Package className="w-8 h-8 text-muted-foreground/20 mx-auto mb-2" />
+                  <p className="text-[10px] text-muted-foreground italic">No hay insumos vigentes registrados</p>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Recent Tickets Sidebar */}
@@ -369,6 +415,8 @@ export default function DispenserDetailPage() {
 // ─── Tabs Components (Reuse existing logic but stylized) ──────────
 
 function InfoTab({ dispenser }: { dispenser: any }) {
+  const currentConsumables = dispenser.consumableHistory?.filter((c: any) => !c.removedAt) || [];
+  
   const fields = [
     { label: 'ID Dispenser', value: dispenser.id, mono: true },
     { label: 'Marca', value: dispenser.marca },
@@ -381,17 +429,46 @@ function InfoTab({ dispenser }: { dispenser: any }) {
   ];
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4">
-      {fields.map(f => (
-        <div key={f.label} className="flex justify-between items-center py-2 border-b border-border/50">
-          <span className="text-xs text-muted-foreground font-medium">{f.label}</span>
-          <span className={clsx("text-sm font-bold", f.mono && "font-mono text-primary")}>{f.value}</span>
+    <div className="space-y-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4">
+        {fields.map(f => (
+          <div key={f.label} className="flex justify-between items-center py-2 border-b border-border/50">
+            <span className="text-xs text-muted-foreground font-medium">{f.label}</span>
+            <span className={clsx("text-sm font-bold", f.mono && "font-mono text-primary")}>{f.value}</span>
+          </div>
+        ))}
+      </div>
+
+      {currentConsumables.length > 0 && (
+        <div className="p-4 bg-primary/5 border border-primary/20 rounded-2xl">
+          <h4 className="text-xs font-bold text-primary uppercase tracking-widest mb-4">Consumibles Vigentes</h4>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {currentConsumables.map((c: any) => {
+              const daysLeft = c.expiresAt 
+                ? Math.ceil((new Date(c.expiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+                : null;
+              return (
+                <div key={c.id} className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-background flex items-center justify-center border shadow-sm">
+                    <ShieldCheck className="w-4 h-4 text-emerald-500" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold">{c.nombre}</p>
+                    <p className="text-[10px] text-muted-foreground">
+                      {daysLeft != null ? (daysLeft < 0 ? 'Vencido' : `Quedan ${daysLeft} días`) : 'Sin VTO'}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
-      ))}
+      )}
+
       {dispenser.notas && (
-        <div className="sm:col-span-2 pt-4">
-          <p className="text-xs text-muted-foreground font-medium mb-1">Notas internas</p>
-          <div className="p-3 bg-muted/30 rounded-lg text-sm text-foreground italic">
+        <div>
+          <p className="text-xs text-muted-foreground font-medium mb-1 text-center">Notas internas</p>
+          <div className="p-3 bg-muted/30 rounded-lg text-sm text-foreground italic text-center">
             "{dispenser.notas}"
           </div>
         </div>
@@ -459,37 +536,95 @@ function RepairsTab({ repairs }: { repairs: any[] }) {
 }
 
 function ConsumablesTab({ consumables }: { consumables: any[] }) {
-  if (consumables.length === 0) return <EmptyState text="Sin historial de consumibles" />;
+  const currentlyInstalled = consumables?.filter(c => !c.removedAt) || [];
+  const history = consumables?.filter(c => c.removedAt) || [];
+
+  if (currentlyInstalled.length === 0 && history.length === 0) {
+    return <EmptyState text="Sin historial de consumibles" />;
+  }
+
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-      {consumables.map(c => {
-        const isExpired = c.expiresAt && new Date(c.expiresAt) < new Date();
-        return (
-          <div key={c.id} className="flex flex-col p-3 rounded-xl bg-muted/20 border border-border/50">
-            <div className="flex justify-between items-start mb-2">
-              <p className="text-sm font-bold truncate pr-2">{c.nombre}</p>
-              {c.expiresAt && (
-                <span className={clsx('text-[8px] font-bold px-1.5 py-0.5 rounded uppercase', isExpired ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700')}>
-                  {isExpired ? 'Vencido' : 'Vigente'}
-                </span>
-              )}
-            </div>
-            <div className="space-y-1">
-              <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Cód: {c.materialCode}</p>
-              <div className="flex justify-between text-[10px] font-bold">
-                <span className="text-muted-foreground uppercase">Instalado:</span>
-                <span>{new Date(c.installedAt).toLocaleDateString('es-AR')}</span>
-              </div>
-              {c.expiresAt && (
-                <div className="flex justify-between text-[10px] font-bold">
-                  <span className="text-muted-foreground uppercase">Vencimiento:</span>
-                  <span className={isExpired ? 'text-red-600' : 'text-foreground'}>{new Date(c.expiresAt).toLocaleDateString('es-AR')}</span>
+    <div className="space-y-6">
+      {currentlyInstalled.length > 0 && (
+        <section>
+          <h4 className="text-xs font-bold text-primary uppercase tracking-widest mb-3 flex items-center gap-2">
+            <ShieldCheck className="w-4 h-4" />
+            Instalados Actualmente
+          </h4>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {currentlyInstalled.map(c => {
+              const isExpired = c.expiresAt && new Date(c.expiresAt) < new Date();
+              const daysLeft = c.expiresAt 
+                ? Math.ceil((new Date(c.expiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+                : null;
+
+              return (
+                <div key={c.id} className="flex flex-col p-4 rounded-xl bg-primary/5 border border-primary/20 shadow-sm relative overflow-hidden">
+                  <div className="flex justify-between items-start mb-2">
+                    <p className="text-sm font-bold truncate pr-2">{c.nombre}</p>
+                    {c.expiresAt && (
+                      <span className={clsx(
+                        'text-[8px] font-bold px-2 py-0.5 rounded uppercase border',
+                        isExpired ? 'bg-red-50 text-red-700 border-red-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                      )}>
+                        {isExpired ? 'Vencido' : 'Vigente'}
+                      </span>
+                    )}
+                  </div>
+                  <div className="space-y-1.5">
+                    <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Cód: {c.materialCode}</p>
+                    <div className="flex justify-between text-[10px] font-bold">
+                      <span className="text-muted-foreground uppercase">Instalado:</span>
+                      <span>{new Date(c.installedAt).toLocaleDateString('es-AR')}</span>
+                    </div>
+                    {c.expiresAt && (
+                      <div className="flex justify-between text-[10px] font-bold">
+                        <span className="text-muted-foreground uppercase">Vencimiento:</span>
+                        <span className={isExpired ? 'text-red-600' : 'text-foreground'}>{new Date(c.expiresAt).toLocaleDateString('es-AR')}</span>
+                      </div>
+                    )}
+                    {daysLeft !== null && (
+                      <div className="mt-2 pt-2 border-t border-primary/10">
+                        <p className={clsx(
+                          "text-[10px] font-bold uppercase tracking-tighter",
+                          isExpired ? "text-red-500" : daysLeft < 30 ? "text-amber-600" : "text-primary"
+                        )}>
+                          {isExpired ? 'Expiró hace ' + Math.abs(daysLeft) : daysLeft + ' días restantes'}
+                        </p>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              )}
-            </div>
+              );
+            })}
           </div>
-        );
-      })}
+        </section>
+      )}
+
+      {history.length > 0 && (
+        <section>
+          <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-3">Historial de Cambios</h4>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 opacity-70">
+            {history.map(c => (
+              <div key={c.id} className="flex flex-col p-3 rounded-xl bg-muted/20 border border-border/50">
+                <div className="flex justify-between items-start mb-1">
+                  <p className="text-xs font-bold truncate pr-2">{c.nombre}</p>
+                  <span className="text-[8px] font-bold px-1.5 py-0.5 rounded uppercase bg-slate-100 text-slate-500 border border-slate-200">Retirado</span>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[9px] text-muted-foreground font-semibold uppercase tracking-wider">Cód: {c.materialCode}</p>
+                  <div className="flex justify-between text-[9px] font-bold">
+                    <span className="text-muted-foreground uppercase">Periodo:</span>
+                    <span className="text-center">
+                      {new Date(c.installedAt).toLocaleDateString('es-AR')} - {new Date(c.removedAt).toLocaleDateString('es-AR')}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 }

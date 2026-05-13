@@ -5,14 +5,17 @@ import { requirePermission } from '@/lib/auth';
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: Request) {
-  const user = await requirePermission('maintenance:read');
-  if (user instanceof NextResponse) return user;
+  const user = await requirePermission('stock:read');
+  if (user instanceof NextResponse) {
+    console.log('[API] GET /api/stock/available - Auth/Permission failed:', user.status);
+    return user;
+  }
 
   try {
     const { searchParams } = new URL(req.url);
     const plantId = searchParams.get('plantId');
 
-    const whereStock: any = { itemType: 'CONSUMABLE', cantidad: { gt: 0 } };
+    const whereStock: any = { itemType: { in: ['CONSUMABLE', 'SPARE_PART'] }, cantidad: { gt: 0 } };
     const whereCons: any = { active: true, uniqueId: { not: null } };
 
     if (plantId && plantId !== 'all') {

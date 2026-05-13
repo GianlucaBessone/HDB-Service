@@ -3,6 +3,8 @@ import { prisma } from '@/lib/prisma';
 import { requirePermission } from '@/lib/auth';
 import { createAuditLog } from '@/lib/audit';
 
+export const dynamic = 'force-dynamic';
+
 // GET /api/dispensers/[id]
 export async function GET(req: Request, props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
@@ -35,7 +37,6 @@ export async function GET(req: Request, props: { params: Promise<{ id: string }>
         },
         consumableHistory: {
           orderBy: { installedAt: 'desc' },
-          take: 20,
         },
         sparePartHistory: {
           orderBy: { replacedAt: 'desc' },

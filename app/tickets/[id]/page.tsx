@@ -10,6 +10,8 @@ import {
 import clsx from 'clsx';
 import toast from 'react-hot-toast';
 import { t, getStatusColor } from '@/lib/translations';
+import RepairModal from '@/components/RepairModal';
+import ConfirmModal from '@/components/ConfirmModal';
 
 export default function TicketDetailPage() {
   const params = useParams();
@@ -21,6 +23,36 @@ export default function TicketDetailPage() {
   const [newComment, setNewComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showStatusModal, setShowStatusModal] = useState(false);
+  const [showRepairModal, setShowRepairModal] = useState(false);
+  const [isSettingRepair, setIsSettingRepair] = useState(false);
+
+  const [showConfirmRepairModal, setShowConfirmRepairModal] = useState(false);
+
+  const handleRegisterRepair = async () => {
+    if (!ticket.dispenser) return toast.error('No hay dispenser asociado');
+
+    if (ticket.dispenser.status !== 'UNDER_REPAIR') {
+      setShowConfirmRepairModal(true);
+      return;
+    }
+    setShowRepairModal(true);
+  };
+
+  const confirmAndSetRepair = async () => {
+    setIsSettingRepair(true);
+    try {
+      const res = await fetch(`/api/dispensers/${ticket.dispenser.id}/set-repair`, { method: 'POST' });
+      if (!res.ok) throw new Error();
+      toast.success('Dispenser movido a Reparación');
+      await fetchTicket();
+      setShowRepairModal(true);
+    } catch {
+      toast.error('Error al actualizar dispenser');
+    } finally {
+      setIsSettingRepair(false);
+      setShowConfirmRepairModal(false);
+    }
+  };
 
   const fetchTicket = async () => {
     setIsLoading(true);
@@ -98,7 +130,17 @@ export default function TicketDetailPage() {
               <span>Creado: {new Date(ticket.createdAt).toLocaleString('es-AR')}</span>
             </div>
           </div>
-          <div className="shrink-0 flex items-start">
+          <div className="shrink-0 flex flex-wrap items-start gap-2">
+            {ticket.status !== 'RESOLVED' && ticket.status !== 'CLOSED' && (
+              <button 
+                onClick={handleRegisterRepair} 
+                disabled={isSettingRepair}
+                className="btn-primary btn-sm gap-2"
+              >
+                {isSettingRepair ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+                Registrar Reparación
+              </button>
+            )}
             <button onClick={() => setShowStatusModal(true)} className="btn-outline btn-sm gap-2">
               <RefreshCw className="w-4 h-4" />
               Cambiar Estado
@@ -140,7 +182,12 @@ export default function TicketDetailPage() {
             </div>
             <div>
               <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Ubicación</p>
-              {(ticket.location || ticket.dispenser?.location) ? (
+              {ticket.dispenser?.status === 'UNDER_REPAIR' ? (
+                <div className="mt-0.5">
+                  <p className="font-semibold text-amber-600">En Taller / Reparación</p>
+                  <p className="text-xs text-muted-foreground">Retirado de: {ticket.location?.nombre || ticket.location?.plant?.nombre || 'Ubicación original'}</p>
+                </div>
+              ) : (ticket.location || ticket.dispenser?.location) ? (
                 <>
                   <p className="font-semibold block mt-0.5">{(ticket.location || ticket.dispenser?.location).plant?.nombre}</p>
                   <p className="text-sm mt-0.5">
@@ -259,11 +306,32 @@ export default function TicketDetailPage() {
           onSuccess={() => { setShowStatusModal(false); fetchTicket(); }} 
         />
       )}
+
+      {/* Repair Modal */}
+      {showRepairModal && (
+        <RepairModal 
+          ticket={ticket} 
+          onClose={() => setShowRepairModal(false)} 
+          onSuccess={() => { setShowRepairModal(false); fetchTicket(); }} 
+        />
+      )}
+
+      {/* Confirm Repair Transition Modal */}
+      {showConfirmRepairModal && (
+        <ConfirmModal
+          title="Pasar a Reparación"
+          description='El dispenser no está en estado "En Reparación". ¿Desea pasarlo a Reparación ahora? (Esto lo sacará de su ubicación actual)'
+          confirmLabel="Sí, pasar a reparación"
+          cancelLabel="Cancelar"
+          onConfirm={confirmAndSetRepair}
+          onClose={() => setShowConfirmRepairModal(false)}
+          isLoading={isSettingRepair}
+          variant="warning"
+        />
+      )}
     </div>
   );
 }
-
-import ConfirmModal from '@/components/ConfirmModal';
 
 function StatusModal({ ticket, onClose, onSuccess }: { ticket: any, onClose: () => void, onSuccess: () => void }) {
   const [status, setStatus] = useState(ticket.status);

@@ -272,13 +272,15 @@ model DispenserConsumableHistory {
   materialCode  String
   nombre        String
   installedAt   DateTime    @default(now())
-  expiresAt     DateTime? // Calculated: installedAt + consumable.expirationMonths
+  removedAt     DateTime?
+  expiresAt     DateTime? // Calculated: installedAt + MaterialCatalog.expirationMonths
   installedById String?
   installedBy   User?       @relation(fields: [installedById], references: [id], onDelete: SetNull)
 
   @@index([dispenserId])
   @@index([installedAt])
   @@index([expiresAt])
+  @@index([removedAt])
 }
 
 model DispenserSparePartHistory {
@@ -298,8 +300,24 @@ model DispenserSparePartHistory {
 }
 
 // ═══════════════════════════════════════════════════════
-// INVENTORY — Consumables, Spare Parts, Stock
+// INVENTORY — Catalog, Consumables, Spare Parts, Stock
 // ═══════════════════════════════════════════════════════
+
+model MaterialCatalog {
+  id               String  @id @default(cuid())
+  code             String  @unique // internal code
+  nombre           String
+  descripcion      String?
+  expirationMonths Int? // meses de VTO
+  type             String // "CONSUMABLE" or "SPARE_PART"
+  requiresSerial   Boolean @default(false)
+  active           Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([code])
+}
 
 model Consumable {
   id               String   @id @default(cuid())

@@ -2,39 +2,37 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requirePermission } from '@/lib/auth';
 
-// POST /api/maintenance/[id]/checklist
+// POST /api/tickets/[id]/repair
 export async function POST(req: Request, props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
-  const user = await requirePermission('maintenance:write');
+  const user = await requirePermission('tickets:write');
   if (user instanceof NextResponse) return user;
 
   try {
     const { id } = params;
     const body = await req.json();
-    const { condicionGeneral, fallas, problemasEstructurales, observaciones, consumablesUsed } = body;
+    const { descripcion, diagnostico, consumablesUsed } = body;
 
-    if (!condicionGeneral) {
-      return NextResponse.json({ error: 'Condición general requerida' }, { status: 400 });
+    if (!descripcion) {
+      return NextResponse.json({ error: 'La descripción es obligatoria' }, { status: 400 });
     }
 
-    // Check if checklist already exists and get plant info
-    const schedule = await prisma.maintenanceSchedule.findUnique({
+    const ticket = await prisma.ticket.findUnique({
       where: { id },
-      include: { checklist: true, dispenser: { include: { location: true } } }
+      include: { dispenser: { include: { location: true } } }
     });
 
-    if (!schedule) {
-      return NextResponse.json({ error: 'Mantenimiento no encontrado' }, { status: 404 });
+    if (!ticket) {
+      return NextResponse.json({ error: 'Ticket no encontrado' }, { status: 404 });
     }
 
-    if (schedule.checklist) {
-      return NextResponse.json({ error: 'El checklist ya fue completado para este mantenimiento' }, { status: 400 });
+    if (!ticket.dispenserId) {
+      return NextResponse.json({ error: 'El ticket no tiene un dispenser asociado' }, { status: 400 });
     }
 
-    const plantId = schedule.dispenser?.location?.plantId;
+    const plantId = ticket.dispenser?.location?.plantId;
 
-    // Use Interactive Transaction to check stock dynamically and process everything
-    const [checklist, updatedSchedule] = await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx) => {
       // 1. Process Consumables/Spare Parts
       if (consumablesUsed && Array.isArray(consumablesUsed) && consumablesUsed.length > 0) {
         if (!plantId) {
@@ -44,7 +42,7 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
         for (const item of consumablesUsed) {
           if (!item.cantidad || item.cantidad <= 0) continue;
 
-          // Fetch catalog item for expiration and type info
+          // Fetch catalog item for expiration info
           const catalogItem = await tx.materialCatalog.findUnique({
             where: { code: item.materialCode }
           });
@@ -53,9 +51,9 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
             throw new Error(`El material con código ${item.materialCode} no existe en el catálogo estandarizado.`);
           }
 
-          // Mark previous as removed (only for the same material code)
+          // Mark previous as removed
           await tx.dispenserConsumableHistory.updateMany({
-            where: { dispenserId: schedule.dispenserId, materialCode: item.materialCode, removedAt: null },
+            where: { dispenserId: ticket.dispenserId!, materialCode: item.materialCode, removedAt: null },
             data: { removedAt: new Date() }
           });
 
@@ -64,22 +62,19 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
             : null;
 
           if (item.type === 'SERIALIZED') {
-            // Mark consumable as inactive in stock
             const cons = await tx.consumable.update({
               where: { id: item.id },
               data: { active: false }
             });
 
-            // Decrement aggregate stock using the correct itemType from catalog
             await tx.stockEntry.update({
               where: { plantId_itemType_materialCode: { plantId, itemType: catalogItem.type as any, materialCode: cons.materialCode } },
               data: { cantidad: { decrement: 1 } }
             });
 
-            // Record history with link to consumable
             await tx.dispenserConsumableHistory.create({
               data: {
-                dispenserId: schedule.dispenserId,
+                dispenserId: ticket.dispenserId!,
                 consumableId: cons.id,
                 materialCode: cons.materialCode,
                 nombre: cons.nombre,
@@ -88,13 +83,12 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
               }
             });
           } else {
-            // BULK processing
             const stock = await tx.stockEntry.findUnique({
               where: { plantId_itemType_materialCode: { plantId, itemType: catalogItem.type as any, materialCode: item.materialCode } }
             });
 
             if (!stock || stock.cantidad < item.cantidad) {
-              throw new Error(`Sin stock suficiente de ${item.nombre} (Stock: ${stock?.cantidad || 0})`);
+              throw new Error(`Sin stock suficiente de ${item.nombre}`);
             }
 
             await tx.stockEntry.update({
@@ -105,7 +99,7 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
             for (let i = 0; i < item.cantidad; i++) {
               await tx.dispenserConsumableHistory.create({
                 data: {
-                  dispenserId: schedule.dispenserId,
+                  dispenserId: ticket.dispenserId!,
                   materialCode: item.materialCode,
                   nombre: item.nombre,
                   installedById: user.id,
@@ -117,32 +111,54 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
         }
       }
 
-      // 2. Create Checklist
-      const newChecklist = await tx.maintenanceChecklist.create({
+      // 2. Create Repair History
+      await tx.dispenserRepairHistory.create({
         data: {
-          scheduleId: id,
-          condicionGeneral,
-          fallas: fallas || [],
-          problemasEstructurales: problemasEstructurales || [],
-          observaciones: observaciones || '',
-          completedById: user.id
+          dispenserId: ticket.dispenserId!,
+          technicianId: user.id,
+          descripcion,
+          diagnostico,
+          partesUsadas: consumablesUsed as any,
+          endDate: new Date()
         }
       });
 
-      // 3. Update Schedule Status
-      const newSchedule = await tx.maintenanceSchedule.update({
-        where: { id },
-        data: { status: 'COMPLETED' }
+      // 3. Update Ticket (Add comment about repair)
+      await tx.ticketComment.create({
+        data: {
+          ticketId: id,
+          userId: user.id,
+          message: `🛠️ REPARACIÓN REGISTRADA:\nProblema: ${descripcion}\nSolución: ${diagnostico}`
+        }
       });
 
-      return [newChecklist, newSchedule];
+      // 4. Change Ticket status to RESOLVED (optional, but requested by flow usually)
+      // Actually, let's keep it in its current status or move to RESOLVED if user wants.
+      // For now, I'll just keep it as is, or maybe the user wants to close it later.
+      // But usually repair means resolution. Let's move to RESOLVED.
+      await tx.ticket.update({
+        where: { id },
+        data: { 
+          status: 'RESOLVED',
+          resolvedAt: new Date()
+        }
+      });
+      
+      // Add status history
+      await tx.ticketStatusHistory.create({
+        data: {
+          ticketId: id,
+          fromStatus: ticket.status,
+          toStatus: 'RESOLVED',
+          changedBy: user.nombre,
+          notes: 'Reparación completada'
+        }
+      });
     });
 
-    return NextResponse.json({ success: true, checklist, schedule: updatedSchedule });
+    return NextResponse.json({ success: true });
   } catch (error: any) {
-    console.error('[API] POST /api/maintenance/checklist error:', error);
-    // Return the specific stock error if it was thrown intentionally
-    const message = error.message.includes('Sin stock suficiente') ? error.message : 'Error al procesar el checklist';
-    return NextResponse.json({ error: message }, { status: error.message.includes('stock') ? 400 : 500 });
+    console.error('[API] POST /api/tickets/repair error:', error);
+    return NextResponse.json({ error: error.message || 'Error al procesar reparación' }, { status: 500 });
   }
 }

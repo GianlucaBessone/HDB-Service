@@ -294,7 +294,23 @@ function KpiCard({ label, value, color }: { label: string; value: number; color:
 // ─── Create Modal ───────────────────────────────────
 function CreateDispenserModal({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
   const [form, setForm] = useState({ id: '', marca: '', modelo: '', numeroSerie: '', lifecycleMonths: '60', notas: '' });
+  const [catalog, setCatalog] = useState<any[]>([]);
+  const [initialConsumables, setInitialConsumables] = useState<Record<string, { selected: boolean, serialNumber: string }>>({});
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    fetch('/api/catalog')
+      .then(res => res.json())
+      .then(data => {
+        const consumables = data.filter((m: any) => m.type === 'CONSUMABLE');
+        setCatalog(consumables);
+        const initial: any = {};
+        consumables.forEach((c: any) => {
+          initial[c.code] = { selected: true, serialNumber: '' };
+        });
+        setInitialConsumables(initial);
+      });
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -302,8 +318,21 @@ function CreateDispenserModal({ onClose, onCreated }: { onClose: () => void; onC
       toast.error('ID, Marca y Modelo son obligatorios');
       return;
     }
+
+    // Validate serials for selected consumables that require them
+    for (const c of catalog) {
+      if (initialConsumables[c.code]?.selected && c.requiresSerial && !initialConsumables[c.code].serialNumber) {
+        toast.error(`El ${c.nombre} requiere número de serie`);
+        return;
+      }
+    }
+
     setSaving(true);
     try {
+      const selectedConsumables = Object.entries(initialConsumables)
+        .filter(([_, val]) => val.selected)
+        .map(([code, val]) => ({ materialCode: code, serialNumber: val.serialNumber }));
+
       const res = await fetch('/api/dispensers', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -314,6 +343,7 @@ function CreateDispenserModal({ onClose, onCreated }: { onClose: () => void; onC
           numeroSerie: form.numeroSerie.trim() || null,
           lifecycleMonths: parseInt(form.lifecycleMonths) || 60,
           notas: form.notas.trim() || null,
+          initialConsumables: selectedConsumables,
         }),
       });
       if (!res.ok) {
@@ -332,81 +362,148 @@ function CreateDispenserModal({ onClose, onCreated }: { onClose: () => void; onC
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content max-w-lg" onClick={e => e.stopPropagation()}>
+      <div className="modal-content max-w-xl" onClick={e => e.stopPropagation()}>
         <div className="modal-header">
-          <h2 className="text-lg font-semibold">Nuevo Dispenser</h2>
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-primary/10 rounded-lg">
+              <Plus className="w-5 h-5 text-primary" />
+            </div>
+            <h2 className="text-lg font-bold">Nuevo Dispenser</h2>
+          </div>
           <button onClick={onClose} className="btn-ghost btn-icon"><X className="w-5 h-5" /></button>
         </div>
         <form onSubmit={handleSubmit}>
-          <div className="modal-body space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="label">ID del Equipo *</label>
-                <input
-                  className="input mt-1"
-                  placeholder="DISP-XXXX"
-                  value={form.id}
-                  onChange={e => setForm(p => ({ ...p, id: e.target.value }))}
-                  required
-                />
+          <div className="modal-body space-y-6 max-h-[70vh] overflow-y-auto scrollbar-thin pr-2">
+            {/* General Info */}
+            <section className="space-y-4">
+              <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-widest border-b pb-1">Información General</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="label">ID del Equipo *</label>
+                  <input
+                    className="input mt-1"
+                    placeholder="DISP-XXXX"
+                    value={form.id}
+                    onChange={e => setForm(p => ({ ...p, id: e.target.value }))}
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="label">N° Serie de Fábrica</label>
+                  <input
+                    className="input mt-1"
+                    placeholder="Opcional"
+                    value={form.numeroSerie}
+                    onChange={e => setForm(p => ({ ...p, numeroSerie: e.target.value }))}
+                  />
+                </div>
               </div>
-              <div>
-                <label className="label">N° Serie</label>
-                <input
-                  className="input mt-1"
-                  placeholder="Opcional"
-                  value={form.numeroSerie}
-                  onChange={e => setForm(p => ({ ...p, numeroSerie: e.target.value }))}
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="label">Marca *</label>
+                  <input
+                    className="input mt-1"
+                    placeholder="PSA, AquaCool..."
+                    value={form.marca}
+                    onChange={e => setForm(p => ({ ...p, marca: e.target.value }))}
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="label">Modelo *</label>
+                  <input
+                    className="input mt-1"
+                    placeholder="02P-B-F/C..."
+                    value={form.modelo}
+                    onChange={e => setForm(p => ({ ...p, modelo: e.target.value }))}
+                    required
+                  />
+                </div>
               </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="label">Marca *</label>
-                <input
-                  className="input mt-1"
-                  placeholder="PSA, AquaCool..."
-                  value={form.marca}
-                  onChange={e => setForm(p => ({ ...p, marca: e.target.value }))}
-                  required
-                />
+            </section>
+
+            {/* Consumables Info */}
+            <section className="space-y-4">
+              <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-widest border-b pb-1">Consumibles Incluidos</h3>
+              <div className="grid grid-cols-1 gap-3">
+                {catalog.length === 0 ? (
+                  <p className="text-xs text-muted-foreground italic">Cargando catálogo...</p>
+                ) : catalog.map(m => (
+                  <div key={m.code} className={clsx(
+                    "p-3 rounded-xl border transition-all flex flex-col gap-3",
+                    initialConsumables[m.code]?.selected ? "bg-primary/5 border-primary/20" : "bg-muted/30 border-transparent opacity-60"
+                  )}>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="checkbox"
+                          className="w-4 h-4 rounded text-primary focus:ring-primary"
+                          checked={initialConsumables[m.code]?.selected || false}
+                          onChange={e => setInitialConsumables(p => ({
+                            ...p,
+                            [m.code]: { ...p[m.code], selected: e.target.checked }
+                          }))}
+                        />
+                        <div>
+                          <p className="text-sm font-bold">{m.nombre}</p>
+                          <p className="text-[10px] text-muted-foreground uppercase">Cód: {m.code}</p>
+                        </div>
+                      </div>
+                      {m.requiresSerial && initialConsumables[m.code]?.selected && (
+                        <span className="badge-warning text-[8px] px-1.5 py-0.5">REQUIERE SERIAL</span>
+                      )}
+                    </div>
+
+                    {m.requiresSerial && initialConsumables[m.code]?.selected && (
+                      <div className="animate-in slide-in-from-top-1 duration-200">
+                        <input
+                          className="input text-xs"
+                          placeholder={`Ingrese N° de Serie para ${m.nombre}`}
+                          value={initialConsumables[m.code]?.serialNumber || ''}
+                          onChange={e => setInitialConsumables(p => ({
+                            ...p,
+                            [m.code]: { ...p[m.code], serialNumber: e.target.value }
+                          }))}
+                          required
+                        />
+                      </div>
+                    )}
+                  </div>
+                ))}
               </div>
-              <div>
-                <label className="label">Modelo *</label>
-                <input
-                  className="input mt-1"
-                  placeholder="02P-B-F/C..."
-                  value={form.modelo}
-                  onChange={e => setForm(p => ({ ...p, modelo: e.target.value }))}
-                  required
-                />
+            </section>
+
+            {/* Other Info */}
+            <section className="space-y-4">
+              <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-widest border-b pb-1">Otros Datos</h3>
+              <div className="grid grid-cols-1 gap-4">
+                <div>
+                  <label className="label">Vida Útil (meses)</label>
+                  <input
+                    type="number"
+                    className="input mt-1"
+                    value={form.lifecycleMonths}
+                    onChange={e => setForm(p => ({ ...p, lifecycleMonths: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <label className="label">Notas</label>
+                  <textarea
+                    className="textarea mt-1"
+                    rows={2}
+                    placeholder="Observaciones adicionales..."
+                    value={form.notas}
+                    onChange={e => setForm(p => ({ ...p, notas: e.target.value }))}
+                  />
+                </div>
               </div>
-            </div>
-            <div>
-              <label className="label">Vida Útil (meses)</label>
-              <input
-                type="number"
-                className="input mt-1"
-                value={form.lifecycleMonths}
-                onChange={e => setForm(p => ({ ...p, lifecycleMonths: e.target.value }))}
-              />
-            </div>
-            <div>
-              <label className="label">Notas</label>
-              <textarea
-                className="textarea mt-1"
-                rows={2}
-                placeholder="Observaciones..."
-                value={form.notas}
-                onChange={e => setForm(p => ({ ...p, notas: e.target.value }))}
-              />
-            </div>
+            </section>
           </div>
-          <div className="modal-footer">
+          <div className="modal-footer bg-muted/30">
             <button type="button" onClick={onClose} className="btn-outline">Cancelar</button>
-            <button type="submit" disabled={saving} className="btn-primary gap-2">
+            <button type="submit" disabled={saving} className="btn-primary px-8 gap-2">
               {saving && <Loader2 className="w-4 h-4 animate-spin" />}
-              Crear Dispenser
+              Registrar Dispenser
             </button>
           </div>
         </form>

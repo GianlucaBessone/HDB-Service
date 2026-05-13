@@ -7,9 +7,12 @@ import { UserRole } from '@prisma/client';
 import { t } from '@/lib/translations';
 import { useNotificationStore } from '@/lib/store/useNotificationStore';
 
+import { useUIStore } from '@/lib/store/useUIStore';
+
 export default function TopBar({ user }: { user: { nombre: string; email: string; role: UserRole } }) {
   const { theme, setTheme } = useTheme();
   const unreadCount = useNotificationStore(state => state.unreadCount);
+  const toggleSidebar = useUIStore(state => state.toggleSidebar);
   const supabase = createClient();
 
   const handleSignOut = async () => {
@@ -20,8 +23,11 @@ export default function TopBar({ user }: { user: { nombre: string; email: string
   return (
     <header className="h-16 bg-card border-b border-border flex items-center justify-between px-4 md:px-6 sticky top-0 z-40">
       
-      {/* Mobile Menu Button (placeholder for now) */}
-      <button className="md:hidden p-2 text-muted-foreground hover:bg-accent rounded-md">
+      {/* Mobile Menu Button */}
+      <button 
+        onClick={toggleSidebar}
+        className="md:hidden p-2 text-muted-foreground hover:bg-accent rounded-md"
+      >
         <Menu className="w-6 h-6" />
       </button>
 

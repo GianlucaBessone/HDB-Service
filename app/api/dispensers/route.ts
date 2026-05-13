@@ -77,7 +77,7 @@ export async function POST(req: Request) {
   return withIdempotency(req, async () => {
     try {
       const body = await req.json();
-      const { id, marca, modelo, lifecycleMonths, numeroSerie, fechaCompra, notas } = body;
+      const { id, marca, modelo, lifecycleMonths, numeroSerie, fechaCompra, notas, initialConsumables } = body;
 
       if (!id?.trim() || !marca?.trim() || !modelo?.trim()) {
         return NextResponse.json(
@@ -95,17 +95,50 @@ export async function POST(req: Request) {
         );
       }
 
-      const dispenser = await prisma.dispenser.create({
-        data: {
-          id: id.trim(),
-          marca: marca.trim(),
-          modelo: modelo.trim(),
-          lifecycleMonths: lifecycleMonths || 60,
-          numeroSerie: numeroSerie?.trim() || null,
-          fechaCompra: fechaCompra ? new Date(fechaCompra) : null,
-          notas: notas?.trim() || null,
-          status: 'BACKUP', // Starts in backup until assigned
-        },
+      const dispenser = await prisma.$transaction(async (tx) => {
+        const d = await tx.dispenser.create({
+          data: {
+            id: id.trim(),
+            marca: marca.trim(),
+            modelo: modelo.trim(),
+            lifecycleMonths: lifecycleMonths || 60,
+            numeroSerie: numeroSerie?.trim() || null,
+            fechaCompra: fechaCompra ? new Date(fechaCompra) : null,
+            notas: notas?.trim() || null,
+            status: 'BACKUP', // Starts in backup until assigned
+          },
+        });
+
+        // Record initial consumables if provided
+        if (initialConsumables && Array.isArray(initialConsumables)) {
+          for (const item of initialConsumables) {
+            if (!item.materialCode) continue;
+
+            const catalogItem = await tx.materialCatalog.findUnique({
+              where: { code: item.materialCode }
+            });
+
+            if (catalogItem) {
+              const expiresAt = catalogItem.expirationMonths 
+                ? new Date(new Date().setMonth(new Date().getMonth() + catalogItem.expirationMonths))
+                : null;
+
+              await tx.dispenserConsumableHistory.create({
+                data: {
+                  dispenserId: d.id,
+                  materialCode: item.materialCode,
+                  nombre: catalogItem.nombre,
+                  consumableId: null, // Since it's factory included, it might not be in our physical stock yet
+                  installedById: user.id,
+                  expiresAt,
+                  // Optionally record serial if provided
+                  ...(item.serialNumber && { nombre: `${catalogItem.nombre} (S/N: ${item.serialNumber})` })
+                }
+              });
+            }
+          }
+        }
+        return d;
       });
 
       await createAuditLog({

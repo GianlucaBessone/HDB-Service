@@ -16,6 +16,7 @@ import {
 import clsx from 'clsx';
 
 interface DashboardStats {
+  user: { nombre: string };
   tickets: { open: number; total: number; slaCompliance: number };
   dispensers: { total: number; inService: number; repair: number; blocked: number };
   stock: { lowAlerts: number };
@@ -24,16 +25,12 @@ interface DashboardStats {
 
 export default function DashboardPage() {
   const supabase = createClient();
-  const [user, setUser] = useState<any>(null);
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     async function initDashboard() {
       try {
-        const { data: { user: authUser } } = await supabase.auth.getUser();
-        setUser(authUser);
-
         const res = await fetch('/api/dashboard');
         if (res.ok) {
           const data = await res.json();
@@ -66,7 +63,7 @@ export default function DashboardPage() {
       
       <div>
         <h1 className="text-3xl font-bold tracking-tight">
-          Hola, {user?.name?.split(' ')[0] || user?.email?.split('@')[0]} 👋
+          Hola, {stats.user.nombre.split(' ')[0]}
         </h1>
         <p className="text-muted-foreground mt-1">
           Aquí tienes el resumen de operaciones de hoy.
