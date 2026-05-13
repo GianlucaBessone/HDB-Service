@@ -116,6 +116,7 @@ model Plant {
   transfersTo     StockTransfer[]   @relation("TransferTo")
   debtsAsCreditor InterPlantDebt[]  @relation("DebtCreditor")
   debtsAsDebtor   InterPlantDebt[]  @relation("DebtDebtor")
+  dispensers      Dispenser[]
 
   @@index([clientId])
 }
@@ -192,6 +193,10 @@ model Dispenser {
   locationId String?
   location   Location? @relation(fields: [locationId], references: [id], onDelete: SetNull)
 
+  // Ownership — New field for permanent home plant
+  plantId String?
+  plant   Plant?  @relation(fields: [plantId], references: [id], onDelete: SetNull)
+
   // Lifecycle tracking
   lifecycleMonths               Int       @default(60) // e.g., 60 months = 5 years
   lifecycleStartDate            DateTime?
@@ -222,6 +227,7 @@ model Dispenser {
 
   @@index([status])
   @@index([locationId])
+  @@index([plantId])
   @@index([marca])
 }
 

@@ -99,7 +99,12 @@ export default function DispenserDetailPage() {
           </div>
           <div>
             <h1 className="text-xl font-bold tracking-tight leading-none mb-1">{dispenser.id}</h1>
-            <p className="text-xs text-muted-foreground">{dispenser.marca} {dispenser.modelo}</p>
+            <div className="flex items-center gap-2">
+              <p className="text-xs text-muted-foreground">{dispenser.marca} {dispenser.modelo}</p>
+              <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">
+                {dispenser.plant?.nombre || 'Sin Planta Dueña'}
+              </span>
+            </div>
           </div>
         </div>
         
@@ -421,6 +426,7 @@ function InfoTab({ dispenser }: { dispenser: any }) {
     { label: 'ID Dispenser', value: dispenser.id, mono: true },
     { label: 'Marca', value: dispenser.marca },
     { label: 'Modelo', value: dispenser.modelo },
+    { label: 'Planta Dueña', value: dispenser.plant?.nombre || '—', mono: true },
     { label: 'N° Serie', value: dispenser.numeroSerie || '—', mono: true },
     { label: 'Vida Útil', value: `${dispenser.lifecycleMonths} meses` },
     { label: 'Inicio Ciclo', value: dispenser.lifecycleStartDate ? new Date(dispenser.lifecycleStartDate).toLocaleDateString('es-AR') : '—' },
@@ -750,15 +756,21 @@ function EditDispenserModal({
     lifecycleMonths: dispenser.lifecycleMonths || 60,
     notas: dispenser.notas || '',
     locationId: dispenser.locationId || '',
+    plantId: dispenser.plantId || '',
   });
   
   const [locations, setLocations] = useState<any[]>([]);
+  const [plants, setPlants] = useState<any[]>([]);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     fetch('/api/locations')
-      .then(res => res.json())
       .then(data => setLocations(data || []))
+      .catch(err => console.error(err));
+
+    fetch('/api/plants')
+      .then(res => res.json())
+      .then(data => setPlants(data || []))
       .catch(err => console.error(err));
   }, []);
 
@@ -774,6 +786,7 @@ function EditDispenserModal({
           numeroSerie: form.numeroSerie,
           lifecycleMonths: Number(form.lifecycleMonths),
           notas: form.notas,
+          plantId: form.plantId || null,
         }),
       });
       if (!res.ok) {
@@ -832,24 +845,35 @@ function EditDispenserModal({
                 onChange={e => setForm({ ...form, modelo: e.target.value })} 
               />
             </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="text-sm font-semibold mb-1 block">N° de Serie</label>
-              <input 
-                className="input font-mono" 
-                value={form.numeroSerie} 
-                onChange={e => setForm({ ...form, numeroSerie: e.target.value })} 
+              <label className="text-sm font-semibold mb-1 block">N° Serie de Fábrica</label>
+              <input
+                className="input font-mono"
+                value={form.numeroSerie}
+                onChange={e => setForm({ ...form, numeroSerie: e.target.value })}
               />
+            </div>
+            <div>
+              <label className="text-sm font-semibold mb-1 block text-primary font-bold">Planta Dueña (Propiedad) *</label>
+              <select
+                className="select font-bold text-primary"
+                value={form.plantId}
+                onChange={e => setForm({ ...form, plantId: e.target.value })}
+                required
+              >
+                <option value="">Seleccionar Planta...</option>
+                {plants.map(p => (
+                  <option key={p.id} value={p.id}>{p.nombre}</option>
+                ))}
+              </select>
             </div>
             <div>
               <label className="text-sm font-semibold mb-1 block">Vida Útil (meses)</label>
               <input 
-                type="number"
+                type="number" 
                 className="input" 
                 value={form.lifecycleMonths} 
-                onChange={e => setForm({ ...form, lifecycleMonths: parseInt(e.target.value) || 0 })} 
+                onChange={e => setForm({ ...form, lifecycleMonths: Number(e.target.value) })} 
               />
             </div>
           </div>

@@ -25,6 +25,7 @@ type Dispenser = {
     plant: { id: string; nombre: string; client: { id: string; nombre: string } };
     sector: { id: string; nombre: string } | null;
   } | null;
+  plant: { id: string; nombre: string } | null; // Owner plant
   _count: { tickets: number; repairHistory: number; maintenanceSchedules: number };
 };
 
@@ -81,6 +82,7 @@ export default function DispensersPage() {
       case 'id': aVal = a.id; bVal = b.id; break;
       case 'marca': aVal = a.marca; bVal = b.marca; break;
       case 'planta': aVal = a.location?.plant?.nombre || ''; bVal = b.location?.plant?.nombre || ''; break;
+      case 'planta_duena': aVal = a.plant?.nombre || ''; bVal = b.plant?.nombre || ''; break;
       case 'status': aVal = a.status; bVal = b.status; break;
       default: aVal = a.createdAt; bVal = b.createdAt;
     }
@@ -198,8 +200,11 @@ export default function DispensersPage() {
                 <th className="cursor-pointer select-none" onClick={() => toggleSort('marca')}>
                   Marca / Modelo <SortIcon field="marca" />
                 </th>
+                <th className="cursor-pointer select-none" onClick={() => toggleSort('planta_duena')}>
+                  Planta Dueña <SortIcon field="planta_duena" />
+                </th>
                 <th className="cursor-pointer select-none" onClick={() => toggleSort('planta')}>
-                  Ubicación <SortIcon field="planta" />
+                  Ubicación Actual <SortIcon field="planta" />
                 </th>
                 <th className="cursor-pointer select-none" onClick={() => toggleSort('status')}>
                   Estado <SortIcon field="status" />
@@ -221,6 +226,13 @@ export default function DispensersPage() {
                     <td>
                       <div className="font-medium">{d.marca}</div>
                       <div className="text-xs text-muted-foreground">{d.modelo}</div>
+                    </td>
+                    <td>
+                      {d.plant ? (
+                        <div className="font-medium text-primary">{d.plant.nombre}</div>
+                      ) : (
+                        <span className="text-muted-foreground text-xs italic">No definida</span>
+                      )}
                     </td>
                     <td>
                       {d.location ? (
@@ -293,8 +305,9 @@ function KpiCard({ label, value, color }: { label: string; value: number; color:
 
 // ─── Create Modal ───────────────────────────────────
 function CreateDispenserModal({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
-  const [form, setForm] = useState({ id: '', marca: '', modelo: '', numeroSerie: '', lifecycleMonths: '60', notas: '' });
+  const [form, setForm] = useState({ id: '', marca: '', modelo: '', numeroSerie: '', lifecycleMonths: '60', notas: '', plantId: '' });
   const [catalog, setCatalog] = useState<any[]>([]);
+  const [plants, setPlants] = useState<any[]>([]);
   const [initialConsumables, setInitialConsumables] = useState<Record<string, { selected: boolean, serialNumber: string }>>({});
   const [saving, setSaving] = useState(false);
 
@@ -310,6 +323,10 @@ function CreateDispenserModal({ onClose, onCreated }: { onClose: () => void; onC
         });
         setInitialConsumables(initial);
       });
+
+    fetch('/api/plants')
+      .then(res => res.json())
+      .then(data => setPlants(data || []));
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -343,6 +360,7 @@ function CreateDispenserModal({ onClose, onCreated }: { onClose: () => void; onC
           numeroSerie: form.numeroSerie.trim() || null,
           lifecycleMonths: parseInt(form.lifecycleMonths) || 60,
           notas: form.notas.trim() || null,
+          plantId: form.plantId || null,
           initialConsumables: selectedConsumables,
         }),
       });
@@ -418,6 +436,23 @@ function CreateDispenserModal({ onClose, onCreated }: { onClose: () => void; onC
                     onChange={e => setForm(p => ({ ...p, modelo: e.target.value }))}
                     required
                   />
+                </div>
+              </div>
+              <div className="grid grid-cols-1">
+                <div>
+                  <label className="label">Planta Dueña (Propiedad) *</label>
+                  <select
+                    className="select mt-1"
+                    value={form.plantId}
+                    onChange={e => setForm(p => ({ ...p, plantId: e.target.value }))}
+                    required
+                  >
+                    <option value="">Seleccionar Planta...</option>
+                    {plants.map(p => (
+                      <option key={p.id} value={p.id}>{p.nombre}</option>
+                    ))}
+                  </select>
+                  <p className="text-[10px] text-muted-foreground mt-1">Indica a qué planta pertenece este equipo permanentemente.</p>
                 </div>
               </div>
             </section>

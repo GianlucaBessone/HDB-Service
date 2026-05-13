@@ -49,6 +49,7 @@ export async function GET(req: Request) {
               sector: { select: { id: true, nombre: true } },
             },
           },
+          plant: { select: { id: true, nombre: true } }, // Owner plant
           _count: {
             select: { tickets: true }, // Optimized: only count tickets for the list view
           },
@@ -77,7 +78,7 @@ export async function POST(req: Request) {
   return withIdempotency(req, async () => {
     try {
       const body = await req.json();
-      const { id, marca, modelo, lifecycleMonths, numeroSerie, fechaCompra, notas, initialConsumables } = body;
+      const { id, marca, modelo, lifecycleMonths, numeroSerie, fechaCompra, notas, initialConsumables, plantId } = body;
 
       if (!id?.trim() || !marca?.trim() || !modelo?.trim()) {
         return NextResponse.json(
@@ -105,6 +106,7 @@ export async function POST(req: Request) {
             numeroSerie: numeroSerie?.trim() || null,
             fechaCompra: fechaCompra ? new Date(fechaCompra) : null,
             notas: notas?.trim() || null,
+            plantId: plantId || null,
             status: 'BACKUP', // Starts in backup until assigned
           },
         });

@@ -286,6 +286,7 @@ async function main() {
         numeroSerie: d.id,
         status: locationId ? 'IN_SERVICE' : 'BACKUP',
         locationId,
+        plantId: 'plant-chicle', // Assing all to Chicle by default
         lifecycleMonths: 60,
         lifecycleStartDate: locationId ? new Date('2024-06-01') : null,
       },
