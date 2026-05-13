@@ -11,8 +11,10 @@ import {
   CalendarClock,
   ArrowUpRight,
   ArrowDownRight,
-  BarChart3
+  BarChart3,
+  HeartPulse
 } from 'lucide-react';
+import Link from 'next/link';
 import clsx from 'clsx';
 
 interface DashboardStats {
@@ -73,13 +75,13 @@ export default function DashboardPage() {
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         
-        <div className="metric-card border-t-4 border-t-primary">
+        <Link href="/tickets" className="metric-card border-t-4 border-t-primary hover:scale-[1.02] transition-transform cursor-pointer group">
           <div className="flex justify-between items-start">
             <div>
               <p className="metric-label">Tickets Abiertos</p>
               <p className="metric-value">{stats.tickets.open}</p>
             </div>
-            <div className="p-2 bg-primary/10 rounded-lg">
+            <div className="p-2 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
               <Ticket className="w-5 h-5 text-primary" />
             </div>
           </div>
@@ -93,15 +95,15 @@ export default function DashboardPage() {
             </span>
             <span className="text-xs text-muted-foreground">de {stats.tickets.total} totales</span>
           </div>
-        </div>
+        </Link>
 
-        <div className="metric-card border-t-4 border-t-emerald-500">
+        <Link href="/dispensers" className="metric-card border-t-4 border-t-emerald-500 hover:scale-[1.02] transition-transform cursor-pointer group">
           <div className="flex justify-between items-start">
             <div>
               <p className="metric-label">Dispensers Activos</p>
               <p className="metric-value">{stats.dispensers.inService}</p>
             </div>
-            <div className="p-2 bg-emerald-500/10 rounded-lg">
+            <div className="p-2 bg-emerald-500/10 rounded-lg group-hover:bg-emerald-500/20 transition-colors">
               <CheckCircle2 className="w-5 h-5 text-emerald-500" />
             </div>
           </div>
@@ -115,15 +117,15 @@ export default function DashboardPage() {
                {stats.dispensers.blocked} Bloqueados
              </span>
           </div>
-        </div>
+        </Link>
 
-        <div className="metric-card border-t-4 border-t-amber-500">
+        <Link href="/maintenance" className="metric-card border-t-4 border-t-amber-500 hover:scale-[1.02] transition-transform cursor-pointer group">
           <div className="flex justify-between items-start">
             <div>
               <p className="metric-label">Mantenimientos</p>
               <p className="metric-value">{stats.maintenance.pending}</p>
             </div>
-            <div className="p-2 bg-amber-500/10 rounded-lg">
+            <div className="p-2 bg-amber-500/10 rounded-lg group-hover:bg-amber-500/20 transition-colors">
               <CalendarClock className="w-5 h-5 text-amber-500" />
             </div>
           </div>
@@ -139,37 +141,58 @@ export default function DashboardPage() {
               </span>
             )}
           </div>
-        </div>
+        </Link>
 
-        <div className="metric-card border-t-4 border-t-red-500">
+        <Link href="/inventory" className="metric-card border-t-4 border-t-red-500 hover:scale-[1.02] transition-transform cursor-pointer group">
           <div className="flex justify-between items-start">
             <div>
               <p className="metric-label">Alertas de Stock</p>
               <p className="metric-value">{stats.stock.lowAlerts}</p>
             </div>
-            <div className="p-2 bg-red-500/10 rounded-lg">
+            <div className="p-2 bg-red-500/10 rounded-lg group-hover:bg-red-500/20 transition-colors">
               <PackageX className="w-5 h-5 text-red-500" />
             </div>
           </div>
           <div className="mt-2 flex items-center gap-2">
              <span className="text-xs text-muted-foreground">Insumos bajo mínimo</span>
           </div>
-        </div>
+        </Link>
 
       </div>
 
-      {/* Placeholders for Charts/Lists */}
+      {/* Advanced Analytics Summary Link */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="glass-card p-6 h-96 flex flex-col items-center justify-center border-dashed border-2">
-          <BarChart3 className="w-12 h-12 text-muted-foreground/30 mb-4" />
-          <p className="text-muted-foreground font-medium">Evolución de SLA</p>
-          <p className="text-xs text-muted-foreground mt-1">Gráfico en construcción</p>
-        </div>
-        <div className="glass-card p-6 h-96 flex flex-col items-center justify-center border-dashed border-2">
-          <GlassWater className="w-12 h-12 text-muted-foreground/30 mb-4" />
-          <p className="text-muted-foreground font-medium">Salud de Flota</p>
-          <p className="text-xs text-muted-foreground mt-1">Lista de dispensers críticos en construcción</p>
-        </div>
+        <Link 
+          href="/dashboard/analytics" 
+          className="glass-card p-8 flex flex-col items-center justify-center border-primary/20 hover:border-primary/50 transition-all group"
+        >
+          <div className="p-4 bg-primary/10 rounded-2xl group-hover:scale-110 transition-transform">
+            <BarChart3 className="w-10 h-10 text-primary" />
+          </div>
+          <h3 className="text-xl font-bold mt-4">Análisis de Performance & KPIs</h3>
+          <p className="text-sm text-muted-foreground mt-2 text-center max-w-xs">
+            Ver métricas detalladas de SLA, MTTR, MTBF y análisis de fallas recurrentes.
+          </p>
+          <div className="mt-6 flex items-center gap-2 text-primary font-bold text-sm">
+            Explorar Analytics <ArrowUpRight className="w-4 h-4" />
+          </div>
+        </Link>
+
+        <Link 
+          href="/dashboard/analytics" 
+          className="glass-card p-8 flex flex-col items-center justify-center border-emerald-500/20 hover:border-emerald-500/50 transition-all group"
+        >
+          <div className="p-4 bg-emerald-500/10 rounded-2xl group-hover:scale-110 transition-transform">
+            <HeartPulse className="w-10 h-10 text-emerald-500" />
+          </div>
+          <h3 className="text-xl font-bold mt-4">Salud del Parque Automática</h3>
+          <p className="text-sm text-muted-foreground mt-2 text-center max-w-xs">
+            Algoritmo inteligente de evaluación: Buenos, Medios y Malos.
+          </p>
+          <div className="mt-6 flex items-center gap-2 text-emerald-500 font-bold text-sm">
+            Ver Ranking Crítico <ArrowUpRight className="w-4 h-4" />
+          </div>
+        </Link>
       </div>
       
     </div>
