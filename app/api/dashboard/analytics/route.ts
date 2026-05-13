@@ -67,8 +67,9 @@ export async function GET(req: Request) {
       }),
       prisma.maintenanceChecklist.findMany({
         where: whereMaintenances,
+        include: { schedule: true },
         orderBy: { completedAt: 'desc' },
-        take: 50, // Limit for broad analysis
+        take: 50,
       }),
       prisma.dispenser.findMany({
         where: whereDispensers,
