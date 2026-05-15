@@ -2,14 +2,15 @@ import { requireRole } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { NextResponse } from 'next/server';
 
-export async function PUT(req: Request, { params }: { params: { id: string } }) {
+export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const auth = await requireRole('ADMIN', 'SUPERVISOR');
   if (auth instanceof NextResponse) return auth;
 
   try {
     const data = await req.json();
     const template = await prisma.emailTemplate.update({
-      where: { id: params.id },
+      where: { id: id },
       data: {
         subject: data.subject,
         body: data.body,
@@ -22,13 +23,14 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
   }
 }
 
-export async function DELETE(req: Request, { params }: { params: { id: string } }) {
+export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const auth = await requireRole('ADMIN', 'SUPERVISOR');
   if (auth instanceof NextResponse) return auth;
 
   try {
     await prisma.emailTemplate.delete({
-      where: { id: params.id }
+      where: { id: id }
     });
     return NextResponse.json({ success: true });
   } catch (error) {
