@@ -28,6 +28,7 @@ model User {
   telefono     String?
   role         UserRole @default(TECHNICIAN)
   active       Boolean  @default(true)
+  mustChangePassword Boolean @default(false)
 
   // Client association (for CLIENT_RESPONSIBLE and CLIENT_REQUESTER)
   clientId String?
@@ -92,6 +93,7 @@ model Client {
   users        User[]
   slaConfig    SlaConfig?
   stockEntries StockEntry[]
+  dispensers   Dispenser[]
 }
 
 model Plant {
@@ -197,6 +199,10 @@ model Dispenser {
   plantId String?
   plant   Plant?  @relation(fields: [plantId], references: [id], onDelete: SetNull)
 
+  // Ownership - Client
+  clientId String?
+  client   Client? @relation(fields: [clientId], references: [id], onDelete: SetNull)
+
   // Lifecycle tracking
   lifecycleMonths               Int       @default(60) // e.g., 60 months = 5 years
   lifecycleStartDate            DateTime?
@@ -228,6 +234,7 @@ model Dispenser {
   @@index([status])
   @@index([locationId])
   @@index([plantId])
+  @@index([clientId])
   @@index([marca])
 }
 
@@ -469,10 +476,14 @@ model Ticket {
   assignedTo   User?   @relation("TicketAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
 
   // Content
-  reason      String         @db.Text
-  description String?        @db.Text
-  priority    TicketPriority @default(MEDIUM)
-  status      TicketStatus   @default(OPEN)
+  reason                  String         @db.Text
+  description             String?        @db.Text
+  priority                TicketPriority @default(MEDIUM)
+  status                  TicketStatus   @default(OPEN)
+  
+  // Notification Preferences
+  wantsPushNotifications  Boolean        @default(false)
+  wantsEmailNotifications Boolean        @default(false)
 
   // SLA
   slaResponseDeadline   DateTime?
@@ -671,4 +682,13 @@ model SystemSetting {
   value String
 
   @@index([key])
+}
+
+model EmailTemplate {
+  id        String   @id @default(cuid())
+  type      String   @unique // e.g. WELCOME_TEMP_PASSWORD, TICKET_CREATED
+  subject   String
+  body      String   @db.Text
+  active    Boolean  @default(true)
+  updatedAt DateTime @updatedAt
 }

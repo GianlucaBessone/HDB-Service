@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, Loader2, User, Mail, Shield, Building2, Lock, Eye, EyeOff, Send } from 'lucide-react';
+import { X, Loader2, User, Mail, Shield, Building2, Lock, Eye, EyeOff, Send, Check, MapPin, UserPlus } from 'lucide-react';
+import clsx from 'clsx';
 import toast from 'react-hot-toast';
 import { UserRole } from '@prisma/client';
 import { t } from '@/lib/translations';
@@ -16,6 +17,8 @@ export default function UserModal({ user, onClose, onSuccess }: UserModalProps) 
   const isEditing = !!user;
   const [isLoading, setIsLoading] = useState(false);
   const [clients, setClients] = useState<any[]>([]);
+  const [availablePlants, setAvailablePlants] = useState<any[]>([]);
+  const [isLoadingPlants, setIsLoadingPlants] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
   const [form, setForm] = useState({
@@ -24,6 +27,7 @@ export default function UserModal({ user, onClose, onSuccess }: UserModalProps) 
     email: user?.email || '',
     role: user?.role || 'TECHNICIAN',
     clientId: user?.clientId || '',
+    plantIds: user?.plantAccess?.map((pa: any) => pa.plantId) || [],
     password: '',
     active: user?.active !== undefined ? user.active : true,
   });
@@ -34,6 +38,26 @@ export default function UserModal({ user, onClose, onSuccess }: UserModalProps) 
       .then(data => setClients(data))
       .catch(() => console.error('Error loading clients'));
   }, []);
+
+  useEffect(() => {
+    if (form.clientId) {
+      setIsLoadingPlants(true);
+      fetch(`/api/plants?clientId=${form.clientId}`)
+        .then(res => res.json())
+        .then(data => {
+          setAvailablePlants(data);
+          // If editing and no plants selected yet, initialize if they come in user object
+          // Otherwise, if changing client, clear selected plants
+          if (!isEditing || form.clientId !== user?.clientId) {
+            // Only clear if the client actually changed manually
+            // Wait, logic: if I select a client, I should see their plants.
+          }
+        })
+        .finally(() => setIsLoadingPlants(false));
+    } else {
+      setAvailablePlants([]);
+    }
+  }, [form.clientId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,6 +88,16 @@ export default function UserModal({ user, onClose, onSuccess }: UserModalProps) 
   };
 
   const isClientRole = form.role === 'CLIENT_RESPONSIBLE' || form.role === 'CLIENT_REQUESTER';
+  const isRequester = form.role === 'CLIENT_REQUESTER';
+
+  const togglePlant = (plantId: string) => {
+    setForm(prev => ({
+      ...prev,
+      plantIds: prev.plantIds.includes(plantId)
+        ? prev.plantIds.filter((id: string) => id !== plantId)
+        : [...prev.plantIds, plantId]
+    }));
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
@@ -158,7 +192,7 @@ export default function UserModal({ user, onClose, onSuccess }: UserModalProps) 
                   disabled={!isClientRole}
                   className="select disabled:opacity-50"
                   value={form.clientId}
-                  onChange={e => setForm({ ...form, clientId: e.target.value })}
+                  onChange={e => setForm({ ...form, clientId: e.target.value, plantIds: [] })}
                   required={isClientRole}
                 >
                   <option value="">Seleccione un cliente...</option>
@@ -169,56 +203,101 @@ export default function UserModal({ user, onClose, onSuccess }: UserModalProps) 
               </div>
             </div>
 
-            {isEditing && (
-              <>
-                <div className="space-y-1.5">
-                  <label className="text-sm font-semibold flex items-center gap-2">
-                    <Lock className="w-3.5 h-3.5 text-muted-foreground" />
-                    Nueva Contraseña (opcional)
-                  </label>
-                  <div className="relative">
-                    <input
-                      type={showPassword ? 'text' : 'password'}
-                      className="input pr-10"
-                      placeholder="Dejar en blanco para no cambiar"
-                      value={form.password}
-                      onChange={e => setForm({ ...form, password: e.target.value })}
-                      minLength={6}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                    >
-                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
+            {isClientRole && form.clientId && (
+              <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                <label className="text-sm font-semibold flex items-center gap-2">
+                  <MapPin className="w-3.5 h-3.5 text-muted-foreground" />
+                  Plantas autorizadas (Acceso) <span className="text-red-500">*</span>
+                </label>
+                
+                {isLoadingPlants ? (
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground p-4 bg-muted/20 rounded-lg border border-dashed border-border">
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                    Cargando plantas...
                   </div>
-                </div>
-
-                <div className="flex items-center gap-3 p-3 bg-muted/20 rounded-lg border border-border">
-                  <input
-                    type="checkbox"
-                    id="active"
-                    className="w-4 h-4 rounded border-border text-primary focus:ring-primary"
-                    checked={form.active}
-                    onChange={e => setForm({ ...form, active: e.target.checked })}
-                  />
-                  <label htmlFor="active" className="text-sm font-medium cursor-pointer">
-                    Usuario Activo (Permitir acceso al sistema)
-                  </label>
-                </div>
-              </>
+                ) : availablePlants.length === 0 ? (
+                  <div className="text-xs text-amber-600 p-4 bg-amber-50 rounded-lg border border-amber-100 italic">
+                    Este cliente no tiene plantas registradas aún.
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto p-1 custom-scrollbar">
+                    {availablePlants.map(plant => {
+                      const isSelected = form.plantIds.includes(plant.id);
+                      return (
+                        <button
+                          key={plant.id}
+                          type="button"
+                          onClick={() => togglePlant(plant.id)}
+                          className={clsx(
+                            'flex items-center gap-3 p-3 rounded-lg border text-left transition-all group',
+                            isSelected 
+                              ? 'bg-primary/10 border-primary text-primary shadow-sm' 
+                              : 'bg-card border-border hover:border-muted-foreground/30 hover:bg-muted/30'
+                          )}
+                        >
+                          <div className={clsx(
+                            'w-4 h-4 rounded border flex items-center justify-center transition-colors',
+                            isSelected ? 'bg-primary border-primary' : 'bg-background border-border group-hover:border-muted-foreground/50'
+                          )}>
+                            {isSelected && <Check className="w-2.5 h-2.5 text-white stroke-[3]" />}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-xs font-bold truncate leading-tight">{plant.nombre}</p>
+                            {plant.direccion && <p className="text-[10px] opacity-70 truncate mt-0.5">{plant.direccion}</p>}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+                {isClientRole && form.plantIds.length === 0 && availablePlants.length > 0 && (
+                  <p className="text-[10px] text-amber-600 font-medium">Si no selecciona ninguna planta, {isRequester ? 'el solicitante no tendrá acceso a ningún equipo.' : 'el responsable verá todas las plantas del cliente por defecto.'}</p>
+                )}
+              </div>
             )}
 
-            {!isEditing && (
-              <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg">
-                <p className="text-xs text-primary font-medium flex items-center gap-2">
-                  <Send className="w-3.5 h-3.5" />
-                  Flujo de Invitación:
+            <div className="space-y-1.5">
+              <label className="text-sm font-semibold flex items-center gap-2">
+                <Lock className="w-3.5 h-3.5 text-muted-foreground" />
+                {isEditing ? 'Nueva Contraseña (opcional)' : 'Contraseña Inicial'} <span className="text-red-500">*</span>
+              </label>
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  required={!isEditing}
+                  className="input pr-10"
+                  placeholder={isEditing ? 'Dejar en blanco para no cambiar' : 'Asigne una clave temporal'}
+                  value={form.password}
+                  onChange={e => setForm({ ...form, password: e.target.value })}
+                  minLength={6}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+              {!isEditing && (
+                <p className="text-[10px] text-amber-600 font-medium italic">
+                  * El usuario será forzado a cambiar esta clave al acceder por primera vez.
                 </p>
-                <p className="text-[11px] text-muted-foreground mt-1">
-                  Al crear el usuario, recibirá automáticamente un correo electrónico con un enlace seguro para activar su cuenta y elegir su contraseña.
-                </p>
+              )}
+            </div>
+
+            {isEditing && (
+              <div className="flex items-center gap-3 p-3 bg-muted/20 rounded-lg border border-border">
+                <input
+                  type="checkbox"
+                  id="active"
+                  className="w-4 h-4 rounded border-border text-primary focus:ring-primary"
+                  checked={form.active}
+                  onChange={e => setForm({ ...form, active: e.target.checked })}
+                />
+                <label htmlFor="active" className="text-sm font-medium cursor-pointer">
+                  Usuario Activo (Permitir acceso al sistema)
+                </label>
               </div>
             )}
 
@@ -243,8 +322,8 @@ export default function UserModal({ user, onClose, onSuccess }: UserModalProps) 
               ) : (
                 isEditing ? 'Guardar Cambios' : (
                   <>
-                    <Send className="w-4 h-4" />
-                    Enviar Invitación
+                    <UserPlus className="w-4 h-4" />
+                    Crear Usuario
                   </>
                 )
               )}

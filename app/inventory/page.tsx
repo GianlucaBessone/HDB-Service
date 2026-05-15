@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import {
   Package, Search, Plus, Filter, AlertTriangle, ArrowRightLeft,
   CreditCard, X, Loader2, CheckCircle2,
@@ -54,36 +55,38 @@ type Debt = {
 
 export default function InventoryPage() {
   const [activeTab, setActiveTab] = useState<Tab>('stock');
-  const [plants, setPlants] = useState<any[]>([]);
   const [selectedPlant, setSelectedPlant] = useState('');
-  const [stock, setStock] = useState<StockEntry[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
 
-  const fetchPlants = useCallback(async () => {
-    try {
+  const { data: session } = useQuery({
+    queryKey: ['session'],
+    queryFn: async () => {
+      const res = await fetch('/api/auth/session');
+      if (!res.ok) return { user: null };
+      return res.json();
+    }
+  });
+
+  const role = session?.user?.role;
+
+  const { data: plants = [] } = useQuery({
+    queryKey: ['plants'],
+    queryFn: async () => {
       const res = await fetch('/api/plants');
       const data = await res.json();
-      setPlants(Array.isArray(data) ? data : []);
-    } catch {}
-  }, []);
+      return Array.isArray(data) ? data : [];
+    }
+  });
 
-  const fetchStock = useCallback(async () => {
-    setIsLoading(true);
-    try {
+  const { data: stock = [], isLoading, refetch: fetchStock } = useQuery({
+    queryKey: ['stock', selectedPlant],
+    queryFn: async () => {
       const params = new URLSearchParams();
       if (selectedPlant) params.set('plantId', selectedPlant);
       const res = await fetch(`/api/stock?${params}`);
       const data = await res.json();
-      setStock(Array.isArray(data) ? data : []);
-    } catch {
-      toast.error('Error al cargar stock');
-    } finally {
-      setIsLoading(false);
+      return Array.isArray(data) ? data : [];
     }
-  }, [selectedPlant]);
-
-  useEffect(() => { fetchPlants(); }, [fetchPlants]);
-  useEffect(() => { fetchStock(); }, [fetchStock]);
+  });
 
   const tabs: { key: Tab; label: string; icon: React.ElementType }[] = [
     { key: 'stock', label: 'Stock Actual', icon: Package },
@@ -152,11 +155,12 @@ export default function InventoryPage() {
             plants={plants} 
             entries={stock} 
             isLoading={isLoading} 
-            onRefresh={fetchStock} 
+            onRefresh={fetchStock}
+            role={role}
           />
         )}
-        {activeTab === 'transfers' && <TransfersTab plantId={selectedPlant} plants={plants} />}
-        {activeTab === 'debts' && <DebtsTab />}
+        {activeTab === 'transfers' && <TransfersTab plantId={selectedPlant} plants={plants} role={role} />}
+        {activeTab === 'debts' && <DebtsTab role={role} />}
       </div>
     </div>
   );
@@ -164,9 +168,9 @@ export default function InventoryPage() {
 
 // ─── Stock Tab ──────────────────────────────────────
 function StockTab({ 
-  plantId, plants, entries, isLoading, onRefresh 
+  plantId, plants, entries, isLoading, onRefresh, role 
 }: { 
-  plantId: string; plants: any[]; entries: StockEntry[]; isLoading: boolean; onRefresh: () => void;
+  plantId: string; plants: any[]; entries: StockEntry[]; isLoading: boolean; onRefresh: () => void; role?: string;
 }) {
   const [search, setSearch] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
@@ -212,10 +216,12 @@ function StockTab({
             </span>
           </div>
         )}
-        <button onClick={() => setShowAddModal(true)} className="btn-primary gap-2 shrink-0">
-          <Plus className="w-4 h-4" />
-          Agregar Stock
-        </button>
+        {(role === 'ADMIN' || role === 'SUPERVISOR' || role === 'TECHNICIAN') && (
+          <button onClick={() => setShowAddModal(true)} className="btn-primary gap-2 shrink-0">
+            <Plus className="w-4 h-4" />
+            Agregar Stock
+          </button>
+        )}
       </div>
 
       {isLoading ? (
@@ -302,14 +308,18 @@ function StockTab({
                         </td>
                         <td className="text-center">
                           <div className="flex justify-center">
-                            <button
-                              onClick={() => setAdjustEntry(e)}
-                              className="btn-ghost btn-sm text-xs gap-1 text-amber-600 hover:text-amber-700 hover:bg-amber-50 dark:hover:bg-amber-950/30"
-                              title="Ajuste de inventario"
-                            >
-                              <Settings2 className="w-3.5 h-3.5" />
-                              Ajustar
-                            </button>
+                            {(role === 'ADMIN' || role === 'SUPERVISOR' || role === 'TECHNICIAN') ? (
+                              <button
+                                onClick={() => setAdjustEntry(e)}
+                                className="btn-ghost btn-sm text-xs gap-1 text-amber-600 hover:text-amber-700 hover:bg-amber-50 dark:hover:bg-amber-950/30"
+                                title="Ajuste de inventario"
+                              >
+                                <Settings2 className="w-3.5 h-3.5" />
+                                Ajustar
+                              </button>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">—</span>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -343,36 +353,30 @@ function StockTab({
 }
 
 // ─── Transfers Tab ──────────────────────────────────
-function TransfersTab({ plantId, plants }: { plantId: string; plants: any[] }) {
-  const [transfers, setTransfers] = useState<Transfer[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+function TransfersTab({ plantId, plants, role }: { plantId: string; plants: any[]; role?: string }) {
   const [showModal, setShowModal] = useState(false);
 
-  const fetchTransfers = useCallback(async () => {
-    setIsLoading(true);
-    try {
+  const { data: transfers = [], isLoading, refetch: fetchTransfers } = useQuery({
+    queryKey: ['transfers', plantId],
+    queryFn: async () => {
       const params = new URLSearchParams();
       if (plantId) params.set('plantId', plantId);
       const res = await fetch(`/api/stock/transfer?${params}`);
       const data = await res.json();
-      setTransfers(Array.isArray(data) ? data : []);
-    } catch {
-      toast.error('Error al cargar transferencias');
-    } finally {
-      setIsLoading(false);
+      return Array.isArray(data) ? data : [];
     }
-  }, [plantId]);
-
-  useEffect(() => { fetchTransfers(); }, [fetchTransfers]);
+  });
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end">
-        <button onClick={() => setShowModal(true)} className="btn-primary gap-2">
-          <ArrowRightLeft className="w-4 h-4" />
-          Nueva Transferencia
-        </button>
-      </div>
+      {(role === 'ADMIN' || role === 'SUPERVISOR' || role === 'TECHNICIAN') && (
+        <div className="flex justify-end">
+          <button onClick={() => setShowModal(true)} className="btn-primary gap-2">
+            <ArrowRightLeft className="w-4 h-4" />
+            Nueva Transferencia
+          </button>
+        </div>
+      )}
 
       {isLoading ? (
         <div className="space-y-3">
@@ -443,24 +447,15 @@ function TransfersTab({ plantId, plants }: { plantId: string; plants: any[] }) {
 }
 
 // ─── Debts Tab ──────────────────────────────────────
-function DebtsTab() {
-  const [debts, setDebts] = useState<Debt[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  const fetchDebts = useCallback(async () => {
-    setIsLoading(true);
-    try {
+function DebtsTab({ role }: { role?: string }) {
+  const { data: debts = [], isLoading, refetch: fetchDebts } = useQuery({
+    queryKey: ['debts'],
+    queryFn: async () => {
       const res = await fetch('/api/stock/debts');
       const data = await res.json();
-      setDebts(Array.isArray(data) ? data : []);
-    } catch {
-      toast.error('Error al cargar deudas');
-    } finally {
-      setIsLoading(false);
+      return Array.isArray(data) ? data : [];
     }
-  }, []);
-
-  useEffect(() => { fetchDebts(); }, [fetchDebts]);
+  });
 
   const handleResolve = async (debtId: string) => {
     try {
@@ -505,7 +500,7 @@ function DebtsTab() {
                   <span className={clsx('badge', getStatusColor(d.status))}>
                     {t(d.status)}
                   </span>
-                  {d.status === 'PENDING' && (
+                  {d.status === 'PENDING' && (role === 'ADMIN' || role === 'SUPERVISOR' || role === 'TECHNICIAN') && (
                     <button onClick={() => handleResolve(d.id)} className="btn-outline btn-sm gap-1">
                       <CheckCircle2 className="w-3.5 h-3.5" />
                       Resolver

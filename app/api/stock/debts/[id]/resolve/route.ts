@@ -1,3 +1,4 @@
+import { revalidateTag } from 'next/cache';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requirePermission } from '@/lib/auth';
@@ -15,11 +16,13 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
     });
 
     if (!debt) {
-      return NextResponse.json({ error: 'Deuda no encontrada' }, { status: 404 });
+      await revalidateTag('stock', 'default');
+    return NextResponse.json({ error: 'Deuda no encontrada' }, { status: 404 });
     }
 
     if (debt.status === 'RESOLVED') {
-      return NextResponse.json({ error: 'La deuda ya está resuelta' }, { status: 400 });
+      await revalidateTag('stock', 'default');
+    return NextResponse.json({ error: 'La deuda ya está resuelta' }, { status: 400 });
     }
 
     const resolvedDebt = await prisma.interPlantDebt.update({
@@ -33,9 +36,11 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
       oldValue: { status: 'PENDING' }, newValue: { status: 'RESOLVED' },
     });
 
+    await revalidateTag('stock', 'default');
     return NextResponse.json(resolvedDebt);
   } catch (error) {
     console.error('[API] POST /api/stock/debts/[id]/resolve error:', error);
+    await revalidateTag('stock', 'default');
     return NextResponse.json({ error: 'Error al resolver deuda' }, { status: 500 });
   }
 }

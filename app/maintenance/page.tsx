@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import {
   Wrench, Calendar, Settings2, Clock, 
   CheckCircle2, AlertTriangle, Loader2, ChevronRight, MapPin, ShieldCheck, QrCode, X
@@ -17,8 +18,6 @@ const COMMON_FAILURES = [
 ];
 
 export default function MaintenancePage() {
-  const [schedules, setSchedules] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
   
   const currentMonthStr = new Date().toISOString().slice(0, 7); // YYYY-MM
@@ -30,24 +29,28 @@ export default function MaintenancePage() {
   const [approvalModalId, setApprovalModalId] = useState<string | null>(null);
   const [isGeneratingApproval, setIsGeneratingApproval] = useState(false);
 
-  const fetchSchedules = useCallback(async () => {
-    setIsLoading(true);
-    try {
+  const { data: schedules = [], isLoading, refetch: fetchSchedules } = useQuery<any[]>({
+    queryKey: ['maintenance-schedules', month, statusFilter],
+    queryFn: async () => {
       const params = new URLSearchParams({ month });
       if (statusFilter) params.set('status', statusFilter);
       
       const res = await fetch(`/api/maintenance?${params}`);
       if (!res.ok) throw new Error('Failed to fetch');
-      const data = await res.json();
-      setSchedules(data);
-    } catch (error) {
-      toast.error('Error al cargar cronograma');
-    } finally {
-      setIsLoading(false);
+      return res.json();
     }
-  }, [month, statusFilter]);
+  });
 
-  useEffect(() => { fetchSchedules(); }, [fetchSchedules]);
+  const { data: session } = useQuery({
+    queryKey: ['session'],
+    queryFn: async () => {
+      const res = await fetch('/api/auth/session');
+      if (!res.ok) return { user: null };
+      return res.json();
+    }
+  });
+
+  const role = session?.user?.role;
 
   const handleGenerate = async () => {
     setIsGenerating(true);
@@ -126,10 +129,12 @@ export default function MaintenancePage() {
           </h1>
           <p className="text-muted-foreground mt-1">Planificación y checklists preventivos</p>
         </div>
-        <button onClick={handleGenerate} disabled={isGenerating} className="btn-primary btn-lg gap-2 shrink-0">
-          {isGenerating ? <Loader2 className="w-5 h-5 animate-spin" /> : <Settings2 className="w-5 h-5" />}
-          Generar Tareas del Mes
-        </button>
+        {(role === 'ADMIN' || role === 'SUPERVISOR' || role === 'TECHNICIAN') && (
+          <button onClick={handleGenerate} disabled={isGenerating} className="btn-primary btn-lg gap-2 shrink-0">
+            {isGenerating ? <Loader2 className="w-5 h-5 animate-spin" /> : <Settings2 className="w-5 h-5" />}
+            Generar Tareas del Mes
+          </button>
+        )}
       </div>
 
       {/* KPI Cards */}
@@ -212,13 +217,13 @@ export default function MaintenancePage() {
                 </div>
 
                 <div className="flex gap-2">
-                  <button
-                    onClick={() => setSelectedSchedule(schedule)}
-                    className={clsx('btn-sm gap-1.5 w-full sm:w-auto', isCompleted || schedule.status === 'SIGNED' ? 'btn-outline' : 'btn-primary')}
-                  >
-                    {isCompleted || schedule.status === 'SIGNED' ? 'Ver Reporte' : 'Completar Checklist'}
-                    <ChevronRight className="w-4 h-4" />
-                  </button>
+                    <button
+                      onClick={() => setSelectedSchedule(schedule)}
+                      className={clsx('btn-sm gap-1.5 w-full sm:w-auto', (isCompleted || schedule.status === 'SIGNED' || (role === 'CLIENT_REQUESTER' || role === 'CLIENT_RESPONSIBLE')) ? 'btn-outline' : 'btn-primary')}
+                    >
+                      {isCompleted || schedule.status === 'SIGNED' ? 'Ver Reporte' : (role === 'CLIENT_REQUESTER' || role === 'CLIENT_RESPONSIBLE') ? 'Ver Detalles' : 'Completar Checklist'}
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
                 </div>
               </div>
             );

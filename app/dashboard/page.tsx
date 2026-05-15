@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { createClient } from '@/utils/supabase/client';
 import {
   Ticket,
@@ -18,7 +18,7 @@ import Link from 'next/link';
 import clsx from 'clsx';
 
 interface DashboardStats {
-  user: { nombre: string };
+  user: { nombre: string; role: string };
   tickets: { open: number; total: number; slaCompliance: number };
   dispensers: { total: number; inService: number; repair: number; blocked: number };
   stock: { lowAlerts: number };
@@ -27,25 +27,17 @@ interface DashboardStats {
 
 export default function DashboardPage() {
   const supabase = createClient();
-  const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    async function initDashboard() {
-      try {
-        const res = await fetch('/api/dashboard');
-        if (res.ok) {
-          const data = await res.json();
-          setStats(data);
-        }
-      } catch (error) {
-        console.error('Dashboard init failed:', error);
-      } finally {
-        setIsLoading(false);
-      }
+  const { data: stats, isLoading } = useQuery<DashboardStats>({
+    queryKey: ['dashboard-stats'],
+    queryFn: async () => {
+      const res = await fetch('/api/dashboard');
+      if (!res.ok) throw new Error('Failed to fetch dashboard stats');
+      return res.json();
     }
-    initDashboard();
-  }, []);
+  });
+
+  const role = stats?.user?.role;
 
   if (isLoading || !stats) {
     return (
@@ -86,13 +78,15 @@ export default function DashboardPage() {
             </div>
           </div>
           <div className="mt-2 flex items-center gap-2">
-            <span className={clsx(
-              "text-xs font-semibold px-2 py-0.5 rounded-full",
-              stats.tickets.slaCompliance >= 90 ? "bg-emerald-100 text-emerald-700" :
-              stats.tickets.slaCompliance >= 75 ? "bg-amber-100 text-amber-700" : "bg-red-100 text-red-700"
-            )}>
-              {stats.tickets.slaCompliance}% SLA
-            </span>
+            {(role === 'ADMIN' || role === 'SUPERVISOR' || role === 'TECHNICIAN') && (
+              <span className={clsx(
+                "text-xs font-semibold px-2 py-0.5 rounded-full",
+                stats.tickets.slaCompliance >= 90 ? "bg-emerald-100 text-emerald-700" :
+                stats.tickets.slaCompliance >= 75 ? "bg-amber-100 text-amber-700" : "bg-red-100 text-red-700"
+              )}>
+                {stats.tickets.slaCompliance}% SLA
+              </span>
+            )}
             <span className="text-xs text-muted-foreground">de {stats.tickets.total} totales</span>
           </div>
         </Link>
@@ -163,7 +157,7 @@ export default function DashboardPage() {
       {/* Advanced Analytics Summary Link */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Link 
-          href="/dashboard/analytics" 
+          href="/dashboard/performance" 
           className="glass-card p-8 flex flex-col items-center justify-center border-primary/20 hover:border-primary/50 transition-all group"
         >
           <div className="p-4 bg-primary/10 rounded-2xl group-hover:scale-110 transition-transform">
@@ -171,15 +165,15 @@ export default function DashboardPage() {
           </div>
           <h3 className="text-xl font-bold mt-4">Análisis de Performance & KPIs</h3>
           <p className="text-sm text-muted-foreground mt-2 text-center max-w-xs">
-            Ver métricas detalladas de SLA, MTTR, MTBF y análisis de fallas recurrentes.
+            Ver métricas detalladas de SLA, MTTR, MTBF y gráficos de evolución.
           </p>
           <div className="mt-6 flex items-center gap-2 text-primary font-bold text-sm">
-            Explorar Analytics <ArrowUpRight className="w-4 h-4" />
+            Explorar Performance <ArrowUpRight className="w-4 h-4" />
           </div>
         </Link>
 
         <Link 
-          href="/dashboard/analytics" 
+          href="/dashboard/salud" 
           className="glass-card p-8 flex flex-col items-center justify-center border-emerald-500/20 hover:border-emerald-500/50 transition-all group"
         >
           <div className="p-4 bg-emerald-500/10 rounded-2xl group-hover:scale-110 transition-transform">
@@ -187,10 +181,10 @@ export default function DashboardPage() {
           </div>
           <h3 className="text-xl font-bold mt-4">Salud del Parque Automática</h3>
           <p className="text-sm text-muted-foreground mt-2 text-center max-w-xs">
-            Algoritmo inteligente de evaluación: Buenos, Medios y Malos.
+            Algoritmo inteligente de evaluación con detalle granular por planta y equipo.
           </p>
           <div className="mt-6 flex items-center gap-2 text-emerald-500 font-bold text-sm">
-            Ver Ranking Crítico <ArrowUpRight className="w-4 h-4" />
+            Ver Salud y Ranking <ArrowUpRight className="w-4 h-4" />
           </div>
         </Link>
       </div>

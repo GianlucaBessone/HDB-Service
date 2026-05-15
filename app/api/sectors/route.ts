@@ -1,8 +1,11 @@
+import { revalidateTag } from 'next/cache';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requirePermission } from '@/lib/auth';
 import { withIdempotency } from '@/lib/idempotency';
 import { createAuditLog } from '@/lib/audit';
+
+export const revalidate = 300; // 5 min
 
 // GET /api/sectors — List sectors, optionally filtered by plant
 export async function GET(req: Request) {
@@ -22,7 +25,8 @@ export async function GET(req: Request) {
         },
         orderBy: { sector: { nombre: 'asc' } },
       });
-      return NextResponse.json(plantSectors.map(ps => ps.sector));
+      await revalidateTag('sectors', 'default');
+    return NextResponse.json(plantSectors.map(ps => ps.sector));
     }
 
     // Return all sectors
@@ -34,9 +38,11 @@ export async function GET(req: Request) {
       orderBy: { nombre: 'asc' },
     });
 
+    await revalidateTag('sectors', 'default');
     return NextResponse.json(sectors);
   } catch (error) {
     console.error('[API] GET /api/sectors error:', error);
+    await revalidateTag('sectors', 'default');
     return NextResponse.json({ error: 'Error al obtener sectores' }, { status: 500 });
   }
 }
@@ -52,7 +58,8 @@ export async function POST(req: Request) {
       const { nombre, descripcion } = body;
 
       if (!nombre?.trim()) {
-        return NextResponse.json({ error: 'Nombre es requerido' }, { status: 400 });
+        await revalidateTag('sectors', 'default');
+    return NextResponse.json({ error: 'Nombre es requerido' }, { status: 400 });
       }
 
       const sector = await prisma.sector.create({
@@ -71,10 +78,12 @@ export async function POST(req: Request) {
         newValue: sector,
       });
 
-      return NextResponse.json(sector, { status: 201 });
+      await revalidateTag('sectors', 'default');
+    return NextResponse.json(sector, { status: 201 });
     } catch (error) {
       console.error('[API] POST /api/sectors error:', error);
-      return NextResponse.json({ error: 'Error al crear sector' }, { status: 500 });
+      await revalidateTag('sectors', 'default');
+    return NextResponse.json({ error: 'Error al crear sector' }, { status: 500 });
     }
   });
 }

@@ -18,7 +18,9 @@ export default function CreateTicketModal({ initialDispenserId = '', onClose, on
     dispenserId: initialDispenserId, 
     reason: '', 
     description: '', 
-    priority: 'MEDIUM' 
+    priority: 'MEDIUM',
+    wantsPushNotifications: false,
+    wantsEmailNotifications: false
   });
   const [saving, setSaving] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
@@ -156,6 +158,62 @@ export default function CreateTicketModal({ initialDispenserId = '', onClose, on
                   </button>
                 ))}
               </div>
+            </div>
+
+            {/* Notification Preferences */}
+            <div className="pt-2 pb-1 border-t border-border mt-4">
+              <label className="flex items-center justify-between cursor-pointer">
+                <span className="text-sm font-semibold">Recibir notificaciones al respecto</span>
+                <div className="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
+                  <input 
+                    type="checkbox" 
+                    name="toggle" 
+                    id="toggle-push" 
+                    className="toggle-checkbox absolute block w-5 h-5 rounded-full bg-white border-4 border-muted appearance-none cursor-pointer transition-transform duration-200 ease-in-out"
+                    style={{ transform: form.wantsPushNotifications ? 'translateX(100%)' : 'translateX(0)', borderColor: form.wantsPushNotifications ? '#0b8296' : '' }}
+                    checked={form.wantsPushNotifications}
+                    onChange={(e) => {
+                      const checked = e.target.checked;
+                      setForm(p => ({ ...p, wantsPushNotifications: checked }));
+                      // Note: OneSignal subscription check will be handled fully later, 
+                      // but we can prompt the browser permission now if needed.
+                      if (checked && typeof window !== 'undefined' && window.OneSignal) {
+                        window.OneSignal.Slidedown.promptPush();
+                      }
+                    }}
+                  />
+                  <label htmlFor="toggle-push" className={`toggle-label block overflow-hidden h-5 rounded-full cursor-pointer transition-colors duration-200 ease-in-out ${form.wantsPushNotifications ? 'bg-primary' : 'bg-muted'}`}></label>
+                </div>
+              </label>
+
+              {form.wantsPushNotifications && (
+                <div className="mt-4 pl-4 border-l-2 border-primary/30 animate-in fade-in slide-in-from-top-2">
+                  <label className="flex items-center justify-between cursor-pointer">
+                    <span className="text-sm">También en mi email</span>
+                    <div className="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
+                      <input 
+                        type="checkbox" 
+                        name="toggle-email" 
+                        id="toggle-email" 
+                        className="toggle-checkbox absolute block w-5 h-5 rounded-full bg-white border-4 border-muted appearance-none cursor-pointer transition-transform duration-200 ease-in-out"
+                        style={{ transform: form.wantsEmailNotifications ? 'translateX(100%)' : 'translateX(0)', borderColor: form.wantsEmailNotifications ? '#0b8296' : '' }}
+                        checked={form.wantsEmailNotifications}
+                        onChange={(e) => setForm(p => ({ ...p, wantsEmailNotifications: e.target.checked }))}
+                      />
+                      <label htmlFor="toggle-email" className={`toggle-label block overflow-hidden h-5 rounded-full cursor-pointer transition-colors duration-200 ease-in-out ${form.wantsEmailNotifications ? 'bg-primary' : 'bg-muted'}`}></label>
+                    </div>
+                  </label>
+                  
+                  {/* Warning if OneSignal is not active (basic check for now) */}
+                  <div className="mt-3 flex items-start gap-2 text-xs text-amber-600 bg-amber-50 p-2 rounded-md border border-amber-200">
+                    <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                    <p>
+                      Asegúrate de haber permitido las notificaciones en tu navegador. Si no estás seguro, 
+                      <button type="button" onClick={() => window.OneSignal?.Slidedown.promptPush()} className="font-bold underline ml-1">actívalas aquí</button>.
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
           <div className="px-6 py-4 border-t border-border bg-muted/30 flex items-center justify-end gap-3">

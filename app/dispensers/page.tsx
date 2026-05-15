@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import {
   GlassWater, Search, Plus, Filter, ChevronDown, ChevronUp,
@@ -30,18 +31,24 @@ type Dispenser = {
 };
 
 export default function DispensersPage() {
-  const [dispensers, setDispensers] = useState<Dispenser[]>([]);
-  const [total, setTotal] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [sortField, setSortField] = useState<string>('updatedAt');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
 
-  const fetchDispensers = useCallback(async () => {
-    setIsLoading(true);
-    try {
+  const { data: session } = useQuery({
+    queryKey: ['session'],
+    queryFn: async () => {
+      const res = await fetch('/api/auth/session');
+      if (!res.ok) return { user: null };
+      return res.json();
+    }
+  });
+
+  const { data, isLoading, refetch: fetchDispensers } = useQuery({
+    queryKey: ['dispensers', search, statusFilter],
+    queryFn: async () => {
       const params = new URLSearchParams();
       if (search) params.set('search', search);
       if (statusFilter) params.set('status', statusFilter);
@@ -50,21 +57,12 @@ export default function DispensersPage() {
         const errorData = await res.json().catch(() => ({}));
         throw new Error(errorData.error || `Failed to fetch: ${res.status}`);
       }
-      const data = await res.json();
-      setDispensers(data.dispensers || []);
-      setTotal(data.total || 0);
-    } catch (error) {
-      console.error('Error fetching dispensers:', error);
-      toast.error('Error al cargar dispensers');
-    } finally {
-      setIsLoading(false);
+      return res.json();
     }
-  }, [search, statusFilter]);
+  });
 
-  useEffect(() => {
-    const debounce = setTimeout(fetchDispensers, 300);
-    return () => clearTimeout(debounce);
-  }, [fetchDispensers]);
+  const dispensers: Dispenser[] = data?.dispensers || [];
+  const total = data?.total || 0;
 
   // KPI counts
   const kpis = {
@@ -121,18 +119,22 @@ export default function DispensersPage() {
           <p className="text-muted-foreground mt-1">Gestión de equipos dispensadores de agua</p>
         </div>
         <div className="flex items-center gap-2">
-          <button 
-            onClick={() => window.open(`/dispensers/print-qr?ids=${sorted.map(d => d.id).join(',')}`, '_blank')} 
-            className="btn-outline btn-lg gap-2 shrink-0 hidden sm:flex"
-            disabled={sorted.length === 0}
-          >
-            <QrCode className="w-5 h-5" />
-            Imprimir QRs
-          </button>
-          <button onClick={() => setShowCreateModal(true)} className="btn-primary btn-lg gap-2 shrink-0">
-            <Plus className="w-5 h-5" />
-            Nuevo Dispenser
-          </button>
+          {(session?.user?.role === 'ADMIN' || session?.user?.role === 'SUPERVISOR' || session?.user?.role === 'TECHNICIAN') && (
+            <>
+              <button 
+                onClick={() => window.open(`/dispensers/print-qr?ids=${sorted.map(d => d.id).join(',')}`, '_blank')} 
+                className="btn-outline btn-lg gap-2 shrink-0 hidden sm:flex"
+                disabled={sorted.length === 0}
+              >
+                <QrCode className="w-5 h-5" />
+                Imprimir QRs
+              </button>
+              <button onClick={() => setShowCreateModal(true)} className="btn-primary btn-lg gap-2 shrink-0">
+                <Plus className="w-5 h-5" />
+                Nuevo Dispenser
+              </button>
+            </>
+          )}
         </div>
       </div>
 
@@ -237,7 +239,19 @@ export default function DispensersPage() {
                     <td className="text-center">
                       {d.location ? (
                         <div className="flex flex-col items-center">
-                          <div className="font-medium">{d.location.plant.nombre}</div>
+                          <div className="flex items-center gap-1.5">
+                            <div className="font-medium">{d.location.plant.nombre}</div>
+                            {d.plant && d.location.plant.id !== d.plant.id && (
+                              <span className={clsx(
+                                "text-[9px] px-1.5 py-0.5 rounded-full font-bold border",
+                                session?.user?.plantIds?.includes(d.location.plant.id) 
+                                  ? "bg-blue-100 text-blue-700 border-blue-200" // Borrowed
+                                  : "bg-purple-100 text-purple-700 border-purple-200" // Loaned
+                              )}>
+                                {session?.user?.plantIds?.includes(d.location.plant.id) ? 'PRESTADO' : 'PRESTADO A OTRO'}
+                              </span>
+                            )}
+                          </div>
                           <div className="text-xs text-muted-foreground">
                             {d.location.sector?.nombre} — {d.location.nombre}
                           </div>

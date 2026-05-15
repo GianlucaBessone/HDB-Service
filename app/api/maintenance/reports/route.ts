@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { requirePermission } from '@/lib/auth';
+import { requirePermission, getDataFilter } from '@/lib/auth';
+
+export const revalidate = 300; // 5 min
 
 export async function GET(req: Request) {
   const user = await requirePermission('reports:read');
@@ -14,7 +16,9 @@ export async function GET(req: Request) {
   const sectorId = url.searchParams.get('sectorId');
 
   try {
-    const whereClause: any = {};
+    const whereClause: any = {
+      ...getDataFilter(user, { locationPlantIdField: 'dispenser.location' })
+    };
 
     if (startMonth || endMonth) {
       whereClause.scheduledMonth = {};
@@ -24,7 +28,9 @@ export async function GET(req: Request) {
 
     if (clientId || plantId || sectorId) {
       whereClause.dispenser = {
+        ...whereClause.dispenser,
         location: {
+          ...whereClause.dispenser?.location,
           plant: clientId ? { clientId } : undefined,
           plantId: plantId || undefined,
           sectorId: sectorId || undefined,

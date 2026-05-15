@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server';
+import { revalidateTag } from 'next/cache';
 import { prisma } from '@/lib/prisma';
-import { requirePermission } from '@/lib/auth';
+import { requirePermission, getDataFilter } from '@/lib/auth';
 import { createAuditLog } from '@/lib/audit';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 300;
 
 // GET /api/dispensers/[id]
 export async function GET(req: Request, props: { params: Promise<{ id: string }> }) {
@@ -14,7 +15,13 @@ export async function GET(req: Request, props: { params: Promise<{ id: string }>
 
   try {
     const dispenser = await prisma.dispenser.findUnique({
-      where: { id: id },
+      where: { 
+        id: id,
+        ...getDataFilter(user, {
+          plantIdField: 'plantId',
+          locationPlantIdField: 'location',
+        })
+      },
       include: {
         location: {
           include: {
@@ -66,7 +73,8 @@ export async function GET(req: Request, props: { params: Promise<{ id: string }>
     });
 
     if (!dispenser) {
-      return NextResponse.json({ error: 'Dispenser no encontrado' }, { status: 404 });
+      await revalidateTag('dispensers', 'default');
+    return NextResponse.json({ error: 'Dispenser no encontrado' }, { status: 404 });
     }
 
     // Calculate lifecycle expiration
@@ -93,13 +101,15 @@ export async function GET(req: Request, props: { params: Promise<{ id: string }>
       );
     }
 
+    await revalidateTag('dispensers', 'default');
     return NextResponse.json({
       ...dispenser,
       lifecycleExpiration,
       lifecycleRemainingDays,
-    });
+    }, { headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=60' } });
   } catch (error) {
     console.error('[API] GET /api/dispensers/[id] error:', error);
+    await revalidateTag('dispensers', 'default');
     return NextResponse.json({ error: 'Error al obtener dispenser' }, { status: 500 });
   }
 }
@@ -111,13 +121,16 @@ export async function PUT(req: Request, props: { params: Promise<{ id: string }>
   const user = await requirePermission('dispensers:write');
   if (user instanceof NextResponse) return user;
 
+  const isAdmin = user.role === 'ADMIN';
+
   try {
     const body = await req.json();
-    const { marca, modelo, lifecycleMonths, numeroSerie, notas, active, plantId } = body;
+    const { marca, modelo, lifecycleMonths, numeroSerie, notas, active, plantId, lifecycleStartDate } = body;
 
     const existing = await prisma.dispenser.findUnique({ where: { id: id } });
     if (!existing) {
-      return NextResponse.json({ error: 'Dispenser no encontrado' }, { status: 404 });
+      await revalidateTag('dispensers', 'default');
+    return NextResponse.json({ error: 'Dispenser no encontrado' }, { status: 404 });
     }
 
     const updated = await prisma.dispenser.update({
@@ -130,6 +143,7 @@ export async function PUT(req: Request, props: { params: Promise<{ id: string }>
         ...(notas !== undefined && { notas: notas?.trim() || null }),
         ...(active !== undefined && { active }),
         ...(plantId !== undefined && { plantId: plantId || null }),
+        ...(isAdmin && !existing.lifecycleStartDate && lifecycleStartDate !== undefined && { lifecycleStartDate: lifecycleStartDate ? new Date(lifecycleStartDate) : null }),
       },
     });
 
@@ -143,9 +157,56 @@ export async function PUT(req: Request, props: { params: Promise<{ id: string }>
       newValue: updated,
     });
 
+    await revalidateTag('dispensers', 'default');
+await revalidateTag('dispensers', 'default');
     return NextResponse.json(updated);
   } catch (error) {
     console.error('[API] PUT /api/dispensers/[id] error:', error);
+    await revalidateTag('dispensers', 'default');
     return NextResponse.json({ error: 'Error al actualizar dispenser' }, { status: 500 });
+  }
+}
+
+// DELETE /api/dispensers/[id]
+export async function DELETE(req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
+  const { id } = params;
+  
+  // Only ADMIN can delete
+  const user = await requirePermission('dispensers:write');
+  if (user instanceof NextResponse) return user;
+  
+  if (user.role !== 'ADMIN') {
+    await revalidateTag('dispensers', 'default');
+    return NextResponse.json({ error: 'Sólo administradores pueden eliminar equipos' }, { status: 403 });
+  }
+
+  try {
+    const existing = await prisma.dispenser.findUnique({ where: { id: id } });
+    if (!existing) {
+      await revalidateTag('dispensers', 'default');
+    return NextResponse.json({ error: 'Dispenser no encontrado' }, { status: 404 });
+    }
+
+    await prisma.dispenser.delete({
+      where: { id: id },
+    });
+
+    await createAuditLog({
+      userId: user.id,
+      userName: user.nombre,
+      action: 'DELETE',
+      entity: 'DISPENSER',
+      entityId: id,
+      oldValue: existing,
+    });
+
+    await revalidateTag('dispensers', 'default');
+await revalidateTag('dispensers', 'default');
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('[API] DELETE /api/dispensers/[id] error:', error);
+    await revalidateTag('dispensers', 'default');
+    return NextResponse.json({ error: 'Error al eliminar dispenser' }, { status: 500 });
   }
 }

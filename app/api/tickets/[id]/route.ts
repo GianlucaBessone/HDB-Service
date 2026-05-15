@@ -1,9 +1,12 @@
+import { revalidateTag } from 'next/cache';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { requirePermission } from '@/lib/auth';
+import { requirePermission, getDataFilter } from '@/lib/auth';
 import { createAuditLog } from '@/lib/audit';
 import { sendPushNotification } from '@/lib/onesignal';
 import { TicketStatus } from '@prisma/client';
+
+export const revalidate = 300; // 5 min
 
 // GET /api/tickets/[id]
 export async function GET(req: Request, props: { params: Promise<{ id: string }> }) {
@@ -14,7 +17,21 @@ export async function GET(req: Request, props: { params: Promise<{ id: string }>
 
   try {
     const ticket = await prisma.ticket.findUnique({
-      where: { id: id },
+      where: { 
+        id: id,
+        ...getDataFilter(user, { locationPlantIdField: 'location' })
+      },
+      // Note: for requesters, we might need to handle the 'reportedById' case if they reported a ticket outside their plant
+      // but usually they can't. Let's add it just in case.
+      ...(user.role === 'CLIENT_REQUESTER' ? {
+        where: {
+          id: id,
+          OR: [
+            { reportedById: user.id },
+            getDataFilter(user, { locationPlantIdField: 'location' })
+          ]
+        }
+      } : {}),
       include: {
         dispenser: {
           select: { 
@@ -46,12 +63,15 @@ export async function GET(req: Request, props: { params: Promise<{ id: string }>
     });
 
     if (!ticket) {
-      return NextResponse.json({ error: 'Ticket no encontrado' }, { status: 404 });
+      await revalidateTag('tickets', 'default');
+    return NextResponse.json({ error: 'Ticket no encontrado' }, { status: 404 });
     }
 
+    await revalidateTag('tickets', 'default');
     return NextResponse.json(ticket);
   } catch (error) {
     console.error('[API] GET /api/tickets/[id] error:', error);
+    await revalidateTag('tickets', 'default');
     return NextResponse.json({ error: 'Error al obtener ticket' }, { status: 500 });
   }
 }
@@ -72,7 +92,8 @@ export async function PUT(req: Request, props: { params: Promise<{ id: string }>
       include: { reportedBy: { select: { id: true, onesignalPlayerId: true } } }
     });
     if (!ticket) {
-      return NextResponse.json({ error: 'Ticket no encontrado' }, { status: 404 });
+      await revalidateTag('tickets', 'default');
+    return NextResponse.json({ error: 'Ticket no encontrado' }, { status: 404 });
     }
 
     const updateData: any = {};
@@ -80,7 +101,8 @@ export async function PUT(req: Request, props: { params: Promise<{ id: string }>
     // Status change
     if (status && status !== ticket.status) {
       if (!Object.values(TicketStatus).includes(status)) {
-        return NextResponse.json({ error: 'Estado inválido' }, { status: 400 });
+        await revalidateTag('tickets', 'default');
+    return NextResponse.json({ error: 'Estado inválido' }, { status: 400 });
       }
 
       // Permission check for closing
@@ -216,9 +238,11 @@ export async function PUT(req: Request, props: { params: Promise<{ id: string }>
       );
     }
 
+    await revalidateTag('tickets', 'default');
     return NextResponse.json(updated);
   } catch (error) {
     console.error('[API] PUT /api/tickets/[id] error:', error);
+    await revalidateTag('tickets', 'default');
     return NextResponse.json({ error: 'Error al actualizar ticket' }, { status: 500 });
   }
 }

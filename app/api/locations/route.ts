@@ -1,8 +1,11 @@
+import { revalidateTag } from 'next/cache';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requirePermission } from '@/lib/auth';
 import { withIdempotency } from '@/lib/idempotency';
 import { createAuditLog } from '@/lib/audit';
+
+export const revalidate = 300; // 5 min
 
 // GET /api/locations
 export async function GET(req: Request) {
@@ -37,9 +40,11 @@ export async function GET(req: Request) {
       return a.nombre.localeCompare(b.nombre, undefined, { numeric: true });
     });
 
+    await revalidateTag('locations', 'default');
     return NextResponse.json(locations);
   } catch (error) {
     console.error('[API] GET /api/locations error:', error);
+    await revalidateTag('locations', 'default');
     return NextResponse.json({ error: 'Error al obtener ubicaciones' }, { status: 500 });
   }
 }
@@ -55,7 +60,8 @@ export async function POST(req: Request) {
       let { id, plantId, sectorId, nombre, piso, area, descripcion } = body;
 
       if (!plantId || !nombre?.trim()) {
-        return NextResponse.json(
+        await revalidateTag('locations', 'default');
+    return NextResponse.json(
           { error: 'plantId y nombre son requeridos' },
           { status: 400 }
         );
@@ -85,7 +91,8 @@ export async function POST(req: Request) {
       const existing = await prisma.location.findUnique({ where: { id: id.trim() } });
       if (existing) {
         // If auto-generated failed or manual collision
-        return NextResponse.json(
+        await revalidateTag('locations', 'default');
+    return NextResponse.json(
           { error: `Ya existe una ubicación con ID "${id}"` },
           { status: 409 }
         );
@@ -109,10 +116,12 @@ export async function POST(req: Request) {
         newValue: location,
       });
 
-      return NextResponse.json(location, { status: 201 });
+      await revalidateTag('locations', 'default');
+    return NextResponse.json(location, { status: 201 });
     } catch (error) {
       console.error('[API] POST /api/locations error:', error);
-      return NextResponse.json({ error: 'Error al crear ubicación' }, { status: 500 });
+      await revalidateTag('locations', 'default');
+    return NextResponse.json({ error: 'Error al crear ubicación' }, { status: 500 });
     }
   });
 }

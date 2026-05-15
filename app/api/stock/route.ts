@@ -1,8 +1,10 @@
+import { revalidateTag } from 'next/cache';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { requirePermission } from '@/lib/auth';
+import { requirePermission, getDataFilter } from '@/lib/auth';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 300; // 5 min
+
 
 // GET /api/stock
 export async function GET(req: Request) {
@@ -16,12 +18,11 @@ export async function GET(req: Request) {
     const itemType = searchParams.get('itemType');
     const lowStockOnly = searchParams.get('lowStockOnly') === 'true';
 
-    const where: any = {};
-    if (user.role !== 'ADMIN' && user.role !== 'SUPERVISOR' && user.role !== 'TECHNICIAN') {
-      where.clientId = user.clientId;
-    } else if (clientId) {
-      where.clientId = clientId;
-    }
+    const where: any = {
+      ...getDataFilter(user, {
+        plantIdField: 'plantId'
+      })
+    };
 
     if (plantId) where.plantId = plantId;
     if (itemType) where.itemType = itemType;
@@ -63,9 +64,11 @@ export async function GET(req: Request) {
       ? enriched.filter(e => e.cantidad < e.minLevel)
       : enriched;
 
+    await revalidateTag('stock', 'default');
     return NextResponse.json(result);
   } catch (error) {
     console.error('[API] GET /api/stock error:', error);
+    await revalidateTag('stock', 'default');
     return NextResponse.json({ error: 'Error al obtener stock' }, { status: 500 });
   }
 }
@@ -81,7 +84,8 @@ export async function POST(req: Request) {
     const { clientId, plantId, materialCode, cantidad, minLevel, maxLevel, unidad, uniqueId } = body;
 
     if (!clientId || !plantId || !materialCode) {
-      return NextResponse.json(
+      await revalidateTag('stock', 'default');
+    return NextResponse.json(
         { error: 'clientId, plantId y materialCode son requeridos' },
         { status: 400 }
       );
@@ -93,14 +97,16 @@ export async function POST(req: Request) {
     });
 
     if (!catalogItem) {
-      return NextResponse.json({ error: 'Código de material no encontrado en el catálogo estandarizado.' }, { status: 400 });
+      await revalidateTag('stock', 'default');
+    return NextResponse.json({ error: 'Código de material no encontrado en el catálogo estandarizado.' }, { status: 400 });
     }
 
     // If it's a serialized material, create the consumable record first
     if (catalogItem.requiresSerial && uniqueId) {
       const existing = await prisma.consumable.findUnique({ where: { uniqueId: uniqueId.trim() } });
       if (existing) {
-        return NextResponse.json({ error: 'Ese N° de Serie ya está registrado.' }, { status: 400 });
+        await revalidateTag('stock', 'default');
+    return NextResponse.json({ error: 'Ese N° de Serie ya está registrado.' }, { status: 400 });
       }
       await prisma.consumable.create({
         data: {
@@ -112,7 +118,8 @@ export async function POST(req: Request) {
         }
       });
     } else if (catalogItem.requiresSerial && !uniqueId) {
-      return NextResponse.json({ error: 'Este material requiere un número de serie.' }, { status: 400 });
+      await revalidateTag('stock', 'default');
+    return NextResponse.json({ error: 'Este material requiere un número de serie.' }, { status: 400 });
     }
 
     // For serialized, we always ADD 1. For bulk, we INCREMENT to avoid overwriting existing stock
@@ -147,9 +154,11 @@ export async function POST(req: Request) {
       },
     });
 
+    await revalidateTag('stock', 'default');
     return NextResponse.json(entry, { status: 201 });
   } catch (error: any) {
     console.error('[API] POST /api/stock error:', error?.message || error);
+    await revalidateTag('stock', 'default');
     return NextResponse.json({ error: 'Error al gestionar stock' }, { status: 500 });
   }
 }

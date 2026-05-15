@@ -231,3 +231,5 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: 'Error al calcular analíticas' }, { status: 500 });
   }
 }
+
+export const revalidate = 300; // 5 min

@@ -1,3 +1,4 @@
+import { revalidateTag } from 'next/cache';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requirePermission } from '@/lib/auth';
@@ -14,7 +15,8 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
     const { condicionGeneral, fallas, problemasEstructurales, observaciones, consumablesUsed } = body;
 
     if (!condicionGeneral) {
-      return NextResponse.json({ error: 'Condición general requerida' }, { status: 400 });
+      await revalidateTag('maintenance', 'default');
+    return NextResponse.json({ error: 'Condición general requerida' }, { status: 400 });
     }
 
     // Check if checklist already exists and get plant info
@@ -24,11 +26,13 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
     });
 
     if (!schedule) {
-      return NextResponse.json({ error: 'Mantenimiento no encontrado' }, { status: 404 });
+      await revalidateTag('maintenance', 'default');
+    return NextResponse.json({ error: 'Mantenimiento no encontrado' }, { status: 404 });
     }
 
     if (schedule.checklist) {
-      return NextResponse.json({ error: 'El checklist ya fue completado para este mantenimiento' }, { status: 400 });
+      await revalidateTag('maintenance', 'default');
+    return NextResponse.json({ error: 'El checklist ya fue completado para este mantenimiento' }, { status: 400 });
     }
 
     const plantId = schedule.dispenser?.location?.plantId;
@@ -138,11 +142,13 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
       return [newChecklist, newSchedule];
     });
 
+    await revalidateTag('maintenance', 'default');
     return NextResponse.json({ success: true, checklist, schedule: updatedSchedule });
   } catch (error: any) {
     console.error('[API] POST /api/maintenance/checklist error:', error);
     // Return the specific stock error if it was thrown intentionally
     const message = error.message.includes('Sin stock suficiente') ? error.message : 'Error al procesar el checklist';
+    await revalidateTag('maintenance', 'default');
     return NextResponse.json({ error: message }, { status: error.message.includes('stock') ? 400 : 500 });
   }
 }

@@ -1,10 +1,13 @@
+import { revalidateTag } from 'next/cache';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { requirePermission } from '@/lib/auth';
+import { requirePermission, getDataFilter } from '@/lib/auth';
 import { withIdempotency } from '@/lib/idempotency';
 import { createAuditLog } from '@/lib/audit';
 import fs from 'fs';
 import path from 'path';
+
+export const revalidate = 300; // 5 min
 
 function logToFile(msg: string) {
   console.log(`[API] ${msg}`);
@@ -27,7 +30,13 @@ export async function GET(req: Request) {
     const search = searchParams.get('search');
     logToFile(`GET /api/dispensers: status=${status}, search=${search}`);
 
-    const where: any = { active: true };
+    const where: any = { 
+      active: true,
+      ...getDataFilter(user, {
+        plantIdField: 'plantId', // Owned by his plants
+        locationPlantIdField: 'location', // Currently in his plants
+      })
+    };
     if (status) where.status = status;
     if (search) {
       where.OR = [
@@ -62,10 +71,12 @@ export async function GET(req: Request) {
 
     const duration = Date.now() - startTime;
     logToFile(`GET /api/dispensers: SUCCESS, found ${dispensers.length} dispensers in ${duration}ms`);
+    await revalidateTag('dispensers', 'default');
     return NextResponse.json({ dispensers, total });
   } catch (error: any) {
     logToFile(`GET /api/dispensers: ERROR: ${error.message}`);
     console.error('[API] GET /api/dispensers error:', error);
+    await revalidateTag('dispensers', 'default');
     return NextResponse.json({ error: 'Error al obtener dispensers' }, { status: 500 });
   }
 }
@@ -81,7 +92,8 @@ export async function POST(req: Request) {
       const { id, marca, modelo, lifecycleMonths, numeroSerie, fechaCompra, notas, initialConsumables, plantId } = body;
 
       if (!id?.trim() || !marca?.trim() || !modelo?.trim()) {
-        return NextResponse.json(
+        await revalidateTag('dispensers', 'default');
+    return NextResponse.json(
           { error: 'ID, marca y modelo son requeridos' },
           { status: 400 }
         );
@@ -90,7 +102,8 @@ export async function POST(req: Request) {
       // Check ID uniqueness
       const existing = await prisma.dispenser.findUnique({ where: { id: id.trim() } });
       if (existing) {
-        return NextResponse.json(
+        await revalidateTag('dispensers', 'default');
+    return NextResponse.json(
           { error: `Ya existe un dispenser con ID "${id}"` },
           { status: 409 }
         );
@@ -152,10 +165,12 @@ export async function POST(req: Request) {
         newValue: dispenser,
       });
 
-      return NextResponse.json(dispenser, { status: 201 });
+      await revalidateTag('dispensers', 'default');
+    return NextResponse.json(dispenser, { status: 201 });
     } catch (error) {
       console.error('[API] POST /api/dispensers error:', error);
-      return NextResponse.json({ error: 'Error al crear dispenser' }, { status: 500 });
+      await revalidateTag('dispensers', 'default');
+    return NextResponse.json({ error: 'Error al crear dispenser' }, { status: 500 });
     }
   });
 }

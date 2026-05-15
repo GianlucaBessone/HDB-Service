@@ -1,19 +1,22 @@
-import { type NextRequest } from 'next/server';
-import { updateSession } from '@/utils/supabase/middleware';
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
 
-export async function middleware(request: NextRequest) {
-  return await updateSession(request);
+/**
+ * Global middleware for the API.
+ * - Adds `Cache-Control` header to every GET request so the CDN (Vercel) caches the response
+ *   for 5 minutes (`s-maxage=300`) and serves stale content while revalidating (`stale-while-revalidate=60`).
+ * - The middleware runs only for paths under `/api/*`.
+ * - POST/PUT/DELETE routes should manually trigger a revalidation of the related tag
+ *   (e.g., `await revalidateTag('dispensers')`) after mutating data.
+ */
+export function middleware(request: NextRequest) {
+  const response = NextResponse.next();
+  if (request.method === 'GET') {
+    response.headers.set('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=60');
+  }
+  return response;
 }
 
 export const config = {
-  matcher: [
-    /*
-     * Match all request paths except for:
-     * - API routes: api/ (they handle their own auth via requirePermission)
-     * - Public routes: login, qr/
-     * - Next.js internal: _next/static, _next/image
-     * - Static assets: favicon.ico, icons, manifest.json, service workers, etc.
-     */
-    '/((?!login|_next/static|_next/image|favicon.ico|icons|manifest.json|OneSignalSDKWorker.js|sw.js|workbox-.*|offline.html).*)',
-  ],
+  matcher: ['/api/:path*'],
 };

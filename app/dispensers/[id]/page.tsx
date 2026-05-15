@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -15,6 +16,7 @@ import { exportDispenserToExcel } from '@/lib/exportExcel';
 import { t, getStatusColor } from '@/lib/translations';
 import ChecklistModal from '@/components/ChecklistModal';
 import CreateTicketModal from '@/components/CreateTicketModal';
+import { useAuthStore } from '@/lib/store/useAuthStore';
 
 const ALL_STATUSES = ['IN_SERVICE', 'UNDER_REPAIR', 'IN_TECHNICAL_SERVICE', 'BLOCKED', 'BLOCKED_WAITING_OC', 'OUT_OF_SERVICE', 'BACKUP'];
 
@@ -25,43 +27,33 @@ export default function DispenserDetailPage() {
   const router = useRouter();
   const dispenserId = params.id as string;
 
-  const [dispenser, setDispenser] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<Tab>('info');
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showChecklistModal, setShowChecklistModal] = useState(false);
   const [showTicketModal, setShowTicketModal] = useState(false);
-  const [currentSchedule, setCurrentSchedule] = useState<any>(null);
 
-  const fetchDispenser = async () => {
-    setIsLoading(true);
-    try {
+  const { data: dispenserData, isLoading, refetch: fetchDispenser } = useQuery({
+    queryKey: ['dispenser', dispenserId],
+    queryFn: async () => {
       const res = await fetch(`/api/dispensers/${dispenserId}`);
       if (!res.ok) throw new Error('Not found');
       const data = await res.json();
-      setDispenser(data);
 
       // Fetch current month maintenance schedule
       const month = new Date().toISOString().slice(0, 7);
       const maintRes = await fetch(`/api/maintenance?dispenserId=${dispenserId}&month=${month}`);
+      let currentSchedule = null;
       if (maintRes.ok) {
         const schedules = await maintRes.json();
-        if (schedules.length > 0) {
-          setCurrentSchedule(schedules[0]);
-        } else {
-          setCurrentSchedule(null);
-        }
+        if (schedules.length > 0) currentSchedule = schedules[0];
       }
-    } catch {
-      toast.error('Dispenser no encontrado');
-      router.push('/dispensers');
-    } finally {
-      setIsLoading(false);
+      return { dispenser: data, currentSchedule };
     }
-  };
+  });
 
-  useEffect(() => { fetchDispenser(); }, [dispenserId]);
+  const dispenser = dispenserData?.dispenser;
+  const currentSchedule = dispenserData?.currentSchedule;
 
   if (isLoading || !dispenser) {
     return (
@@ -754,10 +746,13 @@ function EditDispenserModal({
     modelo: dispenser.modelo || '',
     numeroSerie: dispenser.numeroSerie || '',
     lifecycleMonths: dispenser.lifecycleMonths || 60,
+    lifecycleStartDate: dispenser.lifecycleStartDate ? new Date(dispenser.lifecycleStartDate).toISOString().split('T')[0] : '',
     notas: dispenser.notas || '',
     locationId: dispenser.locationId || '',
     plantId: dispenser.plantId || '',
   });
+  
+  const { role } = useAuthStore();
   
   const [locations, setLocations] = useState<any[]>([]);
   const [plants, setPlants] = useState<any[]>([]);
@@ -786,6 +781,7 @@ function EditDispenserModal({
           modelo: form.modelo,
           numeroSerie: form.numeroSerie,
           lifecycleMonths: Number(form.lifecycleMonths),
+          lifecycleStartDate: form.lifecycleStartDate ? new Date(form.lifecycleStartDate).toISOString() : undefined,
           notas: form.notas,
           plantId: form.plantId || null,
         }),
@@ -877,6 +873,17 @@ function EditDispenserModal({
                 onChange={e => setForm({ ...form, lifecycleMonths: Number(e.target.value) })} 
               />
             </div>
+            {role === 'ADMIN' && (
+              <div>
+                <label className="text-sm font-semibold mb-1 block">Inicio Ciclo (Admin)</label>
+                <input 
+                  type="date" 
+                  className="input" 
+                  value={form.lifecycleStartDate} 
+                  onChange={e => setForm({ ...form, lifecycleStartDate: e.target.value })} 
+                />
+              </div>
+            )}
           </div>
 
           <div className="p-4 bg-primary/5 border border-primary/20 rounded-xl">

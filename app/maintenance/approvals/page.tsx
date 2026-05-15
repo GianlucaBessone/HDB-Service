@@ -1,12 +1,11 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Loader2, ShieldCheck, Calendar, FileSignature, MapPin, Search, Filter, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function MaintenanceApprovalsPage() {
-  const [approvals, setApprovals] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [plants, setPlants] = useState<any[]>([]);
 
   // Filters
@@ -15,9 +14,9 @@ export default function MaintenanceApprovalsPage() {
   const [filterEnd, setFilterEnd] = useState('');
   const [filterSearch, setFilterSearch] = useState('');
 
-  const fetchApprovals = useCallback(async () => {
-    setIsLoading(true);
-    try {
+  const { data: approvals = [], isLoading } = useQuery<any[]>({
+    queryKey: ['maintenance-approvals', filterPlant, filterStart, filterEnd, filterSearch],
+    queryFn: async () => {
       const params = new URLSearchParams();
       if (filterPlant) params.set('plantId', filterPlant);
       if (filterStart) params.set('startDate', filterStart);
@@ -27,13 +26,9 @@ export default function MaintenanceApprovalsPage() {
       const res = await fetch(`/api/maintenance/approvals?${params.toString()}`);
       const data = await res.json();
       if (data.error) throw new Error(data.error);
-      setApprovals(data);
-    } catch (err: any) {
-      toast.error(err.message || 'Error al cargar historial');
-    } finally {
-      setIsLoading(false);
+      return data;
     }
-  }, [filterPlant, filterStart, filterEnd, filterSearch]);
+  });
 
   useEffect(() => {
     fetch('/api/plants')
@@ -41,13 +36,6 @@ export default function MaintenanceApprovalsPage() {
       .then(setPlants)
       .catch(console.error);
   }, []);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      fetchApprovals();
-    }, 400);
-    return () => clearTimeout(timer);
-  }, [fetchApprovals]);
 
   return (
     <div className="space-y-6 animate-fade-in pb-20">

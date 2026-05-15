@@ -1,3 +1,4 @@
+import { revalidateTag } from 'next/cache';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requirePermission } from '@/lib/auth';
@@ -17,7 +18,8 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
     });
 
     if (!dispenser) {
-      return NextResponse.json({ error: 'Dispenser no encontrado' }, { status: 404 });
+      await revalidateTag('dispensers', 'default');
+    return NextResponse.json({ error: 'Dispenser no encontrado' }, { status: 404 });
     }
 
     const oldLocationId = dispenser.locationId;
@@ -54,9 +56,11 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
       });
     });
 
+    await revalidateTag('dispensers', 'default');
     return NextResponse.json({ success: true });
   } catch (error: any) {
     console.error('[API] POST /api/dispensers/set-repair error:', error);
+    await revalidateTag('dispensers', 'default');
     return NextResponse.json({ error: 'Error al actualizar dispenser' }, { status: 500 });
   }
 }

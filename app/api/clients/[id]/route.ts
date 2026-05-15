@@ -1,7 +1,10 @@
+import { revalidateTag } from 'next/cache';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requirePermission, canAccessClient } from '@/lib/auth';
 import { createAuditLog } from '@/lib/audit';
+
+export const revalidate = 300; // 5 min
 
 // GET /api/clients/[id]
 export async function GET(req: Request, props: { params: Promise<{ id: string }> }) {
@@ -27,16 +30,20 @@ export async function GET(req: Request, props: { params: Promise<{ id: string }>
     });
 
     if (!client) {
-      return NextResponse.json({ error: 'Cliente no encontrado' }, { status: 404 });
+      await revalidateTag('clients', 'default');
+    return NextResponse.json({ error: 'Cliente no encontrado' }, { status: 404 });
     }
 
     if (!canAccessClient(user, client.id)) {
-      return NextResponse.json({ error: 'Sin acceso a este cliente' }, { status: 403 });
+      await revalidateTag('clients', 'default');
+    return NextResponse.json({ error: 'Sin acceso a este cliente' }, { status: 403 });
     }
 
+    await revalidateTag('clients', 'default');
     return NextResponse.json(client);
   } catch (error) {
     console.error('[API] GET /api/clients/[id] error:', error);
+    await revalidateTag('clients', 'default');
     return NextResponse.json({ error: 'Error al obtener cliente' }, { status: 500 });
   }
 }
@@ -54,7 +61,8 @@ export async function PUT(req: Request, props: { params: Promise<{ id: string }>
 
     const existing = await prisma.client.findUnique({ where: { id: id } });
     if (!existing) {
-      return NextResponse.json({ error: 'Cliente no encontrado' }, { status: 404 });
+      await revalidateTag('clients', 'default');
+    return NextResponse.json({ error: 'Cliente no encontrado' }, { status: 404 });
     }
 
     const updated = await prisma.client.update({
@@ -78,9 +86,11 @@ export async function PUT(req: Request, props: { params: Promise<{ id: string }>
       newValue: updated,
     });
 
+    await revalidateTag('clients', 'default');
     return NextResponse.json(updated);
   } catch (error) {
     console.error('[API] PUT /api/clients/[id] error:', error);
+    await revalidateTag('clients', 'default');
     return NextResponse.json({ error: 'Error al actualizar cliente' }, { status: 500 });
   }
 }
@@ -106,9 +116,11 @@ export async function DELETE(req: Request, props: { params: Promise<{ id: string
       entityId: id,
     });
 
+    await revalidateTag('clients', 'default');
     return NextResponse.json(updated);
   } catch (error) {
     console.error('[API] DELETE /api/clients/[id] error:', error);
+    await revalidateTag('clients', 'default');
     return NextResponse.json({ error: 'Error al eliminar cliente' }, { status: 500 });
   }
 }

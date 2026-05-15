@@ -1,3 +1,4 @@
+import { revalidateTag } from 'next/cache';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireRole } from '@/lib/auth';
@@ -15,17 +16,16 @@ export async function PATCH(
 
   try {
     const { id } = await params;
+    const body = await request.json();
+    const { nombre, apellido, role, clientId, password, active, plantIds } = body;
     
     // Prevent self-deactivation
     if (id === auth.id) {
-      const body = await request.json();
-      if (body.active === false) {
-        return NextResponse.json({ error: 'No puedes desactivar tu propia cuenta' }, { status: 400 });
+      if (active === false) {
+        await revalidateTag('users', 'default');
+    return NextResponse.json({ error: 'No puedes desactivar tu propia cuenta' }, { status: 400 });
       }
     }
-
-    const body = await request.json();
-    const { nombre, apellido, role, clientId, password, active } = body;
 
     // 1. Get current user from Prisma
     const existingUser = await prisma.user.findUnique({
@@ -33,7 +33,8 @@ export async function PATCH(
     });
 
     if (!existingUser) {
-      return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 });
+      await revalidateTag('users', 'default');
+    return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 });
     }
 
     // 2. Update Prisma User
@@ -47,6 +48,17 @@ export async function PATCH(
 
     if (password) {
       updateData.passwordHash = await bcrypt.hash(password, 10);
+      updateData.mustChangePassword = true;
+    }
+
+    // Handle plant access sync
+    if (plantIds !== undefined) {
+      updateData.plantAccess = {
+        deleteMany: {},
+        create: (plantIds || []).map((plantId: string) => ({
+          plantId
+        }))
+      };
     }
 
     const user = await prisma.user.update({
@@ -79,9 +91,11 @@ export async function PATCH(
       await supabaseAdmin.auth.admin.updateUserById(supabaseUserId, supabaseUpdate);
     }
 
+    await revalidateTag('users', 'default');
     return NextResponse.json(user);
   } catch (error) {
     console.error('Error updating user:', error);
+    await revalidateTag('users', 'default');
     return NextResponse.json({ error: 'Error al actualizar usuario' }, { status: 500 });
   }
 }
@@ -98,7 +112,8 @@ export async function DELETE(
 
     // Prevent self-deletion
     if (id === auth.id) {
-      return NextResponse.json({ error: 'No puedes eliminar tu propia cuenta' }, { status: 400 });
+      await revalidateTag('users', 'default');
+    return NextResponse.json({ error: 'No puedes eliminar tu propia cuenta' }, { status: 400 });
     }
 
     const existingUser = await prisma.user.findUnique({
@@ -125,9 +140,11 @@ export async function DELETE(
       where: { id }
     });
 
+    await revalidateTag('users', 'default');
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error deleting user:', error);
+    await revalidateTag('users', 'default');
     return NextResponse.json({ error: 'Error al eliminar usuario' }, { status: 500 });
   }
 }

@@ -1,4 +1,6 @@
 import { Metadata } from 'next';
+import { PrefetchProvider } from "@/providers/PrefetchProvider";
+import { ReactQueryProvider } from "@/providers/ReactQueryProvider";
 import { Inter } from 'next/font/google';
 import './globals.css';
 import { getSession } from '@/lib/auth';
@@ -34,6 +36,8 @@ export const viewport = {
   userScalable: false,
 };
 
+import ForcePasswordChangeModal from '@/components/ForcePasswordChangeModal';
+
 export default async function RootLayout({
   children,
 }: {
@@ -44,11 +48,14 @@ export default async function RootLayout({
   const pathname = headersList.get('x-pathname') || '';
 
   const showSidebar = session && !pathname.startsWith('/login');
+  const mustChangePassword = session?.user.mustChangePassword && !pathname.startsWith('/login');
 
   return (
     <html lang="es" suppressHydrationWarning>
       <body className={`${inter.className} min-h-screen bg-background`} suppressHydrationWarning>
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+        <PrefetchProvider>
+          <ReactQueryProvider>
+            <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           {showSidebar ? (
             <div className="flex h-screen overflow-hidden">
               <Sidebar userRole={session!.user.role} />
@@ -59,16 +66,20 @@ export default async function RootLayout({
                 </main>
               </div>
               {session!.user.role !== 'CLIENT_REQUESTER' && <OneSignalInit user={session!.user} />}
+              {mustChangePassword && <ForcePasswordChangeModal />}
             </div>
           ) : (
             <main className="h-screen flex items-center justify-center">
               {children}
+              {mustChangePassword && <ForcePasswordChangeModal />}
             </main>
           )}
-          <Toaster position="bottom-right" />
-          <Analytics />
-        </ThemeProvider>
-      </body>
+            <Toaster position="bottom-right" />
+            <Analytics />
+          </ThemeProvider>
+        </ReactQueryProvider>
+      </PrefetchProvider>
+    </body>
     </html>
   );
 }

@@ -1,10 +1,10 @@
+import { revalidateTag } from 'next/cache';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requirePermission } from '@/lib/auth';
 import { createAuditLog } from '@/lib/audit';
 import { notifyByRole } from '@/lib/onesignal';
 
-export const dynamic = 'force-dynamic';
 
 /**
  * POST /api/stock/[id]/adjust
@@ -22,11 +22,13 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
     const { action, justificacion, newCantidad } = body;
 
     if (!justificacion?.trim()) {
-      return NextResponse.json({ error: 'La justificación es obligatoria' }, { status: 400 });
+      await revalidateTag('stock', 'default');
+    return NextResponse.json({ error: 'La justificación es obligatoria' }, { status: 400 });
     }
 
     if (!action || !['DELETE', 'ADJUST_QTY'].includes(action)) {
-      return NextResponse.json({ error: 'Acción inválida' }, { status: 400 });
+      await revalidateTag('stock', 'default');
+    return NextResponse.json({ error: 'Acción inválida' }, { status: 400 });
     }
 
     // Get current entry
@@ -36,7 +38,8 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
     });
 
     if (!entry) {
-      return NextResponse.json({ error: 'Registro de stock no encontrado' }, { status: 404 });
+      await revalidateTag('stock', 'default');
+    return NextResponse.json({ error: 'Registro de stock no encontrado' }, { status: 404 });
     }
 
     const oldState = {
@@ -70,7 +73,8 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
     } else if (action === 'ADJUST_QTY') {
       const qty = parseFloat(newCantidad);
       if (isNaN(qty) || qty < 0) {
-        return NextResponse.json({ error: 'Cantidad inválida' }, { status: 400 });
+        await revalidateTag('stock', 'default');
+    return NextResponse.json({ error: 'Cantidad inválida' }, { status: 400 });
       }
 
       const updated = await prisma.stockEntry.update({
@@ -119,10 +123,12 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
     }
 
     console.log(`[API] Stock adjustment: ${auditAction} by ${user.email} on ${entry.materialCode}`);
+    await revalidateTag('stock', 'default');
     return NextResponse.json({ success: true, action: auditAction, oldState, newState });
 
   } catch (error: any) {
     console.error('[API] POST /api/stock/adjust error:', error?.message || error);
+    await revalidateTag('stock', 'default');
     return NextResponse.json({ error: 'Error al ajustar inventario' }, { status: 500 });
   }
 }

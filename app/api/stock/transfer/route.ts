@@ -1,7 +1,10 @@
+import { revalidateTag } from 'next/cache';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requirePermission } from '@/lib/auth';
 import { createAuditLog } from '@/lib/audit';
+
+export const revalidate = 300; // 5 min
 
 // GET /api/stock/transfer — List transfers
 export async function GET(req: Request) {
@@ -13,8 +16,29 @@ export async function GET(req: Request) {
     const plantId = searchParams.get('plantId');
 
     const where: any = {};
+    if (user.role === 'CLIENT_REQUESTER') {
+      where.OR = [
+        { fromPlantId: { in: user.plantIds } },
+        { toPlantId: { in: user.plantIds } }
+      ];
+    } else if (user.role === 'CLIENT_RESPONSIBLE' && user.clientId) {
+      where.OR = [
+        { fromPlant: { clientId: user.clientId } },
+        { toPlant: { clientId: user.clientId } }
+      ];
+    }
+
     if (plantId) {
-      where.OR = [{ fromPlantId: plantId }, { toPlantId: plantId }];
+      // Further filter if a specific plant was requested
+      if (where.OR) {
+         where.AND = [
+           { OR: where.OR },
+           { OR: [{ fromPlantId: plantId }, { toPlantId: plantId }] }
+         ];
+         delete where.OR;
+      } else {
+        where.OR = [{ fromPlantId: plantId }, { toPlantId: plantId }];
+      }
     }
 
     const transfers = await prisma.stockTransfer.findMany({
@@ -27,9 +51,11 @@ export async function GET(req: Request) {
       orderBy: { createdAt: 'desc' },
     });
 
+    await revalidateTag('stock', 'default');
     return NextResponse.json(transfers);
   } catch (error) {
     console.error('[API] GET /api/stock/transfer error:', error);
+    await revalidateTag('stock', 'default');
     return NextResponse.json({ error: 'Error al obtener transferencias' }, { status: 500 });
   }
 }
@@ -44,15 +70,18 @@ export async function POST(req: Request) {
     const { fromPlantId, toPlantId, itemType, materialCode, nombre, cantidad } = body;
 
     if (!fromPlantId || !toPlantId || !itemType || !materialCode || !cantidad) {
-      return NextResponse.json({ error: 'Faltan campos requeridos' }, { status: 400 });
+      await revalidateTag('stock', 'default');
+    return NextResponse.json({ error: 'Faltan campos requeridos' }, { status: 400 });
     }
 
     if (cantidad <= 0) {
-      return NextResponse.json({ error: 'La cantidad debe ser mayor a 0' }, { status: 400 });
+      await revalidateTag('stock', 'default');
+    return NextResponse.json({ error: 'La cantidad debe ser mayor a 0' }, { status: 400 });
     }
 
     if (fromPlantId === toPlantId) {
-      return NextResponse.json({ error: 'No se puede transferir a la misma planta' }, { status: 400 });
+      await revalidateTag('stock', 'default');
+    return NextResponse.json({ error: 'No se puede transferir a la misma planta' }, { status: 400 });
     }
 
     // Verify source stock
@@ -61,7 +90,8 @@ export async function POST(req: Request) {
     });
 
     if (!sourceStock || sourceStock.cantidad < cantidad) {
-      return NextResponse.json({ error: 'Stock insuficiente en la planta origen' }, { status: 400 });
+      await revalidateTag('stock', 'default');
+    return NextResponse.json({ error: 'Stock insuficiente en la planta origen' }, { status: 400 });
     }
 
     // Get target plant details to ensure we know the client
@@ -71,7 +101,8 @@ export async function POST(req: Request) {
     });
 
     if (!targetPlant) {
-      return NextResponse.json({ error: 'Planta destino no encontrada' }, { status: 404 });
+      await revalidateTag('stock', 'default');
+    return NextResponse.json({ error: 'Planta destino no encontrada' }, { status: 404 });
     }
 
     const transfer = await prisma.$transaction(async (tx) => {
@@ -120,9 +151,11 @@ export async function POST(req: Request) {
       newValue: transfer,
     });
 
+    await revalidateTag('stock', 'default');
     return NextResponse.json(transfer, { status: 201 });
   } catch (error) {
     console.error('[API] POST /api/stock/transfer error:', error);
+    await revalidateTag('stock', 'default');
     return NextResponse.json({ error: 'Error al procesar transferencia' }, { status: 500 });
   }
 }

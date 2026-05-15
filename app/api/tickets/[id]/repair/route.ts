@@ -1,3 +1,4 @@
+import { revalidateTag } from 'next/cache';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requirePermission } from '@/lib/auth';
@@ -14,7 +15,8 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
     const { descripcion, diagnostico, consumablesUsed } = body;
 
     if (!descripcion) {
-      return NextResponse.json({ error: 'La descripción es obligatoria' }, { status: 400 });
+      await revalidateTag('tickets', 'default');
+    return NextResponse.json({ error: 'La descripción es obligatoria' }, { status: 400 });
     }
 
     const ticket = await prisma.ticket.findUnique({
@@ -23,11 +25,13 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
     });
 
     if (!ticket) {
-      return NextResponse.json({ error: 'Ticket no encontrado' }, { status: 404 });
+      await revalidateTag('tickets', 'default');
+    return NextResponse.json({ error: 'Ticket no encontrado' }, { status: 404 });
     }
 
     if (!ticket.dispenserId) {
-      return NextResponse.json({ error: 'El ticket no tiene un dispenser asociado' }, { status: 400 });
+      await revalidateTag('tickets', 'default');
+    return NextResponse.json({ error: 'El ticket no tiene un dispenser asociado' }, { status: 400 });
     }
 
     const plantId = ticket.dispenser?.location?.plantId;
@@ -156,9 +160,11 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
       });
     });
 
+    await revalidateTag('tickets', 'default');
     return NextResponse.json({ success: true });
   } catch (error: any) {
     console.error('[API] POST /api/tickets/repair error:', error);
+    await revalidateTag('tickets', 'default');
     return NextResponse.json({ error: error.message || 'Error al procesar reparación' }, { status: 500 });
   }
 }

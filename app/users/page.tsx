@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { 
   Users, 
   UserPlus, 
@@ -35,8 +36,6 @@ interface User {
 }
 
 export default function UsersPage() {
-  const [users, setUsers] = useState<User[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -45,26 +44,14 @@ export default function UsersPage() {
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  useEffect(() => {
-    fetchUsers();
-  }, []);
-
-  async function fetchUsers() {
-    setIsLoading(true);
-    try {
+  const { data: users = [], isLoading, refetch: fetchUsers } = useQuery<User[]>({
+    queryKey: ['users'],
+    queryFn: async () => {
       const res = await fetch('/api/users');
-      if (res.ok) {
-        const data = await res.json();
-        setUsers(data);
-      } else {
-        toast.error('Error al cargar usuarios');
-      }
-    } catch (error) {
-      toast.error('Error de conexión');
-    } finally {
-      setIsLoading(false);
+      if (!res.ok) throw new Error('Failed to fetch users');
+      return res.json();
     }
-  }
+  });
 
   const handleDeleteUser = async () => {
     if (!confirmDelete) return;

@@ -3,6 +3,8 @@ import { prisma } from '@/lib/prisma';
 import { getSlaStatus } from '@/lib/sla';
 import { sendPushNotification } from '@/lib/onesignal';
 
+export const revalidate = 300; // 5 min
+
 // Vercel Cron Secret check (optional, but good practice)
 // If VERCEL_CRON_SECRET is set, ensure it's provided in headers
 

@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { startOfMonth, subMonths, format } from 'date-fns';
 
+export const revalidate = 300; // 5 min
+
 export async function GET(req: Request) {
   try {
     // Vercel Cron Verification (Optional depending on your auth strategy)

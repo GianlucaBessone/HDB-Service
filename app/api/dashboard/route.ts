@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { requirePermission } from '@/lib/auth';
+import { requirePermission, getDataFilter } from '@/lib/auth';
 import { calculateSlaCompliance } from '@/lib/sla';
 
 // GET /api/dashboard
@@ -12,27 +12,35 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const plantId = searchParams.get('plantId');
 
-    const whereTickets: any = {};
-    const whereDispensers: any = { active: true };
-    const whereStock: any = {};
+    const whereTickets: any = getDataFilter(user, {
+      locationPlantIdField: 'location',
+      plantIdField: undefined // Ticket has no direct plantId
+    });
+    const whereDispensers: any = { 
+      active: true,
+      ...getDataFilter(user, {
+        plantIdField: 'plantId', // Owned by
+        locationPlantIdField: 'location', // Located in
+      })
+    };
+    const whereStock: any = {
+      ...getDataFilter(user, {
+        plantIdField: 'plantId'
+      })
+    };
 
     if (plantId) {
-      whereTickets.location = { plantId };
-      whereDispensers.location = { plantId };
+      whereTickets.location = { ...whereTickets.location, plantId };
+      whereDispensers.location = { ...whereDispensers.location, plantId };
       whereStock.plantId = plantId;
     }
 
-    // Role scoping
-    if (user.role === 'CLIENT_RESPONSIBLE' && user.clientId) {
-      whereTickets.location = { plant: { clientId: user.clientId } };
-      whereDispensers.location = { plant: { clientId: user.clientId } };
-      whereStock.plant = { clientId: user.clientId };
-    } else if (user.role === 'CLIENT_REQUESTER' && user.clientId) {
-      const access = await prisma.userPlantAccess.findMany({ where: { userId: user.id }, select: { plantId: true } });
-      const pIds = access.map(a => a.plantId);
-      whereTickets.location = { plantId: { in: pIds } };
-      whereDispensers.location = { plantId: { in: pIds } };
-      whereStock.plantId = { in: pIds };
+    if (user.role === 'CLIENT_REQUESTER') {
+      // Requesters also see their own reported tickets regardless of plant
+      whereTickets.OR = [
+        ...(whereTickets.OR || [whereTickets]),
+        { reportedById: user.id }
+      ];
     } else if (user.role === 'TECHNICIAN') {
       whereTickets.assignedToId = user.id;
     }
@@ -82,7 +90,7 @@ export async function GET(req: Request) {
     const maintOverdue = maintenanceStats.find(s => s.status === 'OVERDUE')?._count || 0;
 
     return NextResponse.json({
-      user: { nombre: user.nombre },
+      user: { nombre: user.nombre, role: user.role },
       tickets: { open: openTickets, total: tickets.length, slaCompliance },
       dispensers: { total: totalDispensers, inService: inServiceDispensers, repair: repairDispensers, blocked: blockedDispensers },
       stock: { lowAlerts: realLowStockCount },
@@ -94,3 +102,5 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: 'Error al obtener datos del dashboard' }, { status: 500 });
   }
 }
+
+export const revalidate = 300; // 5 min

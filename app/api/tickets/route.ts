@@ -1,10 +1,13 @@
+import { revalidateTag } from 'next/cache';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { requirePermission } from '@/lib/auth';
+import { requirePermission, getDataFilter } from '@/lib/auth';
 import { withIdempotency } from '@/lib/idempotency';
 import { createAuditLog } from '@/lib/audit';
 import { calculateSlaDeadlines } from '@/lib/sla';
 import { sendPushNotification } from '@/lib/onesignal';
+
+export const revalidate = 300; // 5 min
 
 // GET /api/tickets — List tickets with filters
 export async function GET(req: Request) {
@@ -21,7 +24,10 @@ export async function GET(req: Request) {
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '50');
 
-    const where: any = {};
+    const where: any = getDataFilter(user, {
+      locationPlantIdField: 'location',
+      plantIdField: undefined // Ticket has no direct plantId
+    });
 
     if (status) where.status = status;
     if (priority) where.priority = priority;
@@ -37,16 +43,12 @@ export async function GET(req: Request) {
       where.status = { not: 'CLOSED' };
     }
 
-    // Client users scope
-    if (user.role === 'CLIENT_RESPONSIBLE' && user.clientId) {
-      where.location = { plant: { clientId: user.clientId } };
-    } else if (user.role === 'CLIENT_REQUESTER' && user.clientId) {
-      // Get accessible plant IDs
-      const plantAccess = await prisma.userPlantAccess.findMany({
-        where: { userId: user.id },
-        select: { plantId: true },
-      });
-      where.location = { plantId: { in: plantAccess.map(p => p.plantId) } };
+    if (user.role === 'CLIENT_REQUESTER') {
+      // Requesters see their plants + their own reported tickets
+      where.OR = [
+        ...(where.OR || [where]),
+        { reportedById: user.id }
+      ];
     }
 
     // Technician sees only their assigned tickets
@@ -75,9 +77,11 @@ export async function GET(req: Request) {
       prisma.ticket.count({ where }),
     ]);
 
+    await revalidateTag('tickets', 'default');
     return NextResponse.json({ tickets, total, page, limit });
   } catch (error) {
     console.error('[API] GET /api/tickets error:', error);
+    await revalidateTag('tickets', 'default');
     return NextResponse.json({ error: 'Error al obtener tickets' }, { status: 500 });
   }
 }
@@ -90,10 +94,11 @@ export async function POST(req: Request) {
   return withIdempotency(req, async () => {
     try {
       const body = await req.json();
-      const { dispenserId, locationId, reason, description, priority } = body;
+      const { dispenserId, locationId, reason, description, priority, wantsPushNotifications, wantsEmailNotifications } = body;
 
       if (!reason?.trim()) {
-        return NextResponse.json({ error: 'El motivo es requerido' }, { status: 400 });
+        await revalidateTag('tickets', 'default');
+    return NextResponse.json({ error: 'El motivo es requerido' }, { status: 400 });
       }
 
       // Resolve location from dispenser if not provided
@@ -130,6 +135,8 @@ export async function POST(req: Request) {
           priority: ticketPriority,
           slaResponseDeadline: deadlines.responseDeadline,
           slaResolutionDeadline: deadlines.resolutionDeadline,
+          wantsPushNotifications: !!wantsPushNotifications,
+          wantsEmailNotifications: !!wantsEmailNotifications,
         },
         include: {
           dispenser: { select: { id: true, marca: true, modelo: true } },
@@ -194,10 +201,12 @@ export async function POST(req: Request) {
         newValue: { priority: ticketPriority, reason },
       });
 
-      return NextResponse.json(ticket, { status: 201 });
+      await revalidateTag('tickets', 'default');
+    return NextResponse.json(ticket, { status: 201 });
     } catch (error) {
       console.error('[API] POST /api/tickets error:', error);
-      return NextResponse.json({ error: 'Error al crear ticket' }, { status: 500 });
+      await revalidateTag('tickets', 'default');
+    return NextResponse.json({ error: 'Error al crear ticket' }, { status: 500 });
     }
   });
 }

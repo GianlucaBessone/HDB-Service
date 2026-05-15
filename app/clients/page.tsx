@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useMemo } from 'react';
 import {
   Settings, Building2, MapPin, Layers, Plus, ChevronRight,
   ChevronDown, X, Loader2, Edit2, Trash2, GlassWater,
-  Download, FileSpreadsheet
+  Download, FileSpreadsheet, Mail, Save, HelpCircle
 } from 'lucide-react';
 import clsx from 'clsx';
 import toast from 'react-hot-toast';
@@ -22,9 +22,7 @@ type Location = {
   dispensers: { id: string; marca: string; modelo: string; status: string }[];
 };
 
-type ActiveSection = 'clients' | 'plants' | 'sectors' | 'locations';
-
-
+type ActiveSection = 'clients' | 'plants' | 'sectors' | 'locations' | 'emails';
 
 export default function ConfigPage() {
   const [section, setSection] = useState<ActiveSection>('plants');
@@ -43,6 +41,7 @@ export default function ConfigPage() {
     { key: 'plants', label: 'Plantas', icon: Building2 },
     { key: 'sectors', label: 'Sectores', icon: Layers },
     { key: 'locations', label: 'Ubicaciones', icon: MapPin },
+    { key: 'emails', label: 'Emails', icon: Mail },
   ];
 
   return (
@@ -54,7 +53,7 @@ export default function ConfigPage() {
           </div>
           Configuración
         </h1>
-        <p className="text-muted-foreground mt-1">Gestión de clientes, plantas, sectores y ubicaciones</p>
+        <p className="text-muted-foreground mt-1">Gestión de clientes, plantas, sectores, ubicaciones y plantillas</p>
       </div>
 
       {/* Section Tabs */}
@@ -78,6 +77,158 @@ export default function ConfigPage() {
       {section === 'plants' && <PlantsSection />}
       {section === 'sectors' && <SectorsSection />}
       {section === 'locations' && <LocationsSection />}
+      {section === 'emails' && <EmailsSection />}
+    </div>
+  );
+}
+
+// ... (ClientsSection, PlantsSection, SectorsSection, LocationsSection remain unchanged)
+
+// ─── Emails Section ─────────────────────────────────
+function EmailsSection() {
+  const [templates, setTemplates] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [editingTemplate, setEditingTemplate] = useState<any>(null);
+
+  useEffect(() => {
+    fetch('/api/email-templates')
+      .then(res => res.json())
+      .then(data => {
+        setTemplates(data);
+        setIsLoading(false);
+      })
+      .catch(() => setIsLoading(false));
+  }, []);
+
+  const handleSave = async (data: any) => {
+    const res = await fetch(`/api/email-templates/${editingTemplate.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) throw new Error('Error al guardar');
+    toast.success('Plantilla actualizada');
+    setTemplates(prev => prev.map(t => t.id === editingTemplate.id ? { ...t, ...data } : t));
+    setEditingTemplate(null);
+  };
+
+  const templateTypes = {
+    WELCOME_TEMP_PASSWORD: { label: 'Bienvenida (Clave Temporal)', help: 'Se envía al crear un nuevo usuario. Variables: {nombre}, {email}, {password}' },
+    TICKET_CREATED: { label: 'Ticket Creado', help: 'Notificación de nuevo ticket. Variables: {id}, {reason}, {reporter}' },
+    TICKET_ASSIGNED: { label: 'Ticket Asignado', help: 'Notificación al técnico asignado. Variables: {id}, {reason}, {assignee}' },
+  };
+
+  return (
+    <div className="space-y-4">
+      {isLoading ? <LoadingSkeleton /> : templates.length === 0 ? (
+        <div className="glass-card p-12 text-center">
+          <Mail className="w-16 h-16 text-muted-foreground/20 mx-auto mb-4" />
+          <p className="text-muted-foreground">No hay plantillas configuradas</p>
+          <button 
+            onClick={async () => {
+              // Initialize default templates
+              for (const type of Object.keys(templateTypes)) {
+                await fetch('/api/email-templates', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    type,
+                    subject: `Notificación: ${type}`,
+                    body: 'Cuerpo de correo predeterminado'
+                  })
+                });
+              }
+              window.location.reload();
+            }}
+            className="btn-primary mt-4"
+          >
+            Inicializar Plantillas Base
+          </button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {templates.map(t => (
+            <div key={t.id} className="glass-card p-6 flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="badge-primary text-[10px] uppercase tracking-wider">
+                    {(templateTypes as any)[t.type]?.label || t.type}
+                  </span>
+                  <button 
+                    onClick={() => setEditingTemplate(t)}
+                    className="p-2 hover:bg-primary/10 text-primary rounded-md transition-colors"
+                  >
+                    <Edit2 className="w-4 h-4" />
+                  </button>
+                </div>
+                <h3 className="font-bold text-lg mb-1">{t.subject}</h3>
+                <p className="text-sm text-muted-foreground line-clamp-3 font-mono bg-muted/30 p-3 rounded-lg border border-border">
+                  {t.body}
+                </p>
+              </div>
+              <div className="mt-4 pt-4 border-t border-border flex items-center justify-between text-[11px] text-muted-foreground italic">
+                <div className="flex items-center gap-1.5">
+                  <HelpCircle className="w-3 h-3" />
+                  {(templateTypes as any)[t.type]?.help}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {editingTemplate && (
+        <div className="modal-overlay" onClick={() => setEditingTemplate(null)}>
+          <div className="modal-content max-w-2xl" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2 className="text-lg font-semibold">Editar Plantilla: {(templateTypes as any)[editingTemplate.type]?.label}</h2>
+              <button onClick={() => setEditingTemplate(null)} className="btn-ghost btn-icon"><X className="w-5 h-5" /></button>
+            </div>
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              const formData = new FormData(e.currentTarget);
+              handleSave({
+                subject: formData.get('subject'),
+                body: formData.get('body'),
+              });
+            }}>
+              <div className="modal-body space-y-4">
+                <div className="space-y-1.5">
+                  <label className="label">Asunto del Email</label>
+                  <input
+                    name="subject"
+                    defaultValue={editingTemplate.subject}
+                    className="input"
+                    required
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="label">Cuerpo del Email (HTML permitido)</label>
+                  <textarea
+                    name="body"
+                    defaultValue={editingTemplate.body}
+                    className="input min-h-[300px] font-mono text-sm leading-relaxed"
+                    required
+                  />
+                </div>
+                <div className="p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+                  <p className="text-xs text-amber-800 dark:text-amber-300 flex items-center gap-2">
+                    <HelpCircle className="w-3.5 h-3.5" />
+                    Atención: Puedes usar las variables entre llaves para que el sistema las reemplace automáticamente.
+                  </p>
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button type="button" onClick={() => setEditingTemplate(null)} className="btn-outline">Cancelar</button>
+                <button type="submit" className="btn-primary gap-2">
+                  <Save className="w-4 h-4" />
+                  Guardar Cambios
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { requirePermission } from '@/lib/auth';
+import { requirePermission, getDataFilter } from '@/lib/auth';
+
+export const revalidate = 300; // 5 min
 
 // GET /api/maintenance
 export async function GET(req: Request) {
@@ -13,20 +15,14 @@ export async function GET(req: Request) {
     const plantId = searchParams.get('plantId');
     const status = searchParams.get('status');
 
-    const where: any = {};
+    const where: any = {
+      ...getDataFilter(user, {
+        locationPlantIdField: 'dispenser.location',
+      })
+    };
     if (month) where.scheduledMonth = month;
     if (status) where.status = status;
-    if (plantId) where.dispenser = { location: { plantId } };
-
-    // Client scope
-    if (user.role === 'CLIENT_RESPONSIBLE' && user.clientId) {
-      where.dispenser = { location: { plant: { clientId: user.clientId } } };
-    } else if (user.role === 'CLIENT_REQUESTER' && user.clientId) {
-      const access = await prisma.userPlantAccess.findMany({
-        where: { userId: user.id }, select: { plantId: true },
-      });
-      where.dispenser = { location: { plantId: { in: access.map(a => a.plantId) } } };
-    }
+    if (plantId) where.dispenser = { ...where.dispenser, location: { plantId } };
 
     const schedules = await prisma.maintenanceSchedule.findMany({
       where,

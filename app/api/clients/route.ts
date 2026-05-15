@@ -1,8 +1,11 @@
+import { revalidateTag } from 'next/cache';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requirePermission } from '@/lib/auth';
 import { withIdempotency } from '@/lib/idempotency';
 import { createAuditLog } from '@/lib/audit';
+
+export const revalidate = 300; // 5 min
 
 // GET /api/clients — List all clients
 export async function GET() {
@@ -14,7 +17,7 @@ export async function GET() {
 
     // Client users can only see their own client
     if (user.role === 'CLIENT_RESPONSIBLE' || user.role === 'CLIENT_REQUESTER') {
-      if (!user.clientId) return NextResponse.json([]);
+      if (!user.clientId) { return NextResponse.json([]); }
       where.id = user.clientId;
     }
 
@@ -26,9 +29,11 @@ export async function GET() {
       orderBy: { nombre: 'asc' },
     });
 
+    await revalidateTag('clients', 'default');
     return NextResponse.json(clients);
   } catch (error) {
     console.error('[API] GET /api/clients error:', error);
+    await revalidateTag('clients', 'default');
     return NextResponse.json({ error: 'Error al obtener clientes' }, { status: 500 });
   }
 }
@@ -44,7 +49,8 @@ export async function POST(req: Request) {
       const { nombre, email, telefono, direccion } = body;
 
       if (!nombre?.trim()) {
-        return NextResponse.json({ error: 'El nombre es requerido' }, { status: 400 });
+        await revalidateTag('clients', 'default');
+    return NextResponse.json({ error: 'El nombre es requerido' }, { status: 400 });
       }
 
       const client = await prisma.client.create({
@@ -65,10 +71,12 @@ export async function POST(req: Request) {
         newValue: client,
       });
 
-      return NextResponse.json(client, { status: 201 });
+      await revalidateTag('clients', 'default');
+    return NextResponse.json(client, { status: 201 });
     } catch (error) {
       console.error('[API] POST /api/clients error:', error);
-      return NextResponse.json({ error: 'Error al crear cliente' }, { status: 500 });
+      await revalidateTag('clients', 'default');
+    return NextResponse.json({ error: 'Error al crear cliente' }, { status: 500 });
     }
   });
 }

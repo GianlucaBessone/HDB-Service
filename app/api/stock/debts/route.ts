@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requirePermission } from '@/lib/auth';
 
+export const revalidate = 300; // 5 min
+
 // GET /api/stock/debts
 export async function GET(req: Request) {
   const user = await requirePermission('stock:read');
@@ -14,11 +16,31 @@ export async function GET(req: Request) {
 
     const where: any = { status };
 
-    if (plantId) {
+    if (user.role === 'CLIENT_REQUESTER') {
       where.OR = [
-        { creditorPlantId: plantId },
-        { debtorPlantId: plantId },
+        { creditorPlantId: { in: user.plantIds } },
+        { debtorPlantId: { in: user.plantIds } }
       ];
+    } else if (user.role === 'CLIENT_RESPONSIBLE' && user.clientId) {
+      where.OR = [
+        { creditorPlant: { clientId: user.clientId } },
+        { debtorPlant: { clientId: user.clientId } }
+      ];
+    }
+
+    if (plantId) {
+      if (where.OR) {
+        where.AND = [
+          { OR: where.OR },
+          { OR: [{ creditorPlantId: plantId }, { debtorPlantId: plantId }] }
+        ];
+        delete where.OR;
+      } else {
+        where.OR = [
+          { creditorPlantId: plantId },
+          { debtorPlantId: plantId },
+        ];
+      }
     }
 
     const debts = await prisma.interPlantDebt.findMany({

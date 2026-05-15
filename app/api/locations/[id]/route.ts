@@ -1,3 +1,4 @@
+import { revalidateTag } from 'next/cache';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requirePermission } from '@/lib/auth';
@@ -15,7 +16,7 @@ export async function PUT(req: Request, props: { params: Promise<{ id: string }>
     const { nombre, plantId, sectorId, piso, area, descripcion, active } = body;
 
     const existing = await prisma.location.findUnique({ where: { id } });
-    if (!existing) return NextResponse.json({ error: 'Ubicación no encontrada' }, { status: 404 });
+    if (!existing) { return NextResponse.json({ error: 'Ubicación no encontrada' }, { status: 404 }); }
 
     const updated = await prisma.location.update({
       where: { id },
@@ -36,9 +37,11 @@ export async function PUT(req: Request, props: { params: Promise<{ id: string }>
       oldValue: existing, newValue: updated,
     });
 
+    await revalidateTag('locations', 'default');
     return NextResponse.json(updated);
   } catch (error) {
     console.error('[API] PUT /api/locations/[id] error:', error);
+    await revalidateTag('locations', 'default');
     return NextResponse.json({ error: 'Error al actualizar ubicación' }, { status: 500 });
   }
 }
@@ -61,9 +64,11 @@ export async function DELETE(req: Request, props: { params: Promise<{ id: string
       action: 'DELETE', entity: 'LOCATION', entityId: id,
     });
 
+    await revalidateTag('locations', 'default');
     return NextResponse.json(updated);
   } catch (error) {
     console.error('[API] DELETE /api/locations/[id] error:', error);
+    await revalidateTag('locations', 'default');
     return NextResponse.json({ error: 'Error al eliminar ubicación' }, { status: 500 });
   }
 }

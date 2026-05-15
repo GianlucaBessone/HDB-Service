@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireAuth } from '@/lib/auth';
 
+export const revalidate = 300; // 5 min
+
 export async function GET() {
   const auth = await requireAuth();
   if (auth instanceof NextResponse) return auth;

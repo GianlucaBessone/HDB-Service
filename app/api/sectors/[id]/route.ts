@@ -1,3 +1,4 @@
+import { revalidateTag } from 'next/cache';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requirePermission } from '@/lib/auth';
@@ -15,7 +16,7 @@ export async function PUT(req: Request, props: { params: Promise<{ id: string }>
     const { nombre, descripcion, active } = body;
 
     const existing = await prisma.sector.findUnique({ where: { id } });
-    if (!existing) return NextResponse.json({ error: 'Sector no encontrado' }, { status: 404 });
+    if (!existing) { return NextResponse.json({ error: 'Sector no encontrado' }, { status: 404 }); }
 
     const updated = await prisma.sector.update({
       where: { id },
@@ -32,9 +33,11 @@ export async function PUT(req: Request, props: { params: Promise<{ id: string }>
       oldValue: existing, newValue: updated,
     });
 
+    await revalidateTag('sectors', 'default');
     return NextResponse.json(updated);
   } catch (error) {
     console.error('[API] PUT /api/sectors/[id] error:', error);
+    await revalidateTag('sectors', 'default');
     return NextResponse.json({ error: 'Error al actualizar sector' }, { status: 500 });
   }
 }
@@ -57,9 +60,11 @@ export async function DELETE(req: Request, props: { params: Promise<{ id: string
       action: 'DELETE', entity: 'SECTOR', entityId: id,
     });
 
+    await revalidateTag('sectors', 'default');
     return NextResponse.json(updated);
   } catch (error) {
     console.error('[API] DELETE /api/sectors/[id] error:', error);
+    await revalidateTag('sectors', 'default');
     return NextResponse.json({ error: 'Error al eliminar sector' }, { status: 500 });
   }
 }

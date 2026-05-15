@@ -1,7 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { MapPin, Loader2, Info } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -24,25 +24,14 @@ interface Plant {
 }
 
 export default function MapPage() {
-  const [plants, setPlants] = useState<Plant[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    async function fetchMapData() {
-      try {
-        const res = await fetch('/api/map');
-        if (res.ok) {
-          const data = await res.json();
-          setPlants(data);
-        }
-      } catch (error) {
-        toast.error('Error al cargar datos del mapa');
-      } finally {
-        setIsLoading(false);
-      }
+  const { data: plants = [], isLoading } = useQuery<Plant[]>({
+    queryKey: ['map-plants'],
+    queryFn: async () => {
+      const res = await fetch('/api/map');
+      if (!res.ok) throw new Error('Failed to fetch map data');
+      return res.json();
     }
-    fetchMapData();
-  }, []);
+  });
 
   return (
     <div className="h-[calc(100vh-8rem)] flex flex-col gap-6 animate-fade-in">

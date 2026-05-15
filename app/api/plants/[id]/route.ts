@@ -1,3 +1,4 @@
+import { revalidateTag } from 'next/cache';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requirePermission } from '@/lib/auth';
@@ -15,7 +16,7 @@ export async function PUT(req: Request, props: { params: Promise<{ id: string }>
     const { nombre, direccion, clientId, active } = body;
 
     const existing = await prisma.plant.findUnique({ where: { id } });
-    if (!existing) return NextResponse.json({ error: 'Planta no encontrada' }, { status: 404 });
+    if (!existing) { return NextResponse.json({ error: 'Planta no encontrada' }, { status: 404 }); }
 
     const updated = await prisma.plant.update({
       where: { id },
@@ -33,9 +34,11 @@ export async function PUT(req: Request, props: { params: Promise<{ id: string }>
       oldValue: existing, newValue: updated,
     });
 
+    await revalidateTag('plants', 'default');
     return NextResponse.json(updated);
   } catch (error) {
     console.error('[API] PUT /api/plants/[id] error:', error);
+    await revalidateTag('plants', 'default');
     return NextResponse.json({ error: 'Error al actualizar planta' }, { status: 500 });
   }
 }
@@ -58,9 +61,11 @@ export async function DELETE(req: Request, props: { params: Promise<{ id: string
       action: 'DELETE', entity: 'PLANT', entityId: id,
     });
 
+    await revalidateTag('plants', 'default');
     return NextResponse.json(updated);
   } catch (error) {
     console.error('[API] DELETE /api/plants/[id] error:', error);
+    await revalidateTag('plants', 'default');
     return NextResponse.json({ error: 'Error al eliminar planta' }, { status: 500 });
   }
 }

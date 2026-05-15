@@ -12,10 +12,13 @@ function logToFile(msg: string) {
 
 export type SessionUser = {
   id: string;
+  authId: string;
   email: string;
   nombre: string;
   role: UserRole;
   clientId: string | null;
+  plantIds: string[];
+  mustChangePassword: boolean;
 };
 
 /**
@@ -54,6 +57,11 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
 
     const user = await prisma.user.findUnique({
       where: { email: authUser.email },
+      include: {
+        plantAccess: {
+          select: { plantId: true }
+        }
+      }
     });
 
     if (!user) {
@@ -69,10 +77,13 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
     logToFile(`Prisma user found: ${user.id} (${user.role})`);
     return {
       id: user.id,
+      authId: authUser.id,
       email: user.email,
       nombre: user.nombre,
       role: user.role,
       clientId: user.clientId,
+      plantIds: user.plantAccess.map(pa => pa.plantId),
+      mustChangePassword: user.mustChangePassword,
     };
   } catch (err: any) {
     logToFile(`getCurrentUser CRASH: ${err.message}`);
@@ -141,4 +152,54 @@ export function canAccessClient(user: SessionUser, clientId: string): boolean {
     return true;
   }
   return user.clientId === clientId;
+}
+
+/**
+ * Returns a Prisma WHERE filter based on user permissions.
+ * @param user The current session user
+ * @param options configuration for filtering (which fields to use)
+ */
+export function getDataFilter(user: SessionUser, options: { 
+  clientIdField?: string; 
+  plantIdField?: string;
+  locationPlantIdField?: string;
+  ownedByPlantField?: string;
+  includeOr?: boolean;
+} = {}) {
+  const { clientIdField = 'clientId', plantIdField = 'plantId', locationPlantIdField, ownedByPlantField } = options;
+
+  if (user.role === 'ADMIN' || user.role === 'SUPERVISOR') {
+    return {};
+  }
+
+  if (user.role === 'CLIENT_RESPONSIBLE') {
+    // If the model has a clientId field, use it.
+    return user.clientId ? { [clientIdField]: user.clientId } : {};
+  }
+
+  if (user.role === 'CLIENT_REQUESTER') {
+    const filters: any[] = [];
+    
+    // Filter by location's plant ID (e.g. for Tickets)
+    if (locationPlantIdField && user.plantIds.length > 0) {
+      filters.push({ [locationPlantIdField]: { plantId: { in: user.plantIds } } });
+    }
+
+    // Filter by specific plant ID if field exists (e.g. for Dispensers ownership or Stock)
+    if (plantIdField && user.plantIds.length > 0) {
+      filters.push({ [plantIdField]: { in: user.plantIds } });
+    }
+    
+    // Filter by owning plant (for Loaned/Borrowed logic)
+    if (ownedByPlantField && user.plantIds.length > 0) {
+      filters.push({ [ownedByPlantField]: { in: user.plantIds } });
+    }
+
+    if (filters.length === 0) return { id: 'none' }; // Should not happen if user is correctly configured
+    if (filters.length === 1) return filters[0];
+    return { OR: filters };
+  }
+
+  // Technicians see everything or we can add more logic here later
+  return {};
 }

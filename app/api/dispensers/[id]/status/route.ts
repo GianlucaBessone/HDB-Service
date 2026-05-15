@@ -1,3 +1,4 @@
+import { revalidateTag } from 'next/cache';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requirePermission } from '@/lib/auth';
@@ -29,7 +30,8 @@ export async function PUT(req: Request, props: { params: Promise<{ id: string }>
     const { status, reason } = body;
 
     if (!status || !Object.values(DispenserStatus).includes(status)) {
-      return NextResponse.json(
+      await revalidateTag('dispensers', 'default');
+    return NextResponse.json(
         { error: `Estado inválido. Valores: ${Object.values(DispenserStatus).join(', ')}` },
         { status: 400 }
       );
@@ -37,7 +39,8 @@ export async function PUT(req: Request, props: { params: Promise<{ id: string }>
 
     const dispenser = await prisma.dispenser.findUnique({ where: { id: params.id } });
     if (!dispenser) {
-      return NextResponse.json({ error: 'Dispenser no encontrado' }, { status: 404 });
+      await revalidateTag('dispensers', 'default');
+    return NextResponse.json({ error: 'Dispenser no encontrado' }, { status: 404 });
     }
 
     // Special permission check: releasing BLOCKED requires dispensers:release_block
@@ -51,7 +54,8 @@ export async function PUT(req: Request, props: { params: Promise<{ id: string }>
     // Handle BLOCKED
     if (status === 'BLOCKED') {
       if (!reason?.trim()) {
-        return NextResponse.json({ error: 'Motivo de bloqueo requerido' }, { status: 400 });
+        await revalidateTag('dispensers', 'default');
+    return NextResponse.json({ error: 'Motivo de bloqueo requerido' }, { status: 400 });
       }
       updateData.blockedReason = reason.trim();
       updateData.blockedAt = new Date();
@@ -109,9 +113,11 @@ export async function PUT(req: Request, props: { params: Promise<{ id: string }>
       newValue: { status, reason },
     });
 
+    await revalidateTag('dispensers', 'default');
     return NextResponse.json(updated);
   } catch (error) {
     console.error('[API] PUT /api/dispensers/[id]/status error:', error);
+    await revalidateTag('dispensers', 'default');
     return NextResponse.json({ error: 'Error al cambiar estado' }, { status: 500 });
   }
 }

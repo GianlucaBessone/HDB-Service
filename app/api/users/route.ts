@@ -1,7 +1,10 @@
+import { revalidateTag } from 'next/cache';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireRole } from '@/lib/auth';
 import { supabaseAdmin } from '@/utils/supabase/admin';
+
+export const revalidate = 300; // 5 min
 
 export async function GET() {
   const auth = await requireRole('ADMIN', 'SUPERVISOR');
@@ -22,6 +25,11 @@ export async function GET() {
           select: {
             nombre: true
           }
+        },
+        plantAccess: {
+          select: {
+            plantId: true
+          }
         }
       },
       orderBy: {
@@ -29,9 +37,11 @@ export async function GET() {
       }
     });
 
+    await revalidateTag('users', 'default');
     return NextResponse.json(users);
   } catch (error) {
     console.error('Error fetching users:', error);
+    await revalidateTag('users', 'default');
     return NextResponse.json({ error: 'Error al obtener usuarios' }, { status: 500 });
   }
 }
@@ -42,10 +52,11 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    const { email, nombre, apellido, role, clientId } = body;
+    const { email, nombre, apellido, role, clientId, plantIds, password } = body;
 
-    if (!email || !nombre || !role) {
-      return NextResponse.json({ error: 'Faltan campos obligatorios' }, { status: 400 });
+    if (!email || !nombre || !role || !password) {
+      await revalidateTag('users', 'default');
+    return NextResponse.json({ error: 'Faltan campos obligatorios' }, { status: 400 });
     }
 
     // 1. Check if user already exists in Prisma
@@ -54,41 +65,51 @@ export async function POST(request: Request) {
     });
 
     if (existingUser) {
-      return NextResponse.json({ error: 'El usuario ya existe' }, { status: 400 });
+      await revalidateTag('users', 'default');
+    return NextResponse.json({ error: 'El usuario ya existe' }, { status: 400 });
     }
 
-    // 2. Invite user via Supabase Auth (This sends an email to the user)
-    const origin = new URL(request.url).origin;
-    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.inviteUserByEmail(
+    // 2. Create user in Supabase Auth directly with confirmed email
+    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email,
-      { 
-        data: { nombre, apellido, role },
-        redirectTo: `${origin}/auth/confirm`
-      }
-    );
+      password,
+      email_confirm: true,
+      user_metadata: { nombre, apellido, role }
+    });
 
     if (authError) {
-      console.error('Supabase Invitation Error:', authError);
-      return NextResponse.json({ error: authError.message }, { status: 400 });
+      console.error('Supabase Create User Error:', authError);
+      await revalidateTag('users', 'default');
+    return NextResponse.json({ error: authError.message }, { status: 400 });
     }
 
-    // 3. Create user in Prisma with a dummy/empty passwordHash 
-    // because they will set their password via Supabase
+    // 3. Create user in Prisma with hashed password and mustChangePassword: true
+    const bcrypt = require('bcryptjs');
+    const passwordHash = await bcrypt.hash(password, 10);
+
     const newUser = await prisma.user.create({
       data: {
         id: authData.user.id,
         email,
-        passwordHash: 'INVITED_VIA_SUPABASE', // Placeholder
+        passwordHash,
         nombre,
         apellido,
         role,
         clientId: clientId || null,
+        mustChangePassword: true,
+        plantAccess: {
+          create: (plantIds || []).map((plantId: string) => ({
+            plantId
+          }))
+        }
       }
     });
 
+    await revalidateTag('users', 'default');
     return NextResponse.json(newUser);
   } catch (error: any) {
-    console.error('Error inviting user:', error);
+    console.error('Error creating user:', error);
+    await revalidateTag('users', 'default');
     return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
   }
 }

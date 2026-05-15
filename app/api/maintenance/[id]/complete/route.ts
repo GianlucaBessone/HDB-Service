@@ -1,3 +1,4 @@
+import { revalidateTag } from 'next/cache';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requirePermission } from '@/lib/auth';
@@ -14,7 +15,8 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
     const { condicionGeneral, fallas, problemasEstructurales, observaciones, fotosUrls } = body;
 
     if (!condicionGeneral) {
-      return NextResponse.json({ error: 'Condición general es requerida' }, { status: 400 });
+      await revalidateTag('maintenance', 'default');
+    return NextResponse.json({ error: 'Condición general es requerida' }, { status: 400 });
     }
 
     const schedule = await prisma.maintenanceSchedule.findUnique({
@@ -23,11 +25,13 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
     });
 
     if (!schedule) {
-      return NextResponse.json({ error: 'Mantenimiento no encontrado' }, { status: 404 });
+      await revalidateTag('maintenance', 'default');
+    return NextResponse.json({ error: 'Mantenimiento no encontrado' }, { status: 404 });
     }
 
     if (schedule.status === 'COMPLETED') {
-      return NextResponse.json({ error: 'El mantenimiento ya fue completado' }, { status: 400 });
+      await revalidateTag('maintenance', 'default');
+    return NextResponse.json({ error: 'El mantenimiento ya fue completado' }, { status: 400 });
     }
 
     const updated = await prisma.$transaction(async (tx) => {
@@ -59,9 +63,11 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
       newValue: { status: 'COMPLETED', condicionGeneral },
     });
 
+    await revalidateTag('maintenance', 'default');
     return NextResponse.json(updated);
   } catch (error) {
     console.error('[API] POST /api/maintenance/[id]/complete error:', error);
+    await revalidateTag('maintenance', 'default');
     return NextResponse.json({ error: 'Error al completar mantenimiento' }, { status: 500 });
   }
 }
