@@ -16,7 +16,7 @@ export async function GET(req: Request, props: { params: Promise<{ id: string }>
   if (user instanceof NextResponse) return user;
 
   try {
-    const ticket = await prisma.ticket.findUnique({
+    const ticket = await prisma.ticket.findFirst({
       where: { 
         id: id,
         ...getDataFilter(user, { locationPlantIdField: 'location' })
@@ -53,7 +53,7 @@ export async function GET(req: Request, props: { params: Promise<{ id: string }>
         reportedBy: { select: { id: true, nombre: true, role: true } },
         assignedTo: { select: { id: true, nombre: true } },
         comments: {
-          include: { user: { select: { nombre: true, role: true } } },
+          include: { user: { select: { nombre: true, apellido: true, role: true } } },
           orderBy: { createdAt: 'asc' },
         },
         statusHistory: {

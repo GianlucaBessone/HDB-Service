@@ -14,10 +14,9 @@ export async function GET(req: Request, props: { params: Promise<{ id: string }>
   try {
     const comments = await prisma.ticketComment.findMany({
       where: { ticketId: params.id },
-      include: { user: { select: { nombre: true, role: true } } },
+      include: { user: { select: { nombre: true, apellido: true, role: true } } },
       orderBy: { createdAt: 'asc' },
     });
-    await revalidateTag('tickets', 'default');
     return NextResponse.json(comments);
   } catch (error) {
     console.error('[API] GET /api/tickets/[id]/comments error:', error);
@@ -47,7 +46,7 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
         userId: user.id,
         message: message.trim(),
       },
-      include: { user: { select: { nombre: true, role: true } } },
+      include: { user: { select: { nombre: true, apellido: true, role: true } } },
     });
 
     await revalidateTag('tickets', 'default');

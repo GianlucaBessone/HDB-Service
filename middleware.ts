@@ -12,7 +12,7 @@ import type { NextRequest } from 'next/server';
 export function middleware(request: NextRequest) {
   const response = NextResponse.next();
   if (request.method === 'GET') {
-    response.headers.set('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=60');
+    response.headers.set('Cache-Control', 'no-store, private, max-age=0, must-revalidate');
   }
   return response;
 }
