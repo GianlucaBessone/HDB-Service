@@ -8,7 +8,7 @@ export const TRANSLATIONS: Record<string, string> = {
   SUPERVISOR: 'Supervisor',
   TECHNICIAN: 'Técnico',
   CLIENT_RESPONSIBLE: 'Responsable Cliente',
-  CLIENT_REQUESTER: 'Solicitante Cliente',
+  CLIENT_REQUESTER: 'Referente Cliente',
 
   // Estados de Dispenser
   IN_SERVICE: 'En Servicio',

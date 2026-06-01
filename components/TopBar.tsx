@@ -360,7 +360,11 @@ export default function TopBar({ user }: { user: { nombre: string; email: string
           <div className="hidden md:flex flex-col items-end">
             <span className="text-sm font-semibold leading-none">{user.nombre}</span>
             <span className="text-xs text-muted-foreground mt-1">
-              {t(user.role)}
+              {user.role === 'CLIENT_REQUESTER' 
+                ? 'Referente' 
+                : user.role === 'CLIENT_RESPONSIBLE' 
+                ? 'Responsable' 
+                : t(user.role)}
             </span>
           </div>
           <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">

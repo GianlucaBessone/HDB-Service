@@ -251,7 +251,7 @@ export default function UserModal({ user, onClose, onSuccess }: UserModalProps) 
                   </div>
                 )}
                 {isClientRole && form.plantIds.length === 0 && availablePlants.length > 0 && (
-                  <p className="text-[10px] text-amber-600 font-medium">Si no selecciona ninguna planta, {isRequester ? 'el solicitante no tendrá acceso a ningún equipo.' : 'el responsable verá todas las plantas del cliente por defecto.'}</p>
+                  <p className="text-[10px] text-amber-600 font-medium">Si no selecciona ninguna planta, {isRequester ? 'el referente no tendrá acceso a ningún equipo.' : 'el responsable verá todas las plantas del cliente por defecto.'}</p>
                 )}
               </div>
             )}
