@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { 
+import {
   HeartPulse, Building2, MapPin, RefreshCw, LayoutDashboard, Download, Info, ChevronDown, ChevronUp, Trash2, Search
 } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -61,7 +61,7 @@ function SaludContent() {
   const handleDeleteDispenser = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     if (!confirm('¿Está seguro de eliminar permanentemente este dispenser?')) return;
-    
+
     try {
       const res = await fetch(`/api/dispensers/${id}`, { method: 'DELETE' });
       if (res.ok) {
@@ -88,9 +88,9 @@ function SaludContent() {
           data
         })
       });
-      
+
       if (!res.ok) throw new Error('Error al generar PDF');
-      
+
       const blob = await res.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -130,7 +130,7 @@ function SaludContent() {
         </div>
         <div className="flex items-center gap-3">
           {(role === 'ADMIN' || role === 'SUPERVISOR' || role === 'TECHNICIAN') && (
-            <button 
+            <button
               onClick={exportReport}
               disabled={isExporting}
               className="btn-outline border-emerald-500/20 text-emerald-600 hover:bg-emerald-500/10 gap-2"
@@ -153,7 +153,7 @@ function SaludContent() {
             <label className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-2">
               <Building2 className="w-3 h-3" /> Cliente
             </label>
-            <select 
+            <select
               className="select h-10"
               value={filters.clientId}
               onChange={(e) => { setFilter('clientId', e.target.value); setFilter('plantId', ''); }}
@@ -167,7 +167,7 @@ function SaludContent() {
           <label className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-2">
             <MapPin className="w-3 h-3" /> Planta
           </label>
-          <select 
+          <select
             className="select h-10"
             value={filters.plantId}
             onChange={(e) => setFilter('plantId', e.target.value)}
@@ -192,16 +192,16 @@ function SaludContent() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
             <div className="glass-card p-8 flex flex-col justify-center">
               <div className="flex h-12 w-full rounded-2xl overflow-hidden shadow-inner bg-muted">
-                <div 
-                  className="h-full bg-emerald-500 transition-all duration-500" 
+                <div
+                  className="h-full bg-emerald-500 transition-all duration-500"
                   style={{ width: `${(data.distribution.optimo / Math.max(1, data.distribution.optimo + data.distribution.estable + data.distribution.critico)) * 100}%` }}
                 />
-                <div 
-                  className="h-full bg-amber-500 transition-all duration-500" 
+                <div
+                  className="h-full bg-amber-500 transition-all duration-500"
                   style={{ width: `${(data.distribution.estable / Math.max(1, data.distribution.optimo + data.distribution.estable + data.distribution.critico)) * 100}%` }}
                 />
-                <div 
-                  className="h-full bg-red-500 transition-all duration-500" 
+                <div
+                  className="h-full bg-red-500 transition-all duration-500"
                   style={{ width: `${(data.distribution.critico / Math.max(1, data.distribution.optimo + data.distribution.estable + data.distribution.critico)) * 100}%` }}
                 />
               </div>
@@ -228,14 +228,14 @@ function SaludContent() {
                   <AreaChart data={data.timeline} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                     <defs>
                       <linearGradient id="colorScore" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
-                        <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
+                        <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
                       </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
                     <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} dy={10} />
                     <YAxis domain={[0, 100]} axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} dx={-10} />
-                    <RechartsTooltip 
+                    <RechartsTooltip
                       contentStyle={{ backgroundColor: 'hsl(var(--background))', borderColor: 'hsl(var(--border))', borderRadius: '0.75rem', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
                       itemStyle={{ color: 'hsl(var(--foreground))', fontWeight: 'bold' }}
                     />
@@ -273,10 +273,10 @@ function SaludContent() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
-                  {data.ranking.filter((h: any) => 
-                    h.id.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                    h.marca.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                    h.modelo.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                  {data.ranking.filter((h: any) =>
+                    h.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    h.marca.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    h.modelo.toLowerCase().includes(searchTerm.toLowerCase()) ||
                     h.planta.toLowerCase().includes(searchTerm.toLowerCase())
                   ).map((h: any) => (
                     <React.Fragment key={h.id}>
@@ -292,7 +292,7 @@ function SaludContent() {
                             {h.details.ownerPlantId && h.details.currentPlantId && h.details.ownerPlantId !== h.details.currentPlantId && (
                               <span className={clsx(
                                 "text-[8px] px-1.5 py-0.5 rounded-full font-bold border",
-                                session?.user?.plantIds?.includes(h.details.currentPlantId) 
+                                session?.user?.plantIds?.includes(h.details.currentPlantId)
                                   ? "bg-blue-100 text-blue-700 border-blue-200"
                                   : "bg-purple-100 text-purple-700 border-purple-200"
                               )}>
@@ -309,7 +309,7 @@ function SaludContent() {
                         <td className="text-center">
                           <div className="flex items-center justify-center gap-3">
                             <div className="w-16 h-2.5 bg-background rounded-full overflow-hidden border border-border/50 shadow-inner">
-                              <div 
+                              <div
                                 className={`h-full transition-all duration-700 ${h.score > 80 ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : h.score >= 50 ? 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]' : 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]'}`}
                                 style={{ width: `${h.score}%` }}
                               />
@@ -325,7 +325,7 @@ function SaludContent() {
                         <td className="text-right">
                           <div className="flex items-center justify-end gap-2">
                             {role === 'ADMIN' && (
-                              <button 
+                              <button
                                 onClick={(e) => handleDeleteDispenser(h.id, e)}
                                 title="Eliminar Dispenser"
                                 className="btn-ghost btn-sm text-red-500 hover:bg-red-500/10 p-2"
@@ -348,7 +348,7 @@ function SaludContent() {
                                   </span>
                                   <Info className="w-3 h-3 text-muted-foreground/70 cursor-help" />
                                   <div className="absolute bottom-full left-0 mb-2 w-48 p-2.5 bg-background/90 backdrop-blur-md border border-border rounded-xl shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 text-xs font-normal text-foreground normal-case tracking-normal">
-                                    Tiempo promedio entre fallas (Mean Time Between Failures).<br/><br/>
+                                    Tiempo promedio entre fallas (Mean Time Between Failures).<br /><br />
                                     <span className="text-muted-foreground">Un número mayor indica mayor confiabilidad.</span>
                                   </div>
                                 </div>
@@ -368,7 +368,7 @@ function SaludContent() {
                                   </span>
                                   <Info className="w-3 h-3 text-muted-foreground/70 cursor-help" />
                                   <div className="absolute bottom-full left-0 mb-2 w-48 p-2.5 bg-background/90 backdrop-blur-md border border-border rounded-xl shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 text-xs font-normal text-foreground normal-case tracking-normal">
-                                    Tiempo promedio de reparación (Mean Time To Repair).<br/><br/>
+                                    Tiempo promedio de reparación (Mean Time To Repair).<br /><br />
                                     <span className="text-muted-foreground">Calculado desde la creación hasta la resolución del ticket.</span>
                                   </div>
                                 </div>
@@ -382,7 +382,7 @@ function SaludContent() {
                                   </span>
                                   <Info className="w-3 h-3 text-muted-foreground/70 cursor-help" />
                                   <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2.5 bg-background/90 backdrop-blur-md border border-border rounded-xl shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 text-xs font-normal text-foreground normal-case tracking-normal">
-                                    Fallas reportadas y reparadas en los últimos 6 meses.<br/><br/>
+                                    Fallas reportadas y reparadas en los últimos 6 meses.<br /><br />
                                     <span className="text-muted-foreground">Se asocia a la estabilidad a corto plazo.</span>
                                   </div>
                                 </div>
@@ -396,7 +396,7 @@ function SaludContent() {
                                   </span>
                                   <Info className="w-3 h-3 text-muted-foreground/70 cursor-help" />
                                   <div className="absolute bottom-full right-0 mb-2 w-48 p-2.5 bg-background/90 backdrop-blur-md border border-border rounded-xl shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 text-xs font-normal text-foreground normal-case tracking-normal">
-                                    Promedio de condición (1-100%).<br/><br/>
+                                    Promedio de condición (1-100%).<br /><br />
                                     <span className="text-muted-foreground">Recolectado por técnicos durante rutinas de mantenimiento preventivo.</span>
                                   </div>
                                 </div>
@@ -410,7 +410,7 @@ function SaludContent() {
                                   </span>
                                   <Info className="w-3 h-3 text-muted-foreground/70 cursor-help" />
                                   <div className="absolute bottom-full right-0 mb-2 w-48 p-2.5 bg-background/90 backdrop-blur-md border border-border rounded-xl shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 text-xs font-normal text-foreground normal-case tracking-normal">
-                                    Porcentaje de la vida teórica total consumida.<br/><br/>
+                                    Porcentaje de la vida teórica total consumida.<br /><br />
                                     <span className="text-muted-foreground">Calculado según meses de uso vs vida teórica del equipo.</span>
                                   </div>
                                 </div>

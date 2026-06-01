@@ -156,7 +156,6 @@ export const NAV_ITEMS: NavItem[] = [
   { key: '/maintenance/approvals', label: 'Firmas', icon: 'FileSignature', roles: ['ADMIN', 'SUPERVISOR', 'TECHNICIAN'] },
   { key: '/inventory', label: 'Inventario', icon: 'Package', roles: ['ADMIN', 'SUPERVISOR', 'TECHNICIAN', 'CLIENT_RESPONSIBLE', 'CLIENT_REQUESTER'] },
   { key: '/clients', label: 'Configuración', icon: 'Settings', roles: ['ADMIN', 'SUPERVISOR'] },
-  { key: '/map', label: 'Mapa', icon: 'MapPin', roles: ['ADMIN', 'SUPERVISOR', 'TECHNICIAN'] },
   { key: '/qr/scan', label: 'Escanear QR', icon: 'ScanLine', roles: ['ADMIN', 'SUPERVISOR', 'TECHNICIAN', 'CLIENT_RESPONSIBLE', 'CLIENT_REQUESTER'] },
   { key: '/users', label: 'Usuarios', icon: 'Users', roles: ['ADMIN', 'SUPERVISOR'] },
   { key: '/maintenance/reports', label: 'Reportes', icon: 'FileText', roles: ['ADMIN', 'SUPERVISOR', 'TECHNICIAN', 'CLIENT_RESPONSIBLE'] },

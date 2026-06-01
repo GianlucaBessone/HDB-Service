@@ -7,6 +7,7 @@ import { getSession } from '@/lib/auth';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import Sidebar from '@/components/Sidebar';
 import TopBar from '@/components/TopBar';
+import MobileTabBar from '@/components/MobileTabBar';
 import OneSignalInit from '@/components/OneSignalInit';
 import { Toaster } from 'react-hot-toast';
 import { headers } from 'next/headers';
@@ -53,20 +54,21 @@ export default async function RootLayout({
   return (
     <html lang="es" suppressHydrationWarning>
       <body className={`${inter.className} min-h-screen bg-background`} suppressHydrationWarning>
-        <PrefetchProvider>
-          <ReactQueryProvider>
+        <ReactQueryProvider>
+          <PrefetchProvider>
             <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           {showSidebar ? (
             <div className="flex h-screen overflow-hidden">
               <Sidebar userRole={session!.user.role} />
               <div className="flex flex-col flex-1 overflow-hidden ml-0 md:ml-64 transition-all duration-300">
                 <TopBar user={session!.user} />
-                <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
+                <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 pb-28 md:pb-6 lg:pb-8">
                   {children}
                 </main>
               </div>
               {session!.user.role !== 'CLIENT_REQUESTER' && <OneSignalInit user={session!.user} />}
               {mustChangePassword && <ForcePasswordChangeModal />}
+              <MobileTabBar userRole={session!.user.role} />
             </div>
           ) : (
             <main className="h-screen flex items-center justify-center">
@@ -77,8 +79,8 @@ export default async function RootLayout({
             <Toaster position="bottom-right" />
             <Analytics />
           </ThemeProvider>
-        </ReactQueryProvider>
-      </PrefetchProvider>
+        </PrefetchProvider>
+      </ReactQueryProvider>
     </body>
     </html>
   );

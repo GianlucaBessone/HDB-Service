@@ -70,6 +70,10 @@ const config: Config = {
                     "0%, 100%": { opacity: "1" },
                     "50%": { opacity: "0.7" },
                 },
+                "ping-slow": {
+                    "0%": { transform: "scale(1)", opacity: "0.8" },
+                    "20%, 100%": { transform: "scale(1.8)", opacity: "0" },
+                },
                 "shimmer": {
                     "0%": { backgroundPosition: "-200% 0" },
                     "100%": { backgroundPosition: "200% 0" },
@@ -79,6 +83,7 @@ const config: Config = {
                 "fade-in": "fade-in 0.3s ease-out",
                 "slide-in-right": "slide-in-right 0.3s ease-out",
                 "pulse-soft": "pulse-soft 2s ease-in-out infinite",
+                "ping-slow": "ping-slow 3s cubic-bezier(0, 0, 0.2, 1) infinite",
                 "shimmer": "shimmer 2s linear infinite",
             },
         },
