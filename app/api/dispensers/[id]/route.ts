@@ -73,8 +73,7 @@ export async function GET(req: Request, props: { params: Promise<{ id: string }>
     });
 
     if (!dispenser) {
-      await revalidateTag('dispensers', 'default');
-    return NextResponse.json({ error: 'Dispenser no encontrado' }, { status: 404 });
+      return NextResponse.json({ error: 'Dispenser no encontrado' }, { status: 404 });
     }
 
     // Calculate lifecycle expiration
@@ -101,15 +100,13 @@ export async function GET(req: Request, props: { params: Promise<{ id: string }>
       );
     }
 
-    await revalidateTag('dispensers', 'default');
     return NextResponse.json({
       ...dispenser,
       lifecycleExpiration,
       lifecycleRemainingDays,
-    }, { headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=60' } });
+    });
   } catch (error) {
     console.error('[API] GET /api/dispensers/[id] error:', error);
-    await revalidateTag('dispensers', 'default');
     return NextResponse.json({ error: 'Error al obtener dispenser' }, { status: 500 });
   }
 }
@@ -158,7 +155,6 @@ export async function PUT(req: Request, props: { params: Promise<{ id: string }>
     });
 
     await revalidateTag('dispensers', 'default');
-await revalidateTag('dispensers', 'default');
     return NextResponse.json(updated);
   } catch (error) {
     console.error('[API] PUT /api/dispensers/[id] error:', error);
@@ -202,7 +198,6 @@ export async function DELETE(req: Request, props: { params: Promise<{ id: string
     });
 
     await revalidateTag('dispensers', 'default');
-await revalidateTag('dispensers', 'default');
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('[API] DELETE /api/dispensers/[id] error:', error);

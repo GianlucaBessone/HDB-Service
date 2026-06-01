@@ -12,6 +12,13 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const plantId = searchParams.get('plantId');
 
+    // Security check: restrict non-admins/supervisors from querying unassigned plants
+    if (user.role !== 'ADMIN' && user.role !== 'SUPERVISOR' && plantId) {
+      if (!user.plantIds.includes(plantId)) {
+        return NextResponse.json({ error: 'Acceso denegado a esta planta' }, { status: 403 });
+      }
+    }
+
     const whereTickets: any = getDataFilter(user, {
       locationPlantIdField: 'location',
       plantIdField: undefined // Ticket has no direct plantId
@@ -52,7 +59,7 @@ export async function GET(req: Request) {
       inServiceDispensers,
       repairDispensers,
       blockedDispensers,
-      lowStockCount,
+      allStock,
       maintenanceStats
     ] = await Promise.all([
       prisma.ticket.findMany({
@@ -63,15 +70,7 @@ export async function GET(req: Request) {
       prisma.dispenser.count({ where: { ...whereDispensers, status: 'IN_SERVICE' } }),
       prisma.dispenser.count({ where: { ...whereDispensers, status: 'UNDER_REPAIR' } }),
       prisma.dispenser.count({ where: { ...whereDispensers, status: 'BLOCKED' } }),
-      prisma.stockEntry.count({
-        where: {
-          ...whereStock,
-          AND: [{ minLevel: { gt: 0 } }, { cantidad: { lt: prisma.stockEntry.fields.minLevel } as any }] 
-          // prisma doesn't support comparing fields directly in standard count yet, doing approx or raw if needed
-          // A simple workaround for this specific count is fetched in memory if needed or a raw query.
-          // For simplicity here, we'll fetch entries and filter.
-        }
-      }),
+      prisma.stockEntry.findMany({ where: whereStock, select: { cantidad: true, minLevel: true } }),
       prisma.maintenanceSchedule.groupBy({
         by: ['status'],
         where: { dispenser: whereDispensers },
@@ -79,8 +78,7 @@ export async function GET(req: Request) {
       })
     ]);
 
-    // Workaround for low stock count since direct field comparison isn't supported in standard where
-    const allStock = await prisma.stockEntry.findMany({ where: whereStock, select: { cantidad: true, minLevel: true } });
+    // Calculate low stock count (Prisma doesn't support cross-field comparison in where)
     const realLowStockCount = allStock.filter(s => s.minLevel > 0 && s.cantidad < s.minLevel).length;
 
     const openTickets = tickets.filter(t => t.status === 'OPEN' || t.status === 'IN_PROGRESS').length;

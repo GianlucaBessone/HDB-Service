@@ -1,4 +1,4 @@
-import { revalidateTag } from 'next/cache';
+import { revalidateTag } from 'next/cache'; // Used only in POST/PUT/DELETE
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requirePermission, getDataFilter } from '@/lib/auth';
@@ -77,11 +77,9 @@ export async function GET(req: Request) {
       prisma.ticket.count({ where }),
     ]);
 
-    await revalidateTag('tickets', 'default');
     return NextResponse.json({ tickets, total, page, limit });
   } catch (error) {
     console.error('[API] GET /api/tickets error:', error);
-    await revalidateTag('tickets', 'default');
     return NextResponse.json({ error: 'Error al obtener tickets' }, { status: 500 });
   }
 }

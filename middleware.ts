@@ -3,11 +3,9 @@ import type { NextRequest } from 'next/server';
 
 /**
  * Global middleware for the API.
- * - Adds `Cache-Control` header to every GET request so the CDN (Vercel) caches the response
- *   for 5 minutes (`s-maxage=300`) and serves stale content while revalidating (`stale-while-revalidate=60`).
- * - The middleware runs only for paths under `/api/*`.
- * - POST/PUT/DELETE routes should manually trigger a revalidation of the related tag
- *   (e.g., `await revalidateTag('dispensers')`) after mutating data.
+ * - Disables HTTP caching for all GET API responses to ensure fresh data.
+ * - Client-side caching is handled by React Query (staleTime: 5 min).
+ * - Server-side ISR is handled via `export const revalidate = 300` in each route.
  */
 export function middleware(request: NextRequest) {
   const response = NextResponse.next();

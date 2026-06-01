@@ -16,22 +16,14 @@ export async function GET(req: Request, props: { params: Promise<{ id: string }>
   if (user instanceof NextResponse) return user;
 
   try {
+    // Build where clause — CLIENT_REQUESTER can see tickets from their plants OR reported by them
+    const baseFilter = getDataFilter(user, { locationPlantIdField: 'location' });
+    const where = user.role === 'CLIENT_REQUESTER'
+      ? { id: id, OR: [{ reportedById: user.id }, baseFilter] }
+      : { id: id, ...baseFilter };
+
     const ticket = await prisma.ticket.findFirst({
-      where: { 
-        id: id,
-        ...getDataFilter(user, { locationPlantIdField: 'location' })
-      },
-      // Note: for requesters, we might need to handle the 'reportedById' case if they reported a ticket outside their plant
-      // but usually they can't. Let's add it just in case.
-      ...(user.role === 'CLIENT_REQUESTER' ? {
-        where: {
-          id: id,
-          OR: [
-            { reportedById: user.id },
-            getDataFilter(user, { locationPlantIdField: 'location' })
-          ]
-        }
-      } : {}),
+      where,
       include: {
         dispenser: {
           select: { 
@@ -63,15 +55,12 @@ export async function GET(req: Request, props: { params: Promise<{ id: string }>
     });
 
     if (!ticket) {
-      await revalidateTag('tickets', 'default');
-    return NextResponse.json({ error: 'Ticket no encontrado' }, { status: 404 });
+      return NextResponse.json({ error: 'Ticket no encontrado' }, { status: 404 });
     }
 
-    await revalidateTag('tickets', 'default');
     return NextResponse.json(ticket);
   } catch (error) {
     console.error('[API] GET /api/tickets/[id] error:', error);
-    await revalidateTag('tickets', 'default');
     return NextResponse.json({ error: 'Error al obtener ticket' }, { status: 500 });
   }
 }

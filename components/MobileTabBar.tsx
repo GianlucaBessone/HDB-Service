@@ -77,18 +77,18 @@ export default function MobileTabBar({ userRole }: { userRole: UserRole }) {
                 href="/qr/scan"
                 className={clsx(
                   "absolute -top-8 left-1/2 -translate-x-1/2 w-16 h-16 rounded-full flex items-center justify-center border-4 transition-all duration-300 hover:scale-105 active:scale-95 shadow-lg",
-                  "bg-white dark:bg-zinc-900 border-rose-500 shadow-rose-500/25",
-                  isQrActive ? "ring-4 ring-rose-500/20" : ""
+                  "bg-white dark:bg-zinc-900 border-cyan-500 shadow-cyan-500/25",
+                  isQrActive ? "ring-4 ring-cyan-500/20" : ""
                 )}
                 title="Escanear QR"
               >
                 {/* Rippling radar effect */}
-                <span className="absolute w-full h-full rounded-full bg-rose-500/20 animate-ping-slow -z-10" />
-                <ScanLine className="w-6 h-6 text-rose-500 animate-pulse-soft" />
+                <span className="absolute w-full h-full rounded-full bg-cyan-500/20 animate-ping-slow -z-10" />
+                <ScanLine className="w-6 h-6 text-cyan-500 animate-pulse-soft" />
               </Link>
               <span className={clsx(
                 "text-[10px] font-medium mt-1 transition-colors duration-200",
-                isQrActive ? "text-rose-500 font-bold" : "text-muted-foreground"
+                isQrActive ? "text-cyan-500 font-bold" : "text-muted-foreground"
               )}>
                 Escanear
               </span>

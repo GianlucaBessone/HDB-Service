@@ -6,6 +6,44 @@ const withPWA = require("@ducanh2912/next-pwa").default({
   fallbacks: {
     document: "/offline.html",
   },
+  workboxOptions: {
+    runtimeCaching: [
+      {
+        urlPattern: /\/api\/(?:tickets|dispensers|stock|plants|dashboard|notifications|maintenance).*/,
+        handler: "NetworkFirst",
+        options: {
+          cacheName: "api-cache",
+          expiration: {
+            maxEntries: 100,
+            maxAgeSeconds: 24 * 60 * 60, // 24 hours
+          },
+          networkTimeoutSeconds: 3,
+        },
+      },
+      {
+        urlPattern: /\.(?:js|css|woff2?|png|jpg|jpeg|svg|gif|webp|ico|json)$/i,
+        handler: "StaleWhileRevalidate",
+        options: {
+          cacheName: "static-resources",
+          expiration: {
+            maxEntries: 150,
+            maxAgeSeconds: 30 * 24 * 60 * 60, // 30 days
+          },
+        },
+      },
+      {
+        urlPattern: /.*/,
+        handler: "NetworkFirst",
+        options: {
+          cacheName: "pages-cache",
+          expiration: {
+            maxEntries: 50,
+            maxAgeSeconds: 24 * 60 * 60,
+          },
+        },
+      },
+    ],
+  },
 });
 
 /** @type {import('next').NextConfig} */

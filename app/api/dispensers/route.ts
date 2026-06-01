@@ -4,8 +4,6 @@ import { prisma } from '@/lib/prisma';
 import { requirePermission, getDataFilter } from '@/lib/auth';
 import { withIdempotency } from '@/lib/idempotency';
 import { createAuditLog } from '@/lib/audit';
-import fs from 'fs';
-import path from 'path';
 
 export const revalidate = 300; // 5 min
 
@@ -71,12 +69,10 @@ export async function GET(req: Request) {
 
     const duration = Date.now() - startTime;
     logToFile(`GET /api/dispensers: SUCCESS, found ${dispensers.length} dispensers in ${duration}ms`);
-    await revalidateTag('dispensers', 'default');
     return NextResponse.json({ dispensers, total });
   } catch (error: any) {
     logToFile(`GET /api/dispensers: ERROR: ${error.message}`);
     console.error('[API] GET /api/dispensers error:', error);
-    await revalidateTag('dispensers', 'default');
     return NextResponse.json({ error: 'Error al obtener dispensers' }, { status: 500 });
   }
 }

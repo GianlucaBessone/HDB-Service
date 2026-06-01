@@ -33,72 +33,6 @@ const iconMap: Record<string, React.ComponentType<any>> = {
   FileText
 };
 
-const metadataMap: Record<
-  string,
-  { description: string; colorClass: string; bgClass: string; borderLeftClass: string }
-> = {
-  '/dashboard': {
-    description: 'Resumen y métricas de operación, SLA, MTTR y visualización de la performance de los equipos.',
-    colorClass: 'text-primary border-t-primary',
-    bgClass: 'bg-primary/10 text-primary',
-    borderLeftClass: 'border-l-primary'
-  },
-  '/tickets': {
-    description: 'Gestión y seguimiento de incidencias, solicitudes de servicio y reportes de soporte técnico.',
-    colorClass: 'text-blue-500 border-t-blue-500',
-    bgClass: 'bg-blue-500/10 text-blue-500',
-    borderLeftClass: 'border-l-blue-500'
-  },
-  '/dispensers': {
-    description: 'Catálogo de dispensers instalados, historial de reparaciones y estado en tiempo real.',
-    colorClass: 'text-emerald-500 border-t-emerald-500',
-    bgClass: 'bg-emerald-500/10 text-emerald-500',
-    borderLeftClass: 'border-l-emerald-500'
-  },
-  '/maintenance': {
-    description: 'Rutinas de mantenimiento preventivo, visitas agendadas y checklists de control técnico.',
-    colorClass: 'text-amber-500 border-t-amber-500',
-    bgClass: 'bg-amber-500/10 text-amber-500',
-    borderLeftClass: 'border-l-amber-500'
-  },
-  '/maintenance/approvals': {
-    description: 'Firmas digitales de conformidad, aprobaciones de trabajos y actas de mantenimiento.',
-    colorClass: 'text-indigo-500 border-t-indigo-500',
-    bgClass: 'bg-indigo-500/10 text-indigo-500',
-    borderLeftClass: 'border-l-indigo-500'
-  },
-  '/inventory': {
-    description: 'Niveles de stock de insumos y repuestos, control de transferencias y deudas inter-plantas.',
-    colorClass: 'text-purple-500 border-t-purple-500',
-    bgClass: 'bg-purple-500/10 text-purple-500',
-    borderLeftClass: 'border-l-purple-500'
-  },
-  '/clients': {
-    description: 'Gestión administrativa de clientes, plantas operativas y configuración de sectores.',
-    colorClass: 'text-cyan-500 border-t-cyan-500',
-    bgClass: 'bg-cyan-500/10 text-cyan-500',
-    borderLeftClass: 'border-l-cyan-500'
-  },
-  '/qr/scan': {
-    description: 'Lector rápido de códigos QR para escaneo de dispensers e inicio rápido de reportes.',
-    colorClass: 'text-rose-500 border-t-rose-500',
-    bgClass: 'bg-rose-500/10 text-rose-500',
-    borderLeftClass: 'border-l-rose-500'
-  },
-  '/users': {
-    description: 'Administración de usuarios de la plataforma, control de accesos, roles y personal.',
-    colorClass: 'text-orange-500 border-t-orange-500',
-    bgClass: 'bg-orange-500/10 text-orange-500',
-    borderLeftClass: 'border-l-orange-500'
-  },
-  '/maintenance/reports': {
-    description: 'Descarga de reportes periódicos, historial de visitas y exportaciones analíticas.',
-    colorClass: 'text-violet-500 border-t-violet-500',
-    bgClass: 'bg-violet-500/10 text-violet-500',
-    borderLeftClass: 'border-l-violet-500'
-  }
-};
-
 export default function Home() {
   const router = useRouter();
   const [greeting, setGreeting] = useState('¡Hola');
@@ -157,24 +91,20 @@ export default function Home() {
       <div className="grid md:hidden grid-cols-2 gap-4">
         {visibleItems.map((item) => {
           const Icon = iconMap[item.icon];
-          const meta = metadataMap[item.key] || {
-            description: `Acceder a ${item.label}.`,
-            colorClass: 'text-primary border-t-primary',
-            bgClass: 'bg-primary/10 text-primary',
-            borderLeftClass: 'border-l-primary'
-          };
+          const borderLeftClass = item.borderLeftClass || 'border-l-primary';
+          const bgClass = item.bgClass || 'bg-primary/10 text-primary';
           const isScan = item.key === '/qr/scan';
 
           return (
             <Link
               key={item.key}
               href={item.key}
-              className={`group glass-card p-4 border-l-4 ${meta.borderLeftClass} active:scale-95 transition-all flex flex-col justify-between h-28 cursor-pointer hover:shadow-md ${
+              className={`group glass-card p-4 border-l-4 ${borderLeftClass} active:scale-95 transition-all flex flex-col justify-between h-28 cursor-pointer hover:shadow-md ${
                 isScan ? 'ring-1.5 ring-rose-500/30 bg-rose-500/[0.02] dark:bg-rose-500/[0.03]' : ''
               }`}
             >
               <div className="flex justify-between items-start">
-                <div className={`p-2 rounded-lg ${meta.bgClass} group-active:scale-110 transition-transform ${
+                <div className={`p-2 rounded-lg ${bgClass} group-active:scale-110 transition-transform ${
                   isScan ? 'animate-pulse-soft' : ''
                 }`}>
                   {Icon && <Icon className="w-5 h-5" />}
@@ -193,19 +123,16 @@ export default function Home() {
       <div className="hidden md:grid grid-cols-2 lg:grid-cols-3 gap-6">
         {visibleItems.map((item) => {
           const Icon = iconMap[item.icon];
-          const meta = metadataMap[item.key] || {
-            description: `Acceder a la sección de ${item.label}.`,
-            colorClass: 'text-primary border-t-primary',
-            bgClass: 'bg-primary/10 text-primary',
-            borderLeftClass: 'border-l-primary'
-          };
+          const colorClass = item.colorClass || 'text-primary border-t-primary';
+          const bgClass = item.bgClass || 'bg-primary/10 text-primary';
+          const description = item.description || `Acceder a la sección de ${item.label}.`;
           const isScan = item.key === '/qr/scan';
 
           return (
             <Link
               key={item.key}
               href={item.key}
-              className={`group glass-card p-6 border-t-4 ${meta.colorClass} hover:scale-[1.02] transition-all hover:shadow-lg flex flex-col justify-between h-56 cursor-pointer ${
+              className={`group glass-card p-6 border-t-4 ${colorClass} hover:scale-[1.02] transition-all hover:shadow-lg flex flex-col justify-between h-56 cursor-pointer ${
                 isScan ? 'ring-1.5 ring-rose-500/20 bg-rose-500/[0.01] dark:bg-rose-500/[0.02]' : ''
               }`}
             >
@@ -214,14 +141,14 @@ export default function Home() {
                   <span className="font-bold text-lg text-foreground group-hover:text-primary transition-colors">
                     {item.label}
                   </span>
-                  <div className={`p-2.5 rounded-xl ${meta.bgClass} group-hover:scale-110 transition-transform duration-300 ${
+                  <div className={`p-2.5 rounded-xl ${bgClass} group-hover:scale-110 transition-transform duration-300 ${
                     isScan ? 'animate-pulse-soft' : ''
                   }`}>
                     {Icon && <Icon className="w-6 h-6" />}
                   </div>
                 </div>
                 <p className="text-sm text-muted-foreground line-clamp-3 leading-relaxed">
-                  {meta.description}
+                  {description}
                 </p>
               </div>
               <div className="mt-4 flex items-center gap-1.5 text-xs font-bold text-primary opacity-0 group-hover:opacity-100 transition-opacity">

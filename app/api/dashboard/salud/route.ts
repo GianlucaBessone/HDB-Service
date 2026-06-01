@@ -13,11 +13,29 @@ export async function GET(req: Request) {
     const clientId = searchParams.get('clientId');
     const plantId = searchParams.get('plantId');
 
+    // Security check: restrict non-admins/supervisors from querying unassigned clients/plants
+    if (user.role !== 'ADMIN' && user.role !== 'SUPERVISOR') {
+      if (plantId && !user.plantIds.includes(plantId)) {
+        return NextResponse.json({ error: 'Acceso denegado a esta planta' }, { status: 403 });
+      }
+      if (clientId && user.clientId !== clientId) {
+        return NextResponse.json({ error: 'Acceso denegado a este cliente' }, { status: 403 });
+      }
+    }
+
     const whereTickets: any = getDataFilter(user, { 
       locationPlantIdField: 'location',
       plantIdField: undefined 
     });
-    const whereRepairs: any = {};
+    const whereRepairs: any = {
+      dispenser: {
+        active: true,
+        ...getDataFilter(user, {
+          plantIdField: 'plantId',
+          locationPlantIdField: 'location'
+        })
+      }
+    };
     const whereDispensers: any = {
       active: true,
       ...getDataFilter(user, { 

@@ -505,6 +505,7 @@ model Ticket {
   @@index([dispenserId])
   @@index([reportedById])
   @@index([assignedToId])
+  @@index([status, assignedToId])
   @@index([createdAt])
   @@index([slaResolutionDeadline])
 }

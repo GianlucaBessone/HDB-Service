@@ -7,6 +7,12 @@ export const revalidate = 300; // 5 min
 // GET /api/cron/maintenance-schedule
 export async function GET(req: Request) {
   try {
+    // Verify cron secret
+    const authHeader = req.headers.get('authorization');
+    if (process.env.CRON_SECRET && authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+      return new NextResponse('Unauthorized', { status: 401 });
+    }
+
     const now = new Date();
     const currentMonth = format(now, 'yyyy-MM');
 

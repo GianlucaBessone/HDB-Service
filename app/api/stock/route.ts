@@ -64,11 +64,9 @@ export async function GET(req: Request) {
       ? enriched.filter(e => e.cantidad < e.minLevel)
       : enriched;
 
-    await revalidateTag('stock', 'default');
     return NextResponse.json(result);
   } catch (error) {
     console.error('[API] GET /api/stock error:', error);
-    await revalidateTag('stock', 'default');
     return NextResponse.json({ error: 'Error al obtener stock' }, { status: 500 });
   }
 }

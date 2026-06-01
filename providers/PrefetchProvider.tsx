@@ -2,6 +2,7 @@
 
 import { ReactNode, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { useAuthStore } from '@/lib/store/useAuthStore';
 
 export function PrefetchProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
@@ -20,7 +21,11 @@ export function PrefetchProvider({ children }: { children: ReactNode }) {
         });
 
         const user = sessionData?.user;
-        if (!user) return; // User is not authenticated, do not prefetch private API views
+        if (!user) {
+          useAuthStore.getState().clearUser();
+          return; // User is not authenticated, do not prefetch private API views
+        }
+        useAuthStore.getState().setUser(user);
 
         const currentMonthStr = new Date().toISOString().slice(0, 7); // YYYY-MM
 

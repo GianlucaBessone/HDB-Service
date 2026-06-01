@@ -3,8 +3,6 @@ import { UserRole } from '@prisma/client';
 import { hasPermission, Permission } from './rbac';
 import { createClient } from '@/utils/supabase/server';
 import { prisma } from './prisma';
-import fs from 'fs';
-import path from 'path';
 
 function logToFile(msg: string) {
   console.log(`[AUTH] ${msg}`);

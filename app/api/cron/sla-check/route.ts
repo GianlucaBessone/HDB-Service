@@ -11,6 +11,12 @@ export const revalidate = 300; // 5 min
 // GET /api/cron/sla-check
 export async function GET(req: Request) {
   try {
+    // Verify cron secret
+    const authHeader = req.headers.get('authorization');
+    if (process.env.CRON_SECRET && authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+      return new NextResponse('Unauthorized', { status: 401 });
+    }
+
     // 1. Get open/in-progress tickets
     const activeTickets = await prisma.ticket.findMany({
       where: {
@@ -20,6 +26,16 @@ export async function GET(req: Request) {
         location: { include: { plant: { include: { client: { include: { slaConfig: true } } } } } },
       },
     });
+
+    const ticketIds = activeTickets.map(t => t.id);
+    const existingNearBreach = await prisma.notification.findMany({
+      where: {
+        type: 'SLA_NEAR_BREACH',
+        relatedId: { in: ticketIds }
+      },
+      select: { relatedId: true }
+    });
+    const notifiedTicketIds = new Set(existingNearBreach.map(n => n.relatedId).filter(Boolean) as string[]);
 
     const now = new Date();
     const updates = [];
@@ -56,9 +72,13 @@ export async function GET(req: Request) {
           const totalMinutes = (ticket.slaResolutionDeadline.getTime() - ticket.createdAt.getTime()) / 60000;
           const status = getSlaStatus(ticket.slaResolutionDeadline, config?.nearBreachPercent, totalMinutes, ticket.createdAt);
           
-          if (status === 'NEAR_BREACH') {
-            // we could send a warning notification if we haven't already
-            // This requires tracking if near_breach notification was sent to avoid spam.
+          if (status === 'NEAR_BREACH' && !notifiedTicketIds.has(ticket.id)) {
+            notifications.push({
+              title: 'Próximo a Vencer SLA',
+              message: `El ticket ${ticket.id} (${ticket.reason.substring(0, 50)}) está próximo a vencer su SLA de resolución.`,
+              type: 'SLA_NEAR_BREACH',
+              ticketId: ticket.id,
+            });
           }
         }
       }
