@@ -73,7 +73,7 @@ export default function Home() {
   );
 
   return (
-    <div className="relative space-y-6 md:space-y-8 animate-fade-in pb-12 overflow-hidden">
+    <div className="relative space-y-6 md:space-y-8 animate-fade-in pb-12">
       {/* Ambient background glows */}
       <div className="absolute top-[-10%] left-[-10%] w-[300px] h-[300px] rounded-full bg-primary/5 dark:bg-primary/10 blur-[80px] pointer-events-none -z-10 animate-pulse-soft" />
       <div className="absolute bottom-[20%] right-[-10%] w-[250px] h-[250px] rounded-full bg-cyan-500/5 dark:bg-cyan-500/10 blur-[80px] pointer-events-none -z-10" />

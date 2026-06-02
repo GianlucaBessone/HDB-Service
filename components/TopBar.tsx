@@ -18,7 +18,9 @@ import {
   BellRing, 
   X, 
   ArrowRight,
-  Clock
+  Clock,
+  Sun,
+  Moon
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { UserRole } from '@prisma/client';
@@ -230,9 +232,14 @@ export default function TopBar({ user }: { user: { nombre: string; email: string
         {/* Theme Toggle */}
         <button 
           onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-          className="p-2 text-muted-foreground hover:bg-accent rounded-full transition-colors"
+          className="p-2 text-muted-foreground hover:bg-accent hover:text-foreground rounded-full transition-colors flex items-center justify-center w-9 h-9"
+          title={theme === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
         >
-          <span className="text-sm font-medium">{theme === 'dark' ? '🌙' : '☀️'}</span>
+          {theme === 'dark' ? (
+            <Sun className="w-5 h-5 text-amber-500" />
+          ) : (
+            <Moon className="w-5 h-5 text-slate-700 dark:text-slate-300" />
+          )}
         </button>
 
         {/* Notifications Dropdown Toggle */}
