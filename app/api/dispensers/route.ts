@@ -5,7 +5,7 @@ import { requirePermission, getDataFilter } from '@/lib/auth';
 import { withIdempotency } from '@/lib/idempotency';
 import { createAuditLog } from '@/lib/audit';
 
-export const revalidate = 300; // 5 min
+export const dynamic = 'force-dynamic';
 
 function logToFile(msg: string) {
   console.log(`[API] ${msg}`);

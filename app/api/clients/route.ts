@@ -5,7 +5,7 @@ import { requirePermission } from '@/lib/auth';
 import { withIdempotency } from '@/lib/idempotency';
 import { createAuditLog } from '@/lib/audit';
 
-export const revalidate = 300; // 5 min
+export const dynamic = 'force-dynamic';
 
 // GET /api/clients — List all clients
 export async function GET() {

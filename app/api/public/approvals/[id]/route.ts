@@ -96,4 +96,4 @@ export async function PUT(req: Request, props: { params: Promise<{ id: string }>
   }
 }
 
-export const revalidate = 300; // 5 min
+export const dynamic = 'force-dynamic';

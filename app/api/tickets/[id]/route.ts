@@ -6,7 +6,7 @@ import { createAuditLog } from '@/lib/audit';
 import { sendPushNotification } from '@/lib/onesignal';
 import { TicketStatus } from '@prisma/client';
 
-export const revalidate = 300; // 5 min
+export const dynamic = 'force-dynamic';
 
 // GET /api/tickets/[id]
 export async function GET(req: Request, props: { params: Promise<{ id: string }> }) {

@@ -182,4 +182,4 @@ export async function GET(req: Request) {
   }
 }
 
-export const revalidate = 300; // 5 min
+export const dynamic = 'force-dynamic';

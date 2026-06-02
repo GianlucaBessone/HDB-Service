@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requirePermission, getDataFilter } from '@/lib/auth';
 import { getDiffHours, getDiffDays, calculateDispenserHealth, ratingToValue } from '@/lib/analytics';
-export const revalidate = 300; // 5 minutes cache
+export const dynamic = 'force-dynamic';
 
 export async function GET(req: Request) {
   const user = await requirePermission('dashboard:read');

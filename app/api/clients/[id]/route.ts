@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { requirePermission, canAccessClient } from '@/lib/auth';
 import { createAuditLog } from '@/lib/audit';
 
-export const revalidate = 300; // 5 min
+export const dynamic = 'force-dynamic';
 
 // GET /api/clients/[id]
 export async function GET(req: Request, props: { params: Promise<{ id: string }> }) {

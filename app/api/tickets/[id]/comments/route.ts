@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requirePermission } from '@/lib/auth';
 
-export const revalidate = 300; // 5 min
+export const dynamic = 'force-dynamic';
 
 // GET /api/tickets/[id]/comments
 export async function GET(req: Request, props: { params: Promise<{ id: string }> }) {

@@ -7,7 +7,7 @@ import { createAuditLog } from '@/lib/audit';
 import { calculateSlaDeadlines } from '@/lib/sla';
 import { sendPushNotification } from '@/lib/onesignal';
 
-export const revalidate = 300; // 5 min
+export const dynamic = 'force-dynamic';
 
 // GET /api/tickets — List tickets with filters
 export async function GET(req: Request) {

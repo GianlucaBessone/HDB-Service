@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { requireRole } from '@/lib/auth';
 import { supabaseAdmin } from '@/utils/supabase/admin';
 
-export const revalidate = 300; // 5 min
+export const dynamic = 'force-dynamic';
 
 export async function GET() {
   const auth = await requireRole('ADMIN', 'SUPERVISOR');

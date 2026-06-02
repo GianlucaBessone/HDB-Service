@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { requirePermission, getDataFilter } from '@/lib/auth';
 import { createAuditLog } from '@/lib/audit';
 
-export const revalidate = 300;
+export const dynamic = 'force-dynamic';
 
 // GET /api/dispensers/[id]
 export async function GET(req: Request, props: { params: Promise<{ id: string }> }) {
