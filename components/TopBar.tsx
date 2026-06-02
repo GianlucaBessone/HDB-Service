@@ -236,9 +236,9 @@ export default function TopBar({ user }: { user: { nombre: string; email: string
           title={theme === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
         >
           {theme === 'dark' ? (
-            <Sun className="w-5 h-5 text-amber-500" />
+            <Sun className="w-5 h-5" />
           ) : (
-            <Moon className="w-5 h-5 text-slate-700 dark:text-slate-300" />
+            <Moon className="w-5 h-5" />
           )}
         </button>
 
