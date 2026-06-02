@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, useIsFetching } from '@tanstack/react-query';
 import {
   Package, Search, Plus, Filter, AlertTriangle, ArrowRightLeft,
   CreditCard, X, Loader2, CheckCircle2,
@@ -56,6 +56,14 @@ type Debt = {
 export default function InventoryPage() {
   const [activeTab, setActiveTab] = useState<Tab>('stock');
   const [selectedPlant, setSelectedPlant] = useState('');
+  const queryClient = useQueryClient();
+
+  // Check if the current tab's queries are fetching
+  const isFetching = useIsFetching({ queryKey: [activeTab] }) > 0;
+
+  const handleRefresh = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: [activeTab] });
+  }, [queryClient, activeTab]);
 
   const { data: session } = useQuery({
     queryKey: ['session'],
@@ -77,7 +85,7 @@ export default function InventoryPage() {
     }
   });
 
-  const { data: stock = [], isLoading, refetch: fetchStock } = useQuery({
+  const { data: stock = [], isLoading } = useQuery({
     queryKey: ['stock', selectedPlant],
     queryFn: async () => {
       const params = new URLSearchParams();
@@ -107,8 +115,8 @@ export default function InventoryPage() {
           </h1>
           <p className="text-muted-foreground mt-1">Gestión de stock, transferencias y deudas entre plantas</p>
         </div>
-        <button onClick={() => fetchStock()} className="btn-outline btn-sm gap-2 shrink-0">
-          <Loader2 className={clsx('w-4 h-4', isLoading && 'animate-spin')} />
+        <button onClick={handleRefresh} className="btn-outline btn-sm gap-2 shrink-0">
+          <Loader2 className={clsx('w-4 h-4', isFetching && 'animate-spin')} />
           Actualizar
         </button>
       </div>
@@ -155,7 +163,7 @@ export default function InventoryPage() {
             plants={plants} 
             entries={stock} 
             isLoading={isLoading} 
-            onRefresh={fetchStock}
+            onRefresh={handleRefresh}
             role={role}
           />
         )}
@@ -448,7 +456,9 @@ function TransfersTab({ plantId, plants, role }: { plantId: string; plants: any[
 
 // ─── Debts Tab ──────────────────────────────────────
 function DebtsTab({ role }: { role?: string }) {
-  const { data: debts = [], isLoading, refetch: fetchDebts } = useQuery({
+  const queryClient = useQueryClient();
+
+  const { data: debts = [], isLoading } = useQuery({
     queryKey: ['debts'],
     queryFn: async () => {
       const res = await fetch('/api/stock/debts');
@@ -457,15 +467,41 @@ function DebtsTab({ role }: { role?: string }) {
     }
   });
 
-  const handleResolve = async (debtId: string) => {
-    try {
+  const resolveMutation = useMutation({
+    mutationFn: async (debtId: string) => {
       const res = await fetch(`/api/stock/debts/${debtId}/resolve`, { method: 'PATCH' });
-      if (!res.ok) throw new Error();
-      toast.success('Deuda resuelta');
-      fetchDebts();
-    } catch {
+      if (!res.ok) throw new Error('Error al resolver la deuda');
+      return res.json();
+    },
+    onMutate: async (debtId: string) => {
+      await queryClient.cancelQueries({ queryKey: ['debts'] });
+      const previousDebts = queryClient.getQueryData<Debt[]>(['debts']);
+
+      if (previousDebts) {
+        queryClient.setQueryData<Debt[]>(
+          ['debts'],
+          previousDebts.filter(d => d.id !== debtId)
+        );
+      }
+
+      return { previousDebts };
+    },
+    onError: (err, debtId, context) => {
+      if (context?.previousDebts) {
+        queryClient.setQueryData(['debts'], context.previousDebts);
+      }
       toast.error('Error al resolver deuda');
+    },
+    onSuccess: () => {
+      toast.success('Deuda resuelta');
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['debts'] });
     }
+  });
+
+  const handleResolve = (debtId: string) => {
+    resolveMutation.mutate(debtId);
   };
 
   return (

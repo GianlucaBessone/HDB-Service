@@ -4,8 +4,16 @@ import { prisma } from '@/lib/prisma';
 import { requirePermission } from '@/lib/auth';
 import { createAuditLog } from '@/lib/audit';
 
-// POST /api/stock/debts/[id]/resolve
+// POST & PATCH /api/stock/debts/[id]/resolve
 export async function POST(req: Request, props: { params: Promise<{ id: string }> }) {
+  return handleResolve(req, props);
+}
+
+export async function PATCH(req: Request, props: { params: Promise<{ id: string }> }) {
+  return handleResolve(req, props);
+}
+
+async function handleResolve(req: Request, props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
   const user = await requirePermission('stock:write');
   if (user instanceof NextResponse) return user;
@@ -17,12 +25,12 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
 
     if (!debt) {
       await revalidateTag('stock', 'default');
-    return NextResponse.json({ error: 'Deuda no encontrada' }, { status: 404 });
+      return NextResponse.json({ error: 'Deuda no encontrada' }, { status: 404 });
     }
 
     if (debt.status === 'RESOLVED') {
       await revalidateTag('stock', 'default');
-    return NextResponse.json({ error: 'La deuda ya está resuelta' }, { status: 400 });
+      return NextResponse.json({ error: 'La deuda ya está resuelta' }, { status: 400 });
     }
 
     const resolvedDebt = await prisma.interPlantDebt.update({
@@ -39,7 +47,7 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
     await revalidateTag('stock', 'default');
     return NextResponse.json(resolvedDebt);
   } catch (error) {
-    console.error('[API] POST /api/stock/debts/[id]/resolve error:', error);
+    console.error('[API] POST/PATCH /api/stock/debts/[id]/resolve error:', error);
     await revalidateTag('stock', 'default');
     return NextResponse.json({ error: 'Error al resolver deuda' }, { status: 500 });
   }
