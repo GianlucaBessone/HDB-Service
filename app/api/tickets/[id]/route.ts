@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { requirePermission, getDataFilter } from '@/lib/auth';
 import { createAuditLog } from '@/lib/audit';
 import { sendPushNotification } from '@/lib/onesignal';
+import { sendEmail } from '@/lib/email';
 import { TicketStatus } from '@prisma/client';
 
 export const dynamic = 'force-dynamic';
@@ -135,6 +136,27 @@ export async function PUT(req: Request, props: { params: Promise<{ id: string }>
           notes: notes?.trim() || null,
         },
       });
+
+      // Send Email on Resolve
+      if (status === 'RESOLVED') {
+        const reporterEmail = 'reportador@empresa.com'; // Overridden in sendEmail anyway
+        sendEmail({
+          to: reporterEmail,
+          templateType: 'TICKET_RESOLVED',
+          variables: {
+            id_ticket: ticket.id,
+            motivo: ticket.reason,
+            resolucion: notes?.trim() || 'Ticket resuelto y equipo operativo.',
+            tecnico_completo: user.nombre,
+            primer_nombre_tecnico: user.nombre.split(' ')[0],
+            reportador_completo: ticket.reportedBy?.nombre || 'Usuario',
+            primer_nombre_reportador: ticket.reportedBy?.nombre?.split(' ')[0] || 'Usuario',
+            planta: ticket.location?.plant?.nombre || 'N/A',
+            ubicacion: ticket.location?.nombre || 'N/A',
+            fecha_resolucion: new Date().toLocaleDateString('es-AR'),
+          }
+        }).catch(console.error);
+      }
     }
 
     // Assign technician
@@ -170,6 +192,24 @@ export async function PUT(req: Request, props: { params: Promise<{ id: string }>
             relatedId: id,
           },
         });
+
+        // Send Email for Assignment
+        const techEmail = 'tecnico@empresa.com'; // overridden
+        sendEmail({
+          to: techEmail,
+          templateType: 'TICKET_ASSIGNED',
+          variables: {
+            id_ticket: ticket.id,
+            motivo: ticket.reason,
+            tecnico_completo: tech?.nombre || 'Técnico',
+            primer_nombre_tecnico: tech?.nombre?.split(' ')[0] || 'Técnico',
+            prioridad: ticket.priority,
+            planta: ticket.location?.plant?.nombre || 'N/A',
+            ubicacion: ticket.location?.nombre || 'N/A',
+            dias_vencimiento_sla: 'N/A', // Could calculate if needed
+            fecha_vencimiento_sla: ticket.slaResolutionDeadline ? new Date(ticket.slaResolutionDeadline).toLocaleDateString('es-AR') : 'N/A',
+          }
+        }).catch(console.error);
       }
     }
 

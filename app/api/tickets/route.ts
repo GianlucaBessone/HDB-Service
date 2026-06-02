@@ -6,6 +6,7 @@ import { withIdempotency } from '@/lib/idempotency';
 import { createAuditLog } from '@/lib/audit';
 import { calculateSlaDeadlines } from '@/lib/sla';
 import { sendPushNotification } from '@/lib/onesignal';
+import { sendEmail } from '@/lib/email';
 
 export const dynamic = 'force-dynamic';
 
@@ -183,6 +184,22 @@ export async function POST(req: Request) {
           relatedId: ticket.id,
         })),
       });
+
+      // Send Email
+      const adminEmails = supervisorsAndAdmins.map(u => 'admin@empresa.com'); // Placeholder, since it's overridden
+      sendEmail({
+        to: adminEmails.length > 0 ? adminEmails : 'fallback@empresa.com',
+        templateType: 'TICKET_CREATED',
+        variables: {
+          id_ticket: ticket.id,
+          motivo: reason,
+          reportador_completo: user.nombre,
+          primer_nombre_reportador: user.nombre.split(' ')[0],
+          prioridad: ticketPriority,
+          planta: ticket.location?.plant?.nombre || 'N/A',
+          ubicacion: ticket.location?.nombre || 'N/A',
+        }
+      }).catch(console.error);
 
       await createAuditLog({
         userId: user.id,

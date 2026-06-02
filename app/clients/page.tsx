@@ -259,12 +259,17 @@ function EmailsSection() {
     TICKET_RESOLVED: {
       label: 'Ticket Resuelto',
       help: 'Notificación cuando se soluciona un ticket y el equipo queda operativo.',
-      variables: ['{id_ticket}', '{motivo}', '{resolucion}', '{tecnico_completo}', '{primer_nombre_tecnico}', '{planta}', '{ubicacion}', '{fecha_resolucion}']
+      variables: ['{id_ticket}', '{motivo}', '{resolucion}', '{tecnico_completo}', '{primer_nombre_tecnico}', '{reportador_completo}', '{primer_nombre_reportador}', '{planta}', '{ubicacion}', '{fecha_resolucion}']
     },
     DISPENSER_BLOCKED: {
       label: 'Equipo Bloqueado (Esperando OC)',
       help: 'Notificación al responsable cuando un dispenser requiere cambio y está a la espera de Orden de Compra.',
-      variables: ['{id_dispenser}', '{marca}', '{modelo}', '{motivo_cambio}', '{tecnico_completo}', '{primer_nombre_tecnico}', '{planta}', '{ubicacion}', '{fecha_bloqueo}']
+      variables: ['{id_dispenser}', '{marca}', '{modelo}', '{motivo_cambio}', '{tecnico_completo}', '{primer_nombre_tecnico}', '{responsable_completo}', '{primer_nombre_responsable}', '{planta}', '{ubicacion}', '{fecha_bloqueo}']
+    },
+    DISPENSER_BLOCKED_REQUESTER: {
+      label: 'Equipo Bloqueado (Aviso al Referente)',
+      help: 'Notificación al referente cuando un dispenser en su planta queda bloqueado.',
+      variables: ['{id_dispenser}', '{marca}', '{modelo}', '{motivo_cambio}', '{tecnico_completo}', '{primer_nombre_tecnico}', '{referente_completo}', '{primer_nombre_referente}', '{planta}', '{ubicacion}', '{fecha_bloqueo}']
     }
   };
 

@@ -19,7 +19,11 @@ export default function AuthGuard({
   useEffect(() => {
 
     if (!session?.user) {
-      if (pathname !== '/login' && pathname !== '/login/set-password') {
+      if (
+        pathname !== '/login' && 
+        pathname !== '/login/set-password' && 
+        pathname !== '/ideas-sugerencias-reclamos'
+      ) {
         router.push('/login');
       }
       return;

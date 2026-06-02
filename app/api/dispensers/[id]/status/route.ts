@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { requirePermission } from '@/lib/auth';
 import { createAuditLog } from '@/lib/audit';
 import { DispenserStatus } from '@prisma/client';
+import { sendEmail } from '@/lib/email';
 
 /**
  * PUT /api/dispensers/[id]/status — Change dispenser status.
@@ -37,10 +38,18 @@ export async function PUT(req: Request, props: { params: Promise<{ id: string }>
       );
     }
 
-    const dispenser = await prisma.dispenser.findUnique({ where: { id: params.id } });
+    const dispenser = await prisma.dispenser.findUnique({ 
+      where: { id: params.id },
+      include: {
+        location: {
+          include: { plant: true }
+        },
+        plant: true
+      }
+    });
     if (!dispenser) {
       await revalidateTag('dispensers', 'default');
-    return NextResponse.json({ error: 'Dispenser no encontrado' }, { status: 404 });
+      return NextResponse.json({ error: 'Dispenser no encontrado' }, { status: 404 });
     }
 
     // Special permission check: releasing BLOCKED requires dispensers:release_block
@@ -55,10 +64,70 @@ export async function PUT(req: Request, props: { params: Promise<{ id: string }>
     if (status === 'BLOCKED') {
       if (!reason?.trim()) {
         await revalidateTag('dispensers', 'default');
-    return NextResponse.json({ error: 'Motivo de bloqueo requerido' }, { status: 400 });
+        return NextResponse.json({ error: 'Motivo de bloqueo requerido' }, { status: 400 });
       }
       updateData.blockedReason = reason.trim();
       updateData.blockedAt = new Date();
+
+      // Trigger Email Notifications in background
+      (async () => {
+        try {
+          const plant = dispenser.location?.plant || dispenser.plant;
+          if (!plant) return;
+
+          // 1. Send to Client Responsibles
+          const responsibles = await prisma.user.findMany({
+            where: { role: 'CLIENT_RESPONSIBLE', clientId: plant.clientId, active: true },
+          });
+
+          for (const resp of responsibles) {
+            await sendEmail({
+              to: resp.email,
+              templateType: 'DISPENSER_BLOCKED',
+              variables: {
+                id_dispenser: dispenser.id,
+                marca: dispenser.marca,
+                modelo: dispenser.modelo,
+                motivo_cambio: reason.trim(),
+                tecnico_completo: user.nombre,
+                primer_nombre_tecnico: user.nombre.split(' ')[0],
+                responsable_completo: resp.nombre,
+                primer_nombre_responsable: resp.nombre.split(' ')[0],
+                planta: plant.nombre,
+                ubicacion: dispenser.location?.nombre || 'N/A',
+                fecha_bloqueo: new Date().toLocaleDateString('es-AR'),
+              }
+            });
+          }
+
+          // 2. Send to Client Requesters (Referentes) mapped to this plant
+          const requesters = await prisma.user.findMany({
+            where: { role: 'CLIENT_REQUESTER', plantIds: { has: plant.id }, active: true },
+          });
+
+          for (const req of requesters) {
+            await sendEmail({
+              to: req.email,
+              templateType: 'DISPENSER_BLOCKED_REQUESTER',
+              variables: {
+                id_dispenser: dispenser.id,
+                marca: dispenser.marca,
+                modelo: dispenser.modelo,
+                motivo_cambio: reason.trim(),
+                tecnico_completo: user.nombre,
+                primer_nombre_tecnico: user.nombre.split(' ')[0],
+                referente_completo: req.nombre,
+                primer_nombre_referente: req.nombre.split(' ')[0],
+                planta: plant.nombre,
+                ubicacion: dispenser.location?.nombre || 'N/A',
+                fecha_bloqueo: new Date().toLocaleDateString('es-AR'),
+              }
+            });
+          }
+        } catch (emailError) {
+          console.error('[Email] Error enviando notificaciones de bloqueo:', emailError);
+        }
+      })();
     }
 
     // Handle BACKUP → pause lifecycle

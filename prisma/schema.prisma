@@ -52,6 +52,7 @@ model User {
   stockTransfers       StockTransfer[]              @relation("TransferredByUser")
   auditLogs            AuditLog[]
   notifications        Notification[]
+  sugerencias          Sugerencia[]
 
   createdAt           DateTime              @default(now())
   updatedAt           DateTime              @updatedAt
@@ -692,4 +693,83 @@ model EmailTemplate {
   body      String   @db.Text
   active    Boolean  @default(true)
   updatedAt DateTime @updatedAt
+}
+
+// ═══════════════════════════════════════════════════════
+// IDEAS, SUGERENCIAS Y RECLAMOS
+// ═══════════════════════════════════════════════════════
+
+enum TipoRegistro {
+  IDEA
+  SUGERENCIA
+  RECLAMO
+  SEGURIDAD
+  AHORRO
+  RECONOCIMIENTO
+  OTRO
+}
+
+enum AreaInvolucrada {
+  PRODUCCION
+  MANTENIMIENTO
+  CALIDAD
+  SEGURIDAD
+  LOGISTICA
+  COMPRAS
+  ADMINISTRACION
+  SISTEMAS
+  RRHH
+  DIRECCION
+  OTRA
+}
+
+enum ImpactoEstimado {
+  BAJO
+  MEDIO
+  ALTO
+}
+
+enum FrecuenciaProblema {
+  UNA_VEZ
+  SEMANALMENTE
+  VARIAS_POR_SEMANA
+  DIARIAMENTE
+  VARIAS_POR_DIA
+}
+
+enum TipoPresentacion {
+  ANONIMA
+  IDENTIFICADA
+}
+
+enum SugerenciaEstado {
+  PENDIENTE
+  EN_EVALUACION
+  APROBADA
+  RECHAZADA
+  IMPLEMENTADA
+  CERRADA
+}
+
+model Sugerencia {
+  id                  String               @id @default(cuid())
+  fecha_creacion      DateTime             @default(now())
+  tipo_registro       TipoRegistro
+  titulo              String               @db.VarChar(150)
+  descripcion         String               @db.Text
+  area_involucrada    AreaInvolucrada
+  beneficios          String[]
+  impacto_estimado    ImpactoEstimado?
+  propuesta_solucion  String?              @db.Text
+  frecuencia_problema FrecuenciaProblema?
+  presentacion        TipoPresentacion     @default(ANONIMA)
+  usuario_id          String?
+  usuario             User?                @relation(fields: [usuario_id], references: [id], onDelete: SetNull)
+  estado              SugerenciaEstado     @default(PENDIENTE)
+  fecha_actualizacion DateTime             @updatedAt
+  archivos_adjuntos   String[]
+
+  @@index([usuario_id])
+  @@index([estado])
+  @@index([fecha_creacion])
 }

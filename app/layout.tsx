@@ -73,7 +73,7 @@ export default async function RootLayout({
                     <MobileTabBar userRole={session!.user.role} />
                   </div>
                 ) : (
-                  <main className="h-screen flex items-center justify-center">
+                  <main className={pathname.startsWith('/login') ? "h-screen flex items-center justify-center" : ""}>
                     {children}
                     {mustChangePassword && <ForcePasswordChangeModal />}
                   </main>
