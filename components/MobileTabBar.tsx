@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useUIStore } from '@/lib/store/useUIStore';
@@ -19,6 +20,29 @@ import clsx from 'clsx';
 export default function MobileTabBar({ userRole }: { userRole: UserRole }) {
   const pathname = usePathname();
   const toggleSidebar = useUIStore(state => state.toggleSidebar);
+  
+  const [isPulsing, setIsPulsing] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  // Monitor the scroll of the main content container
+  useEffect(() => {
+    const mainEl = document.querySelector('main');
+    if (!mainEl) return;
+
+    const handleScroll = () => {
+      if (mainEl.scrollTop > 80) {
+        setIsScrolled(true);
+      } else {
+        setIsScrolled(false);
+      }
+    };
+
+    // Check initial scroll state
+    handleScroll();
+
+    mainEl.addEventListener('scroll', handleScroll, { passive: true });
+    return () => mainEl.removeEventListener('scroll', handleScroll);
+  }, [pathname]);
 
   // Check visibility of items
   const canScanQr = isNavVisible('/qr/scan', userRole);
@@ -75,20 +99,28 @@ export default function MobileTabBar({ userRole }: { userRole: UserRole }) {
               {/* Floating circular button */}
               <Link
                 href="/qr/scan"
+                onClick={() => {
+                  setIsPulsing(true);
+                  setTimeout(() => setIsPulsing(false), 1000);
+                }}
                 className={clsx(
-                  "absolute -top-8 left-1/2 -translate-x-1/2 w-16 h-16 rounded-full flex items-center justify-center border-2 transition-all duration-300 hover:scale-105 active:scale-95 shadow-lg",
+                  "absolute left-1/2 -translate-x-1/2 w-16 h-16 rounded-full flex items-center justify-center border-2 transition-all duration-300 hover:scale-105 active:scale-95 shadow-lg",
                   "bg-white dark:bg-zinc-900 border-cyan-500 shadow-cyan-500/25",
-                  isQrActive ? "ring-4 ring-cyan-500/20" : ""
+                  isQrActive ? "ring-4 ring-cyan-500/20" : "",
+                  isScrolled ? "-top-[3px]" : "-top-8"
                 )}
                 title="Escanear QR"
               >
-                {/* Rippling radar effect */}
-                <span className="absolute w-full h-full rounded-full bg-cyan-500/20 animate-ping-slow -z-10" />
+                {/* Rippling radar effect triggered on click */}
+                {isPulsing && (
+                  <span className="absolute w-full h-full rounded-full bg-cyan-500/40 animate-ping -z-10" />
+                )}
                 <ScanLine className="w-6 h-6 text-cyan-500 animate-pulse-soft" />
               </Link>
               <span className={clsx(
-                "text-[10px] font-medium mt-1 transition-colors duration-200",
-                isQrActive ? "text-cyan-500 font-bold" : "text-muted-foreground"
+                "text-[10px] font-medium mt-1 transition-all duration-300",
+                isQrActive ? "text-cyan-500 font-bold" : "text-muted-foreground",
+                isScrolled ? "opacity-0 translate-y-2 pointer-events-none" : "opacity-100 translate-y-0"
               )}>
                 Escanear
               </span>
