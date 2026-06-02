@@ -75,7 +75,7 @@ export default function Sidebar({ userRole }: { userRole: UserRole }) {
       {/* Footer */}
       <div className="p-4 border-t border-border">
         <div className="text-xs text-muted-foreground text-center">
-          v1.0.0
+          v1.0.1
         </div>
       </div>
     </aside>
