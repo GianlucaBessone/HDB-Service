@@ -76,7 +76,7 @@ export default function MobileTabBar({ userRole }: { userRole: UserRole }) {
               <Link
                 href="/qr/scan"
                 className={clsx(
-                  "absolute -top-8 left-1/2 -translate-x-1/2 w-16 h-16 rounded-full flex items-center justify-center border-4 transition-all duration-300 hover:scale-105 active:scale-95 shadow-lg",
+                  "absolute -top-8 left-1/2 -translate-x-1/2 w-16 h-16 rounded-full flex items-center justify-center border-2 transition-all duration-300 hover:scale-105 active:scale-95 shadow-lg",
                   "bg-white dark:bg-zinc-900 border-cyan-500 shadow-cyan-500/25",
                   isQrActive ? "ring-4 ring-cyan-500/20" : ""
                 )}
