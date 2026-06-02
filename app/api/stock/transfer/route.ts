@@ -130,7 +130,7 @@ export async function POST(req: Request) {
       });
 
       // 3. Create transfer record
-      return tx.stockTransfer.create({
+      const newTransfer = await tx.stockTransfer.create({
         data: {
           fromPlantId,
           toPlantId,
@@ -143,6 +143,51 @@ export async function POST(req: Request) {
           completedAt: new Date(),
         },
       });
+
+      // 4. Auto-resolve debts (if fromPlant owed toPlant)
+      const pendingDebts = await tx.interPlantDebt.findMany({
+        where: {
+          debtorPlantId: fromPlantId,
+          creditorPlantId: toPlantId,
+          materialCode: materialCode,
+          status: 'PENDING'
+        },
+        orderBy: { createdAt: 'asc' }
+      });
+
+      let remainingToResolve = cantidad;
+      for (const debt of pendingDebts) {
+        if (remainingToResolve >= debt.cantidad) {
+          // Resolve full debt
+          await tx.interPlantDebt.update({
+            where: { id: debt.id },
+            data: { status: 'RESOLVED', resolvedAt: new Date() }
+          });
+          remainingToResolve -= debt.cantidad;
+        } else if (remainingToResolve > 0) {
+          // Partially resolve debt (split it)
+          await tx.interPlantDebt.update({
+            where: { id: debt.id },
+            data: { cantidad: debt.cantidad - remainingToResolve }
+          });
+          await tx.interPlantDebt.create({
+            data: {
+              creditorPlantId: debt.creditorPlantId,
+              debtorPlantId: debt.debtorPlantId,
+              materialCode: debt.materialCode,
+              nombre: debt.nombre,
+              consumableId: debt.consumableId,
+              cantidad: remainingToResolve,
+              status: 'RESOLVED',
+              resolvedAt: new Date()
+            }
+          });
+          remainingToResolve = 0;
+        }
+        if (remainingToResolve <= 0) break;
+      }
+
+      return newTransfer;
     });
 
     await createAuditLog({

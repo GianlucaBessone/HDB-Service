@@ -35,16 +35,21 @@ const iconMap: Record<string, React.ComponentType<any>> = {
 
 export default function Home() {
   const router = useRouter();
+  const [session, setSession] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [greeting, setGreeting] = useState('¡Hola');
 
-  const { data: session, isLoading } = useQuery({
-    queryKey: ['session'],
-    queryFn: async () => {
+  useEffect(() => {
+    const fetchSession = async () => {
       const res = await fetch('/api/auth/session');
-      if (!res.ok) return { user: null };
-      return res.json();
-    }
-  });
+      if (res.ok) {
+        const data = await res.json();
+        setSession(data);
+      }
+      setIsLoading(false);
+    };
+    fetchSession();
+  }, []);
 
   useEffect(() => {
     if (!isLoading && !session?.user) {

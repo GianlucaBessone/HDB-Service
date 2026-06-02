@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import {
   Settings, Building2, MapPin, Layers, Plus, ChevronRight,
   ChevronDown, X, Loader2, Edit2, Trash2, GlassWater,
-  Download, FileSpreadsheet, Mail, Save, HelpCircle
+  Download, FileSpreadsheet, Mail, Save, HelpCircle, Server
 } from 'lucide-react';
 import clsx from 'clsx';
 import toast from 'react-hot-toast';
@@ -22,7 +22,7 @@ type Location = {
   dispensers: { id: string; marca: string; modelo: string; status: string }[];
 };
 
-type ActiveSection = 'clients' | 'plants' | 'sectors' | 'locations' | 'emails';
+type ActiveSection = 'clients' | 'plants' | 'sectors' | 'locations' | 'emails' | 'smtp';
 
 export default function ConfigPage() {
   const [section, setSection] = useState<ActiveSection>('plants');
@@ -42,6 +42,7 @@ export default function ConfigPage() {
     { key: 'sectors', label: 'Sectores', icon: Layers },
     { key: 'locations', label: 'Ubicaciones', icon: MapPin },
     { key: 'emails', label: 'Emails', icon: Mail },
+    { key: 'smtp', label: 'Servidor SMTP', icon: Server },
   ];
 
   return (
@@ -78,11 +79,125 @@ export default function ConfigPage() {
       {section === 'sectors' && <SectorsSection />}
       {section === 'locations' && <LocationsSection />}
       {section === 'emails' && <EmailsSection />}
+      {section === 'smtp' && <SmtpSection />}
     </div>
   );
 }
 
 // ... (ClientsSection, PlantsSection, SectorsSection, LocationsSection remain unchanged)
+
+// ─── SMTP Section ─────────────────────────────────
+function SmtpSection() {
+  const [settings, setSettings] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    fetch('/api/settings?keys=SMTP_HOST,SMTP_PORT,SMTP_USER,SMTP_PASS,SMTP_FROM_NAME,SMTP_FROM_EMAIL,SMTP_SECURE')
+      .then(res => res.json())
+      .then(data => {
+        setSettings(data);
+        setIsLoading(false);
+      })
+      .catch(() => setIsLoading(false));
+  }, []);
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setIsSaving(true);
+    const formData = new FormData(e.currentTarget);
+    const data = {
+      SMTP_HOST: formData.get('SMTP_HOST'),
+      SMTP_PORT: formData.get('SMTP_PORT'),
+      SMTP_USER: formData.get('SMTP_USER'),
+      SMTP_PASS: formData.get('SMTP_PASS'),
+      SMTP_FROM_NAME: formData.get('SMTP_FROM_NAME'),
+      SMTP_FROM_EMAIL: formData.get('SMTP_FROM_EMAIL'),
+      SMTP_SECURE: formData.get('SMTP_SECURE') === 'on' ? 'true' : 'false',
+    };
+
+    try {
+      const res = await fetch('/api/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) throw new Error();
+      toast.success('Configuración SMTP guardada');
+    } catch {
+      toast.error('Error al guardar la configuración');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  if (isLoading) return <LoadingSkeleton />;
+
+  return (
+    <div className="max-w-3xl glass-card p-6 md:p-8 animate-fade-in">
+      <div className="mb-6">
+        <h2 className="text-xl font-bold flex items-center gap-2">
+          <Server className="w-5 h-5 text-primary" />
+          Servidor de Correo Electrónico (SMTP)
+        </h2>
+        <p className="text-sm text-muted-foreground mt-1">
+          Configura los datos del servidor de correo saliente. Estos datos se utilizarán para enviar todas las notificaciones automáticas (como tickets y claves) a través del sistema.
+        </p>
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <label className="label">Servidor SMTP (Host) *</label>
+            <input name="SMTP_HOST" defaultValue={settings?.SMTP_HOST || ''} className="input" placeholder="ej. smtp.gmail.com" required />
+          </div>
+          <div className="space-y-1.5">
+            <label className="label">Puerto *</label>
+            <input name="SMTP_PORT" type="number" defaultValue={settings?.SMTP_PORT || '587'} className="input" placeholder="ej. 587 o 465" required />
+          </div>
+          
+          <div className="space-y-1.5">
+            <label className="label">Usuario SMTP *</label>
+            <input name="SMTP_USER" defaultValue={settings?.SMTP_USER || ''} className="input" placeholder="ej. notificaciones@empresa.com" required />
+          </div>
+          <div className="space-y-1.5">
+            <label className="label">Contraseña SMTP *</label>
+            <input name="SMTP_PASS" type="password" defaultValue={settings?.SMTP_PASS || ''} className="input" placeholder="••••••••" required />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="label">Nombre del Remitente</label>
+            <input name="SMTP_FROM_NAME" defaultValue={settings?.SMTP_FROM_NAME || 'HDB Service'} className="input" placeholder="ej. HDB Service" />
+          </div>
+          <div className="space-y-1.5">
+            <label className="label">Email del Remitente *</label>
+            <input name="SMTP_FROM_EMAIL" type="email" defaultValue={settings?.SMTP_FROM_EMAIL || ''} className="input" placeholder="ej. no-reply@empresa.com" required />
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3 p-4 bg-muted/20 border border-border rounded-lg">
+          <input 
+            type="checkbox" 
+            name="SMTP_SECURE" 
+            id="SMTP_SECURE" 
+            defaultChecked={settings?.SMTP_SECURE === 'true' || settings?.SMTP_SECURE === undefined}
+            className="w-4 h-4 text-primary bg-background border-border rounded focus:ring-primary" 
+          />
+          <label htmlFor="SMTP_SECURE" className="text-sm font-medium cursor-pointer">
+            Usar conexión segura (TLS/SSL)
+          </label>
+        </div>
+
+        <div className="pt-4 flex justify-end">
+          <button type="submit" disabled={isSaving} className="btn-primary gap-2 w-full sm:w-auto">
+            {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+            {isSaving ? 'Guardando...' : 'Guardar Configuración SMTP'}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
 
 // ─── Emails Section ─────────────────────────────────
 function EmailsSection() {
@@ -112,10 +227,45 @@ function EmailsSection() {
     setEditingTemplate(null);
   };
 
+  const textAreaRef = useRef<HTMLTextAreaElement>(null);
+
+  const insertVariable = (variable: string) => {
+    if (!textAreaRef.current) return;
+    const textarea = textAreaRef.current;
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const text = textarea.value;
+    textarea.value = text.substring(0, start) + variable + text.substring(end);
+    textarea.focus();
+    textarea.selectionStart = textarea.selectionEnd = start + variable.length;
+  };
+
   const templateTypes = {
-    WELCOME_TEMP_PASSWORD: { label: 'Bienvenida (Clave Temporal)', help: 'Se envía al crear un nuevo usuario. Variables: {nombre}, {email}, {password}' },
-    TICKET_CREATED: { label: 'Ticket Creado', help: 'Notificación de nuevo ticket. Variables: {id}, {reason}, {reporter}' },
-    TICKET_ASSIGNED: { label: 'Ticket Asignado', help: 'Notificación al técnico asignado. Variables: {id}, {reason}, {assignee}' },
+    WELCOME_TEMP_PASSWORD: { 
+      label: 'Bienvenida (Clave Temporal)', 
+      help: 'Se envía al crear un nuevo usuario.', 
+      variables: ['{nombre_completo}', '{primer_nombre}', '{email}', '{contraseña}'] 
+    },
+    TICKET_CREATED: { 
+      label: 'Ticket Creado', 
+      help: 'Notificación de nuevo ticket.', 
+      variables: ['{id_ticket}', '{motivo}', '{reportador_completo}', '{primer_nombre_reportador}', '{prioridad}', '{planta}', '{ubicacion}'] 
+    },
+    TICKET_ASSIGNED: { 
+      label: 'Ticket Asignado', 
+      help: 'Notificación al técnico asignado.', 
+      variables: ['{id_ticket}', '{motivo}', '{tecnico_completo}', '{primer_nombre_tecnico}', '{prioridad}', '{planta}', '{ubicacion}', '{dias_vencimiento_sla}', '{fecha_vencimiento_sla}'] 
+    },
+    TICKET_RESOLVED: {
+      label: 'Ticket Resuelto',
+      help: 'Notificación cuando se soluciona un ticket y el equipo queda operativo.',
+      variables: ['{id_ticket}', '{motivo}', '{resolucion}', '{tecnico_completo}', '{primer_nombre_tecnico}', '{planta}', '{ubicacion}', '{fecha_resolucion}']
+    },
+    DISPENSER_BLOCKED: {
+      label: 'Equipo Bloqueado (Esperando OC)',
+      help: 'Notificación al responsable cuando un dispenser requiere cambio y está a la espera de Orden de Compra.',
+      variables: ['{id_dispenser}', '{marca}', '{modelo}', '{motivo_cambio}', '{tecnico_completo}', '{primer_nombre_tecnico}', '{planta}', '{ubicacion}', '{fecha_bloqueo}']
+    }
   };
 
   return (
@@ -126,7 +276,6 @@ function EmailsSection() {
           <p className="text-muted-foreground">No hay plantillas configuradas</p>
           <button 
             onClick={async () => {
-              // Initialize default templates
               for (const type of Object.keys(templateTypes)) {
                 await fetch('/api/email-templates', {
                   method: 'POST',
@@ -146,7 +295,34 @@ function EmailsSection() {
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="space-y-4">
+          {Object.keys(templateTypes).length > templates.length && (
+            <div className="flex justify-end">
+              <button
+                onClick={async () => {
+                  const existingTypes = templates.map(t => t.type);
+                  const missingTypes = Object.keys(templateTypes).filter(t => !existingTypes.includes(t));
+                  for (const type of missingTypes) {
+                    await fetch('/api/email-templates', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        type,
+                        subject: `Notificación: ${type}`,
+                        body: 'Cuerpo de correo predeterminado'
+                      })
+                    });
+                  }
+                  window.location.reload();
+                }}
+                className="btn-outline gap-2 text-xs"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                Agregar Plantillas Nuevas ({Object.keys(templateTypes).length - templates.length})
+              </button>
+            </div>
+          )}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {templates.map(t => (
             <div key={t.id} className="glass-card p-6 flex flex-col justify-between">
               <div>
@@ -169,17 +345,17 @@ function EmailsSection() {
               <div className="mt-4 pt-4 border-t border-border flex items-center justify-between text-[11px] text-muted-foreground italic">
                 <div className="flex items-center gap-1.5">
                   <HelpCircle className="w-3 h-3" />
-                  {(templateTypes as any)[t.type]?.help}
+                  {(templateTypes as any)[t.type]?.help} Variables: {((templateTypes as any)[t.type]?.variables || []).join(', ')}
                 </div>
               </div>
             </div>
           ))}
+          </div>
         </div>
       )}
-
       {editingTemplate && (
         <div className="modal-overlay" onClick={() => setEditingTemplate(null)}>
-          <div className="modal-content max-w-2xl" onClick={e => e.stopPropagation()}>
+          <div className="modal-content max-w-4xl" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <h2 className="text-lg font-semibold">Editar Plantilla: {(templateTypes as any)[editingTemplate.type]?.label}</h2>
               <button onClick={() => setEditingTemplate(null)} className="btn-ghost btn-icon"><X className="w-5 h-5" /></button>
@@ -192,33 +368,81 @@ function EmailsSection() {
                 body: formData.get('body'),
               });
             }}>
-              <div className="modal-body space-y-4">
-                <div className="space-y-1.5">
-                  <label className="label">Asunto del Email</label>
-                  <input
-                    name="subject"
-                    defaultValue={editingTemplate.subject}
-                    className="input"
-                    required
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="label">Cuerpo del Email (HTML permitido)</label>
-                  <textarea
-                    name="body"
-                    defaultValue={editingTemplate.body}
-                    className="input min-h-[300px] font-mono text-sm leading-relaxed"
-                    required
-                  />
-                </div>
-                <div className="p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
-                  <p className="text-xs text-amber-800 dark:text-amber-300 flex items-center gap-2">
-                    <HelpCircle className="w-3.5 h-3.5" />
-                    Atención: Puedes usar las variables entre llaves para que el sistema las reemplace automáticamente.
-                  </p>
+              <div className="modal-body p-0">
+                <div className="grid grid-cols-1 md:grid-cols-[1fr_260px] gap-0">
+                  {/* Left Column: Form Fields */}
+                  <div className="p-6 space-y-4 border-r border-border/50">
+                    <div className="space-y-1.5">
+                      <label className="label">Asunto del Email</label>
+                      <input
+                        name="subject"
+                        defaultValue={editingTemplate.subject}
+                        className="input"
+                        required
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="label">Cuerpo del Email (HTML permitido)</label>
+                      <textarea
+                        ref={textAreaRef}
+                        name="body"
+                        defaultValue={editingTemplate.body}
+                        className="input min-h-[300px] font-mono text-sm leading-relaxed resize-y"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  {/* Right Column: Variables Side Panel */}
+                  <div className="p-6 bg-muted/20 dark:bg-muted/10 space-y-4">
+                    <div>
+                      <h3 className="font-semibold text-sm mb-1 flex items-center gap-1.5">
+                        <Settings className="w-4 h-4 text-primary" />
+                        Variables Disponibles
+                      </h3>
+                      <p className="text-xs text-muted-foreground">
+                        Haz clic para insertarlas en la posición del cursor.
+                      </p>
+                    </div>
+
+                    <div className="flex flex-col gap-2">
+                      {((templateTypes as any)[editingTemplate.type]?.variables || []).map((v: string, i: number) => {
+                        const colors = [
+                          'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300 border-blue-200 dark:border-blue-800',
+                          'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800',
+                          'bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300 border-purple-200 dark:border-purple-800',
+                          'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 border-amber-200 dark:border-amber-800',
+                          'bg-rose-100 text-rose-800 dark:bg-rose-900/40 dark:text-rose-300 border-rose-200 dark:border-rose-800',
+                          'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/40 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800',
+                        ];
+                        const colorClass = colors[i % colors.length];
+                        return (
+                          <button
+                            key={v}
+                            type="button"
+                            onClick={() => insertVariable(v)}
+                            className={`px-2.5 py-1.5 text-xs font-mono font-medium rounded-md border text-left cursor-pointer transition-all hover:scale-[1.02] active:scale-95 select-none flex items-center justify-between ${colorClass}`}
+                            title={`Insertar ${v}`}
+                          >
+                            <span>{v}</span>
+                            <span className="opacity-50 text-[10px]">&rarr;</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    <div className="mt-auto pt-6">
+                      <div className="p-3 bg-primary/5 border border-primary/10 rounded-lg">
+                        <p className="text-[11px] text-muted-foreground flex items-start gap-1.5 leading-snug">
+                          <HelpCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                          El sistema reemplazará automáticamente estas llaves por la información real al enviar el correo.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
-              <div className="modal-footer">
+              <div className="modal-footer bg-muted/30 border-t border-border">
                 <button type="button" onClick={() => setEditingTemplate(null)} className="btn-outline">Cancelar</button>
                 <button type="submit" className="btn-primary gap-2">
                   <Save className="w-4 h-4" />

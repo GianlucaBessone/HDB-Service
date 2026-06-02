@@ -52,7 +52,7 @@ export default function SetPasswordPage() {
         toast.success('¡Contraseña establecida con éxito!');
         setIsSuccess(true);
         setTimeout(() => {
-          router.push('/dashboard');
+          router.push('/');
         }, 2000);
       }
     } catch (err) {

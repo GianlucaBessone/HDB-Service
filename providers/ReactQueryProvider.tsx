@@ -1,7 +1,7 @@
 "use client";
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ReactNode, useState } from 'react';
+import { ReactNode, useState, useEffect } from 'react';
 
 export function ReactQueryProvider({ children }: { children: ReactNode }) {
   const [client] = useState(() => new QueryClient({
@@ -10,8 +10,14 @@ export function ReactQueryProvider({ children }: { children: ReactNode }) {
         staleTime: 5 * 60 * 1000, // 5 min
         gcTime: 10 * 60 * 1000,
         refetchOnWindowFocus: false,
+        networkMode: 'offlineFirst', // Permite usar la caché aunque no haya internet
       },
+      mutations: {
+        networkMode: 'offlineFirst', // Pone las mutaciones en pausa si se hacen sin conexión
+        retry: 3,
+      }
     },
   }));
+
   return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
 }

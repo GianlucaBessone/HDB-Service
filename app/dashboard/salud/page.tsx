@@ -346,7 +346,7 @@ function SaludContent() {
                                   <span className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest">
                                     MTBF
                                   </span>
-                                  <Info className="w-3 h-3 text-muted-foreground/70 cursor-help" />
+                                  <Info className="w-3 h-3 text-muted-foreground/70 cursor-pointer" />
                                   <div className="absolute bottom-full left-0 mb-2 w-48 p-2.5 bg-background/90 backdrop-blur-md border border-border rounded-xl shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 text-xs font-normal text-foreground normal-case tracking-normal">
                                     Tiempo promedio entre fallas (Mean Time Between Failures).<br /><br />
                                     <span className="text-muted-foreground">Un número mayor indica mayor confiabilidad.</span>
@@ -366,7 +366,7 @@ function SaludContent() {
                                   <span className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest">
                                     MTTR
                                   </span>
-                                  <Info className="w-3 h-3 text-muted-foreground/70 cursor-help" />
+                                  <Info className="w-3 h-3 text-muted-foreground/70 cursor-pointer" />
                                   <div className="absolute bottom-full left-0 mb-2 w-48 p-2.5 bg-background/90 backdrop-blur-md border border-border rounded-xl shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 text-xs font-normal text-foreground normal-case tracking-normal">
                                     Tiempo promedio de reparación (Mean Time To Repair).<br /><br />
                                     <span className="text-muted-foreground">Calculado desde la creación hasta la resolución del ticket.</span>
@@ -380,7 +380,7 @@ function SaludContent() {
                                   <span className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest">
                                     Reincidencias
                                   </span>
-                                  <Info className="w-3 h-3 text-muted-foreground/70 cursor-help" />
+                                  <Info className="w-3 h-3 text-muted-foreground/70 cursor-pointer" />
                                   <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2.5 bg-background/90 backdrop-blur-md border border-border rounded-xl shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 text-xs font-normal text-foreground normal-case tracking-normal">
                                     Fallas reportadas y reparadas en los últimos 6 meses.<br /><br />
                                     <span className="text-muted-foreground">Se asocia a la estabilidad a corto plazo.</span>
@@ -394,7 +394,7 @@ function SaludContent() {
                                   <span className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest">
                                     Cond. Gral
                                   </span>
-                                  <Info className="w-3 h-3 text-muted-foreground/70 cursor-help" />
+                                  <Info className="w-3 h-3 text-muted-foreground/70 cursor-pointer" />
                                   <div className="absolute bottom-full right-0 mb-2 w-48 p-2.5 bg-background/90 backdrop-blur-md border border-border rounded-xl shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 text-xs font-normal text-foreground normal-case tracking-normal">
                                     Promedio de condición (1-100%).<br /><br />
                                     <span className="text-muted-foreground">Recolectado por técnicos durante rutinas de mantenimiento preventivo.</span>
@@ -408,7 +408,7 @@ function SaludContent() {
                                   <span className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest">
                                     Vida Útil Cons.
                                   </span>
-                                  <Info className="w-3 h-3 text-muted-foreground/70 cursor-help" />
+                                  <Info className="w-3 h-3 text-muted-foreground/70 cursor-pointer" />
                                   <div className="absolute bottom-full right-0 mb-2 w-48 p-2.5 bg-background/90 backdrop-blur-md border border-border rounded-xl shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 text-xs font-normal text-foreground normal-case tracking-normal">
                                     Porcentaje de la vida teórica total consumida.<br /><br />
                                     <span className="text-muted-foreground">Calculado según meses de uso vs vida teórica del equipo.</span>

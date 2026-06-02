@@ -51,6 +51,12 @@ export default function TopBar({ user }: { user: { nombre: string; email: string
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
 
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   // Fetch notifications
   const fetchNotifications = async () => {
     try {
@@ -233,12 +239,16 @@ export default function TopBar({ user }: { user: { nombre: string; email: string
         <button 
           onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
           className="p-2 text-muted-foreground hover:bg-accent hover:text-foreground rounded-full transition-colors flex items-center justify-center w-9 h-9"
-          title={theme === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
+          title={mounted ? (theme === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro') : 'Cambiar tema'}
         >
-          {theme === 'dark' ? (
-            <Sun className="w-5 h-5" />
+          {mounted ? (
+            theme === 'dark' ? (
+              <Sun className="w-5 h-5" />
+            ) : (
+              <Moon className="w-5 h-5" />
+            )
           ) : (
-            <Moon className="w-5 h-5" />
+            <div className="w-5 h-5 opacity-0" />
           )}
         </button>
 

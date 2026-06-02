@@ -17,7 +17,7 @@ export default function LoginScreen() {
     async function checkSession() {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
-        router.push('/dashboard');
+        router.push('/');
       }
     }
     checkSession();
@@ -38,7 +38,7 @@ export default function LoginScreen() {
         setIsLoading(false);
       } else {
         toast.success('¡Bienvenido!');
-        router.push('/dashboard');
+        router.push('/');
         router.refresh();
       }
     } catch (err) {

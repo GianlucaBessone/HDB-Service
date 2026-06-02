@@ -82,7 +82,12 @@ export async function PUT(req: Request, props: { params: Promise<{ id: string }>
     });
     if (!ticket) {
       await revalidateTag('tickets', 'default');
-    return NextResponse.json({ error: 'Ticket no encontrado' }, { status: 404 });
+      return NextResponse.json({ error: 'Ticket no encontrado' }, { status: 404 });
+    }
+
+    // Security: Prevent Horizontal Privilege Escalation (IDOR)
+    if (user.role === 'TECHNICIAN' && ticket.assignedToId !== user.id) {
+      return NextResponse.json({ error: 'Acceso denegado: el ticket no te está asignado' }, { status: 403 });
     }
 
     const updateData: any = {};

@@ -12,6 +12,7 @@ import OneSignalInit from '@/components/OneSignalInit';
 import { Toaster } from 'react-hot-toast';
 import { headers } from 'next/headers';
 import { Analytics } from '@vercel/analytics/next';
+import AuthGuard from '@/components/AuthGuard';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -57,31 +58,33 @@ export default async function RootLayout({
         <ReactQueryProvider>
           <PrefetchProvider>
             <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          {showSidebar ? (
-            <div className="flex h-screen overflow-hidden">
-              <Sidebar userRole={session!.user.role} />
-              <div className="flex flex-col flex-1 overflow-hidden ml-0 md:ml-64 transition-all duration-300">
-                <TopBar user={session!.user} />
-                <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 pb-28 md:pb-6 lg:pb-8">
-                  {children}
-                </main>
-              </div>
-              {session!.user.role !== 'CLIENT_REQUESTER' && <OneSignalInit user={session!.user} />}
-              {mustChangePassword && <ForcePasswordChangeModal />}
-              <MobileTabBar userRole={session!.user.role} />
-            </div>
-          ) : (
-            <main className="h-screen flex items-center justify-center">
-              {children}
-              {mustChangePassword && <ForcePasswordChangeModal />}
-            </main>
-          )}
-            <Toaster position="bottom-right" />
-            <Analytics />
-          </ThemeProvider>
-        </PrefetchProvider>
-      </ReactQueryProvider>
-    </body>
+              <AuthGuard session={session}>
+                {showSidebar ? (
+                  <div className="flex h-screen overflow-hidden">
+                    <Sidebar userRole={session!.user.role} />
+                    <div className="flex flex-col flex-1 overflow-hidden ml-0 md:ml-64 transition-all duration-300">
+                      <TopBar user={session!.user} />
+                      <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 pb-28 md:pb-6 lg:pb-8">
+                        {children}
+                      </main>
+                    </div>
+                    {session!.user.role !== 'CLIENT_REQUESTER' && <OneSignalInit user={session!.user} />}
+                    {mustChangePassword && <ForcePasswordChangeModal />}
+                    <MobileTabBar userRole={session!.user.role} />
+                  </div>
+                ) : (
+                  <main className="h-screen flex items-center justify-center">
+                    {children}
+                    {mustChangePassword && <ForcePasswordChangeModal />}
+                  </main>
+                )}
+              </AuthGuard>
+              <Toaster position="bottom-right" />
+              <Analytics />
+            </ThemeProvider>
+          </PrefetchProvider>
+        </ReactQueryProvider>
+      </body>
     </html>
   );
 }

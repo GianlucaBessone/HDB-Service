@@ -155,14 +155,14 @@ export async function POST(req: Request) {
         },
       });
 
-      // Notify technicians
-      const technicians = await prisma.user.findMany({
-        where: { role: 'TECHNICIAN', active: true, onesignalPlayerId: { not: null } },
-        select: { onesignalPlayerId: true },
+      // Create in-app and push notifications for supervisors and admins (instead of spamming all technicians)
+      const supervisorsAndAdmins = await prisma.user.findMany({
+        where: { role: { in: ['SUPERVISOR', 'ADMIN'] }, active: true },
+        select: { id: true, onesignalPlayerId: true },
       });
 
-      const playerIds = technicians
-        .map(t => t.onesignalPlayerId)
+      const playerIds = supervisorsAndAdmins
+        .map(u => u.onesignalPlayerId)
         .filter((id): id is string => !!id);
 
       if (playerIds.length > 0) {
@@ -173,12 +173,6 @@ export async function POST(req: Request) {
           data: { ticketId: ticket.id, type: 'NEW_TICKET' },
         });
       }
-
-      // Create in-app notifications for supervisors and admins
-      const supervisorsAndAdmins = await prisma.user.findMany({
-        where: { role: { in: ['SUPERVISOR', 'ADMIN'] }, active: true },
-        select: { id: true },
-      });
 
       await prisma.notification.createMany({
         data: supervisorsAndAdmins.map(u => ({
