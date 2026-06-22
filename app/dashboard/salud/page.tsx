@@ -9,7 +9,7 @@ import Link from 'next/link';
 import { DashboardFilterProvider, useDashboardFilters } from '@/components/dashboard/FilterContext';
 import { useAuthStore } from '@/lib/store/useAuthStore';
 import clsx from 'clsx';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
+import ReactECharts from 'echarts-for-react';
 import { useQuery } from '@tanstack/react-query';
 
 function SaludContent() {
@@ -224,24 +224,52 @@ function SaludContent() {
             <div className="lg:col-span-2 glass-card p-4 flex flex-col h-[200px]">
               <h3 className="font-bold mb-2 ml-2 text-sm text-muted-foreground uppercase">Evolución Score Global</h3>
               <div className="flex-1 w-full min-h-0">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={data.timeline} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-                    <defs>
-                      <linearGradient id="colorScore" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
-                        <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
-                    <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} dy={10} />
-                    <YAxis domain={[0, 100]} axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} dx={-10} />
-                    <RechartsTooltip
-                      contentStyle={{ backgroundColor: 'hsl(var(--background))', borderColor: 'hsl(var(--border))', borderRadius: '0.75rem', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
-                      itemStyle={{ color: 'hsl(var(--foreground))', fontWeight: 'bold' }}
-                    />
-                    <Area type="monotone" dataKey="score" name="Score" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorScore)" />
-                  </AreaChart>
-                </ResponsiveContainer>
+                <ReactECharts 
+                  option={{
+                    tooltip: {
+                      trigger: 'axis',
+                      backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                      borderColor: 'rgba(30, 41, 59, 1)',
+                      textStyle: { color: '#f8fafc', fontWeight: 'bold' },
+                    },
+                    grid: { top: 10, right: 30, left: 30, bottom: 20 },
+                    xAxis: {
+                      type: 'category',
+                      data: data.timeline.map((d: any) => d.month),
+                      axisLine: { show: false },
+                      axisTick: { show: false },
+                      axisLabel: { color: '#94a3b8', fontSize: 12, margin: 10 },
+                    },
+                    yAxis: {
+                      type: 'value',
+                      min: 0,
+                      max: 100,
+                      splitLine: { lineStyle: { type: 'dashed', color: 'rgba(148, 163, 184, 0.2)' } },
+                      axisLabel: { color: '#94a3b8', fontSize: 12 },
+                    },
+                    series: [
+                      {
+                        name: 'Score',
+                        data: data.timeline.map((d: any) => d.score),
+                        type: 'line',
+                        smooth: true,
+                        symbol: 'none',
+                        itemStyle: { color: '#10b981' },
+                        lineStyle: { width: 3 },
+                        areaStyle: {
+                          color: {
+                            type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
+                            colorStops: [
+                              { offset: 0, color: 'rgba(16, 185, 129, 0.3)' },
+                              { offset: 1, color: 'rgba(16, 185, 129, 0)' }
+                            ],
+                          }
+                        }
+                      }
+                    ]
+                  }}
+                  style={{ height: '100%', width: '100%' }}
+                />
               </div>
             </div>
           </div>

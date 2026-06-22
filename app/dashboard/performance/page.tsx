@@ -9,7 +9,7 @@ import toast from 'react-hot-toast';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import { DashboardFilterProvider, useDashboardFilters } from '@/components/dashboard/FilterContext';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, LineChart, Line, Legend } from 'recharts';
+import ReactECharts from 'echarts-for-react';
 
 function PerformanceContent() {
   const { filters, setFilter, clearFilters } = useDashboardFilters();
@@ -258,43 +258,74 @@ function PerformanceContent() {
             <div className="lg:col-span-2 glass-card p-4 flex flex-col h-[400px]">
               <h3 className="font-bold mb-6 ml-2">Evolución de Tiempos</h3>
               <div className="flex-1 w-full min-h-0">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={data.timeline} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-                    <defs>
-                      <linearGradient id="colorSla" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.3}/>
-                        <stop offset="95%" stopColor="#4f46e5" stopOpacity={0}/>
-                      </linearGradient>
-                      <linearGradient id="colorMttr" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.3}/>
-                        <stop offset="95%" stopColor="#06b6d4" stopOpacity={0}/>
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
-                    <XAxis 
-                      dataKey="month" 
-                      axisLine={false} 
-                      tickLine={false} 
-                      tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} 
-                      dy={10} 
-                    />
-                    <YAxis 
-                      axisLine={false} 
-                      tickLine={false} 
-                      tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} 
-                      dx={-10}
-                    />
-                    <RechartsTooltip 
-                      contentStyle={{ backgroundColor: 'hsl(var(--background))', borderColor: 'hsl(var(--border))', borderRadius: '0.75rem', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
-                      itemStyle={{ color: 'hsl(var(--foreground))', fontWeight: 'bold' }}
-                    />
-                    <Legend iconType="circle" wrapperStyle={{ paddingTop: '20px' }} />
-                    {(role === 'ADMIN' || role === 'SUPERVISOR' || role === 'TECHNICIAN') && (
-                      <Area type="monotone" dataKey="sla" name="SLA (hs)" stroke="#4f46e5" strokeWidth={3} fillOpacity={1} fill="url(#colorSla)" />
-                    )}
-                    <Area type="monotone" dataKey="mttr" name="MTTR (hs)" stroke="#06b6d4" strokeWidth={3} fillOpacity={1} fill="url(#colorMttr)" />
-                  </AreaChart>
-                </ResponsiveContainer>
+                <ReactECharts 
+                  option={{
+                    tooltip: {
+                      trigger: 'axis',
+                      backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                      borderColor: 'rgba(30, 41, 59, 1)',
+                      textStyle: { color: '#f8fafc', fontWeight: 'bold' },
+                    },
+                    legend: {
+                      data: (role === 'ADMIN' || role === 'SUPERVISOR' || role === 'TECHNICIAN') ? ['SLA (hs)', 'MTTR (hs)'] : ['MTTR (hs)'],
+                      bottom: 0,
+                      textStyle: { color: '#94a3b8' },
+                      icon: 'circle'
+                    },
+                    grid: { top: 10, right: 30, left: 30, bottom: 40 },
+                    xAxis: {
+                      type: 'category',
+                      data: data.timeline.map((d: any) => d.month),
+                      axisLine: { show: false },
+                      axisTick: { show: false },
+                      axisLabel: { color: '#94a3b8', fontSize: 12, margin: 10 },
+                    },
+                    yAxis: {
+                      type: 'value',
+                      splitLine: { lineStyle: { type: 'dashed', color: 'rgba(148, 163, 184, 0.2)' } },
+                      axisLabel: { color: '#94a3b8', fontSize: 12 },
+                    },
+                    series: [
+                      ...((role === 'ADMIN' || role === 'SUPERVISOR' || role === 'TECHNICIAN') ? [{
+                        name: 'SLA (hs)',
+                        data: data.timeline.map((d: any) => d.sla),
+                        type: 'line',
+                        smooth: true,
+                        symbol: 'none',
+                        itemStyle: { color: '#4f46e5' },
+                        lineStyle: { width: 3 },
+                        areaStyle: {
+                          color: {
+                            type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
+                            colorStops: [
+                              { offset: 0, color: 'rgba(79, 70, 229, 0.3)' },
+                              { offset: 1, color: 'rgba(79, 70, 229, 0)' }
+                            ],
+                          }
+                        }
+                      }] : []),
+                      {
+                        name: 'MTTR (hs)',
+                        data: data.timeline.map((d: any) => d.mttr),
+                        type: 'line',
+                        smooth: true,
+                        symbol: 'none',
+                        itemStyle: { color: '#06b6d4' },
+                        lineStyle: { width: 3 },
+                        areaStyle: {
+                          color: {
+                            type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
+                            colorStops: [
+                              { offset: 0, color: 'rgba(6, 182, 212, 0.3)' },
+                              { offset: 1, color: 'rgba(6, 182, 212, 0)' }
+                            ],
+                          }
+                        }
+                      }
+                    ]
+                  }}
+                  style={{ height: '100%', width: '100%' }}
+                />
               </div>
             </div>
           </div>
