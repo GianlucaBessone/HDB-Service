@@ -41,7 +41,7 @@ export default function Home() {
 
   useEffect(() => {
     const fetchSession = async () => {
-      const res = await fetch('/api/auth/session');
+      const res = await fetch('/api/auth/session', { cache: 'no-store' });
       if (res.ok) {
         const data = await res.json();
         setSession(data);

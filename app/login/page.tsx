@@ -18,7 +18,7 @@ export default function LoginScreen() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
       
-      const res = await fetch('/api/auth/session');
+      const res = await fetch('/api/auth/session', { cache: 'no-store' });
       if (res.ok) {
         const data = await res.json();
         if (data?.user) {
@@ -47,7 +47,7 @@ export default function LoginScreen() {
         toast.error(error.message || 'Error al iniciar sesión');
         setIsLoading(false);
       } else {
-        const res = await fetch('/api/auth/session');
+        const res = await fetch('/api/auth/session', { cache: 'no-store' });
         if (res.ok) {
           const sessionData = await res.json();
           if (sessionData?.user) {
