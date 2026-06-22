@@ -16,8 +16,18 @@ export default function LoginScreen() {
   useEffect(() => {
     async function checkSession() {
       const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        router.push('/');
+      if (!session) return;
+      
+      const res = await fetch('/api/auth/session');
+      if (res.ok) {
+        const data = await res.json();
+        if (data?.user) {
+          router.push('/');
+        } else {
+          await supabase.auth.signOut();
+        }
+      } else {
+        await supabase.auth.signOut();
       }
     }
     checkSession();
@@ -37,9 +47,23 @@ export default function LoginScreen() {
         toast.error(error.message || 'Error al iniciar sesión');
         setIsLoading(false);
       } else {
-        toast.success('¡Bienvenido!');
-        router.push('/');
-        router.refresh();
+        const res = await fetch('/api/auth/session');
+        if (res.ok) {
+          const sessionData = await res.json();
+          if (sessionData?.user) {
+            toast.success('¡Bienvenido!');
+            router.push('/');
+            router.refresh();
+          } else {
+            toast.error('Usuario inactivo o no autorizado');
+            await supabase.auth.signOut();
+            setIsLoading(false);
+          }
+        } else {
+          toast.error('Error al verificar sesión');
+          await supabase.auth.signOut();
+          setIsLoading(false);
+        }
       }
     } catch (err) {
       toast.error('Error de conexión');
