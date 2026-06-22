@@ -102,7 +102,15 @@ export async function PUT(req: Request, props: { params: Promise<{ id: string }>
 
           // 2. Send to Client Requesters (Referentes) mapped to this plant
           const requesters = await prisma.user.findMany({
-            where: { role: 'CLIENT_REQUESTER', plantIds: { has: plant.id }, active: true },
+            where: { 
+              role: 'CLIENT_REQUESTER', 
+              active: true,
+              plantAccess: {
+                some: {
+                  plantId: plant.id
+                }
+              }
+            },
           });
 
           for (const req of requesters) {

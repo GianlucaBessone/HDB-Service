@@ -79,7 +79,10 @@ export async function PUT(req: Request, props: { params: Promise<{ id: string }>
 
     const ticket = await prisma.ticket.findUnique({ 
       where: { id: id },
-      include: { reportedBy: { select: { id: true, onesignalPlayerId: true } } }
+      include: { 
+        reportedBy: { select: { id: true, onesignalPlayerId: true, nombre: true } },
+        location: { include: { plant: true } }
+      }
     });
     if (!ticket) {
       await revalidateTag('tickets', 'default');
@@ -170,7 +173,7 @@ export async function PUT(req: Request, props: { params: Promise<{ id: string }>
       if (assignedToId) {
         const tech = await prisma.user.findUnique({
           where: { id: assignedToId },
-          select: { onesignalPlayerId: true, id: true },
+          select: { onesignalPlayerId: true, id: true, nombre: true },
         });
 
         if (tech?.onesignalPlayerId) {
