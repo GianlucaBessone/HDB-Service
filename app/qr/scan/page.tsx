@@ -20,7 +20,21 @@ export default function QRScanPage() {
 
   useEffect(() => {
     const saved = localStorage.getItem('recent_scans');
-    if (saved) setRecentScans(JSON.parse(saved).slice(0, 5));
+    if (saved) {
+      const ids: string[] = JSON.parse(saved).slice(0, 5);
+      // Validate that recent dispensers still exist
+      Promise.all(
+        ids.map(id =>
+          fetch(`/api/dispensers/${id}`)
+            .then(res => (res.ok ? id : null))
+            .catch(() => null)
+        )
+      ).then(results => {
+        const valid = results.filter((id): id is string => id !== null);
+        setRecentScans(valid);
+        localStorage.setItem('recent_scans', JSON.stringify(valid));
+      });
+    }
 
     const scanner = new Html5Qrcode("qr-reader");
     scannerRef.current = scanner;

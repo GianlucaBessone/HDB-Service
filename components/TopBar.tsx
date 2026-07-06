@@ -221,16 +221,8 @@ export default function TopBar({ user }: { user: { nombre: string; email: string
   return (
     <header className="h-16 bg-card border-b border-border flex items-center justify-between px-4 md:px-6 sticky top-0 z-40">
       
-      {/* Mobile Menu Button */}
-      <button 
-        onClick={toggleSidebar}
-        className="md:hidden p-2 text-muted-foreground hover:bg-accent rounded-md"
-      >
-        <Menu className="w-6 h-6" />
-      </button>
-
-      {/* Spacer for desktop */}
-      <div className="hidden md:block" />
+      {/* Spacer */}
+      <div className="flex-1" />
 
       {/* Right side actions */}
       <div className="flex items-center gap-3 md:gap-5">
