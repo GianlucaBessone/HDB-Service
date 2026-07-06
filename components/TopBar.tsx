@@ -273,7 +273,7 @@ export default function TopBar({ user }: { user: { nombre: string; email: string
           </button>
 
           {isDropdownOpen && (
-            <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-card border border-border rounded-2xl shadow-xl z-50 overflow-hidden animate-fade-in">
+            <div className="fixed left-3 right-3 mt-2 md:left-auto md:absolute md:right-0 md:w-96 bg-card border border-border rounded-2xl shadow-xl z-50 overflow-hidden animate-fade-in" style={{ top: '3.5rem' }}>
               {/* Dropdown Header */}
               <div className="px-4 py-3 border-b border-border/60 flex items-center justify-between bg-accent/20">
                 <span className="font-semibold text-xs text-foreground">Notificaciones</span>
