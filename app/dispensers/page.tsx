@@ -121,14 +121,24 @@ export default function DispensersPage() {
         <div className="flex items-center gap-2">
           {(session?.user?.role === 'ADMIN' || session?.user?.role === 'SUPERVISOR' || session?.user?.role === 'TECHNICIAN') && (
             <>
-              <button 
-                onClick={() => window.open(`/dispensers/print-qr?ids=${sorted.map(d => d.id).join(',')}`, '_blank')} 
-                className="btn-outline btn-lg gap-2 shrink-0 hidden sm:flex"
-                disabled={sorted.length === 0}
-              >
-                <QrCode className="w-5 h-5" />
-                Imprimir QRs
-              </button>
+              {sorted.length > 0 ? (
+                <Link
+                  href={`/dispensers/print-qr?ids=${sorted.map(d => d.id).join(',')}`}
+                  target="_blank"
+                  className="btn-outline btn-lg gap-2 shrink-0 hidden sm:flex"
+                >
+                  <QrCode className="w-5 h-5" />
+                  Imprimir QRs
+                </Link>
+              ) : (
+                <button 
+                  className="btn-outline btn-lg gap-2 shrink-0 hidden sm:flex"
+                  disabled
+                >
+                  <QrCode className="w-5 h-5" />
+                  Imprimir QRs
+                </button>
+              )}
               <button onClick={() => setShowCreateModal(true)} className="btn-primary btn-lg gap-2 shrink-0">
                 <Plus className="w-5 h-5" />
                 Nuevo Dispenser

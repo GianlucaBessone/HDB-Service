@@ -555,6 +555,15 @@ model MaintenanceApproval {
   customerName     String?
   customerIdentity String? // DNI or ID
   signatureData    String?  @db.Text // Base64 image
+
+  // Digital Signature — SHA-512 + AES-256-GCM
+  signatureHash    String?  // SHA-512 hex digest (128 chars)
+  encryptedHash    String?  @db.Text // AES-256-GCM encrypted hash (iv:authTag:ciphertext)
+  hashPayload      String?  @db.Text // Raw payload used to generate hash (for audit/verification)
+  signedAt         DateTime? // Exact moment of signature with seconds precision
+  deviceInfo       String?   @db.Text // User agent / device fingerprint of signer
+  ipAddress        String?   // IP address of signer
+
   createdAt        DateTime @default(now())
 
   technicianId String

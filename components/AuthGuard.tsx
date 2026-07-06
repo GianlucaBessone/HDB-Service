@@ -22,7 +22,8 @@ export default function AuthGuard({
       if (
         pathname !== '/login' && 
         pathname !== '/login/set-password' && 
-        pathname !== '/ideas-sugerencias-reclamos'
+        pathname !== '/ideas-sugerencias-reclamos' &&
+        !pathname.startsWith('/public')
       ) {
         router.push('/login');
       }

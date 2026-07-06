@@ -42,6 +42,9 @@ export default function PublicApprovalPage() {
     if (!customerName.trim()) {
       return toast.error('El nombre es obligatorio');
     }
+    if (!customerIdentity.trim()) {
+      return toast.error('El DNI/Identificación es obligatorio');
+    }
     if (sigCanvas.current?.isEmpty()) {
       return toast.error('La firma es obligatoria');
     }
@@ -56,7 +59,8 @@ export default function PublicApprovalPage() {
         body: JSON.stringify({
           customerName,
           customerIdentity,
-          signatureData
+          signatureData,
+          deviceInfo: navigator.userAgent
         })
       });
 
@@ -67,7 +71,7 @@ export default function PublicApprovalPage() {
 
       toast.success('Aprobación guardada con éxito');
       setIsSuccess(true);
-      setApproval((prev: any) => ({ ...prev, signatureData, customerName, customerIdentity }));
+      setApproval((prev: any) => ({ ...prev, signatureData, customerName, customerIdentity, signatureHash: await res.clone().json().then((d: any) => d.signatureHash) }));
     } catch (err: any) {
       toast.error(err.message);
     } finally {
@@ -194,6 +198,30 @@ export default function PublicApprovalPage() {
                   <label className="text-xs text-muted-foreground uppercase font-medium mb-2 block">Firma</label>
                   <img src={approval.signatureData} alt="Firma del cliente" className="border border-border rounded-xl max-h-32 object-contain bg-white" />
                 </div>
+                {approval.signatureHash && (
+                  <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 mt-4">
+                    <div className="flex items-center gap-2 mb-2 text-primary">
+                      <ShieldCheck className="w-5 h-5" />
+                      <h3 className="font-bold text-sm">Certificado Digital SHA-512</h3>
+                    </div>
+                    <div className="space-y-2 text-xs">
+                      <div>
+                        <span className="text-muted-foreground font-medium block">Hash:</span>
+                        <code className="bg-background px-2 py-1 rounded block break-all mt-1">{approval.signatureHash}</code>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 mt-2">
+                         <div>
+                           <span className="text-muted-foreground font-medium block">Fecha:</span>
+                           <span className="font-medium">{new Date(approval.signedAt || new Date()).toLocaleString()}</span>
+                         </div>
+                         <div>
+                           <span className="text-muted-foreground font-medium block">IP:</span>
+                           <span className="font-medium">{approval.ipAddress || 'Registrada'}</span>
+                         </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           ) : (
@@ -212,7 +240,7 @@ export default function PublicApprovalPage() {
               </div>
 
               <div>
-                <label className="label">DNI / Identificación (Opcional)</label>
+                <label className="label">DNI / Identificación *</label>
                 <input 
                   type="text" 
                   className="input mt-1" 

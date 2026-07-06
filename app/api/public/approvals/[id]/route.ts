@@ -1,6 +1,7 @@
 import { revalidateTag } from 'next/cache';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { generateSignature } from '@/lib/signature';
 
 export async function GET(req: Request, props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
@@ -49,12 +50,14 @@ export async function PUT(req: Request, props: { params: Promise<{ id: string }>
   const params = await props.params;
   const { id } = params;
   try {
-    const { customerName, customerIdentity, signatureData } = await req.json();
+    const { customerName, customerIdentity, signatureData, deviceInfo } = await req.json();
 
-    if (!customerName || !signatureData) {
+    if (!customerName || !customerIdentity || !signatureData) {
       await revalidateTag('public', 'default');
-    return NextResponse.json({ error: 'Nombre y firma son requeridos' }, { status: 400 });
+    return NextResponse.json({ error: 'Nombre, DNI/Identificación y firma son requeridos' }, { status: 400 });
     }
+
+    const ipAddress = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'Unknown';
 
     const approval = await prisma.maintenanceApproval.findUnique({
       where: { id: id },
@@ -71,13 +74,33 @@ export async function PUT(req: Request, props: { params: Promise<{ id: string }>
     return NextResponse.json({ error: 'Esta aprobación ya fue firmada' }, { status: 400 });
     }
 
+    // Build signature components
+    const dispenserIds = approval.schedules.map(s => s.dispenserId);
+    const timestamp = new Date().toISOString();
+    
+    // Generate digital signature
+    const signature = generateSignature({
+      dispenserIds,
+      timestamp,
+      deviceInfo: deviceInfo || req.headers.get('user-agent') || 'Unknown Device',
+      technicianId: approval.technicianId,
+      customerName,
+      customerIdentity
+    });
+
     // Update approval with signature
     const updatedApproval = await prisma.maintenanceApproval.update({
       where: { id: id },
       data: {
         customerName,
         customerIdentity,
-        signatureData
+        signatureData,
+        signatureHash: signature.signatureHash,
+        encryptedHash: signature.encryptedHash,
+        hashPayload: signature.rawPayload,
+        signedAt: timestamp,
+        deviceInfo: deviceInfo || req.headers.get('user-agent') || 'Unknown Device',
+        ipAddress
       }
     });
 

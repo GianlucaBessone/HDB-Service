@@ -152,13 +152,14 @@ export default function DispenserDetailPage() {
                 {t(dispenser.status)}
               </span>
               <div className="flex items-center gap-2">
-                <button
-                  onClick={() => window.open(`/dispensers/print-qr?ids=${dispenser.id}`, '_blank')}
-                  className="btn-ghost btn-sm text-muted-foreground"
+                <Link
+                  href={`/dispensers/print-qr?ids=${dispenser.id}`}
+                  target="_blank"
+                  className="btn-ghost btn-sm text-muted-foreground flex items-center justify-center"
                   title="Imprimir QR"
                 >
                   <QrCode className="w-4 h-4" />
-                </button>
+                </Link>
                 <button
                   onClick={() => exportDispenserToExcel(dispenser)}
                   className="btn-ghost btn-sm text-muted-foreground"

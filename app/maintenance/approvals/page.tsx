@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Loader2, ShieldCheck, Calendar, FileSignature, MapPin, Search, Filter, X } from 'lucide-react';
+import { Loader2, ShieldCheck, Calendar, FileSignature, MapPin, Search, Filter, X, Lock, ShieldAlert } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function MaintenanceApprovalsPage() {
@@ -160,8 +160,18 @@ export default function MaintenanceApprovalsPage() {
                     })}
                   </p>
                 </div>
-                <div className="bg-success/10 text-success p-1.5 rounded-full">
-                  <ShieldCheck className="w-5 h-5" />
+                <div className="flex flex-col items-end gap-1">
+                  {approval.signatureHash ? (
+                    <div className="bg-primary/10 text-primary px-2.5 py-1 rounded-full flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide">
+                      <Lock className="w-3 h-3" />
+                      Firma Verificada
+                    </div>
+                  ) : (
+                    <div className="bg-muted text-muted-foreground px-2.5 py-1 rounded-full flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide">
+                      <ShieldAlert className="w-3 h-3" />
+                      Firma Legacy
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -189,13 +199,49 @@ export default function MaintenanceApprovalsPage() {
               {/* Signature */}
               <div className="pt-3 border-t border-border mt-auto">
                 <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-2 block">Firma</span>
-                <div className="bg-white border border-border rounded-lg p-2 h-24 flex items-center justify-center overflow-hidden">
+                <div className="bg-white border border-border rounded-lg p-2 h-24 flex items-center justify-center overflow-hidden mb-3">
                   <img 
                     src={approval.signatureData} 
                     alt={`Firma de ${approval.customerName}`} 
                     className="max-w-full max-h-full object-contain mix-blend-multiply" 
                   />
                 </div>
+                
+                {approval.signatureHash && (
+                  <details className="group border border-border rounded-lg overflow-hidden bg-muted/20">
+                    <summary className="text-xs font-semibold p-2.5 cursor-pointer hover:bg-muted/50 flex items-center justify-between">
+                      <div className="flex items-center gap-1.5 text-primary">
+                        <Lock className="w-3.5 h-3.5" />
+                        Certificado Digital
+                      </div>
+                      <span className="text-[10px] text-muted-foreground group-open:hidden">Ver detalles</span>
+                    </summary>
+                    <div className="p-3 border-t border-border space-y-2 text-[10px]">
+                      <div>
+                        <span className="text-muted-foreground block font-medium">Hash SHA-512:</span>
+                        <code className="bg-background px-1.5 py-0.5 rounded border border-border/50 block break-all mt-0.5">
+                          {approval.signatureHash}
+                        </code>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <span className="text-muted-foreground block font-medium">Fecha y Hora:</span>
+                          <span className="font-medium">{new Date(approval.signedAt || approval.createdAt).toLocaleString('es-AR')}</span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground block font-medium">IP Origen:</span>
+                          <span className="font-medium">{approval.ipAddress || 'Registrada'}</span>
+                        </div>
+                        <div className="col-span-2">
+                          <span className="text-muted-foreground block font-medium">Dispositivo:</span>
+                          <span className="font-medium truncate block" title={approval.deviceInfo || 'Desconocido'}>
+                            {approval.deviceInfo || 'Desconocido'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </details>
+                )}
               </div>
                   </div>
                 ))}
