@@ -58,7 +58,10 @@ export async function GET(req: Request) {
     const search = searchParams.get('search');
 
     const where: any = {
-      signatureData: { not: null }
+      OR: [
+        { signatureData: { not: null } },
+        { signatureHash: { not: null } }
+      ]
     };
 
     if (startDate || endDate) {
