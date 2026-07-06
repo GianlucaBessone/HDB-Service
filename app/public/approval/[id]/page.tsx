@@ -69,9 +69,18 @@ export default function PublicApprovalPage() {
         throw new Error(err.error || 'Error al enviar');
       }
 
+      const responseData = await res.clone().json();
+      const signatureHash = responseData.signatureHash;
+
       toast.success('Aprobación guardada con éxito');
       setIsSuccess(true);
-      setApproval((prev: any) => ({ ...prev, signatureData, customerName, customerIdentity, signatureHash: await res.clone().json().then((d: any) => d.signatureHash) }));
+      setApproval((prev: any) => ({ 
+        ...prev, 
+        signatureData, 
+        customerName, 
+        customerIdentity, 
+        signatureHash 
+      }));
     } catch (err: any) {
       toast.error(err.message);
     } finally {
