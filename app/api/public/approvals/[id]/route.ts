@@ -52,9 +52,9 @@ export async function PUT(req: Request, props: { params: Promise<{ id: string }>
   try {
     const { customerName, customerIdentity, signatureData, deviceInfo } = await req.json();
 
-    if (!customerName || !customerIdentity || !signatureData) {
+    if (!customerName || !customerIdentity) {
       await revalidateTag('public', 'default');
-    return NextResponse.json({ error: 'Nombre, DNI/Identificación y firma son requeridos' }, { status: 400 });
+      return NextResponse.json({ error: 'Nombre y DNI/Identificación son requeridos' }, { status: 400 });
     }
 
     const ipAddress = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'Unknown';
@@ -66,12 +66,12 @@ export async function PUT(req: Request, props: { params: Promise<{ id: string }>
 
     if (!approval) {
       await revalidateTag('public', 'default');
-    return NextResponse.json({ error: 'Aprobación no encontrada' }, { status: 404 });
+      return NextResponse.json({ error: 'Aprobación no encontrada' }, { status: 404 });
     }
 
-    if (approval.signatureData) {
+    if (approval.signatureHash || approval.signatureData) {
       await revalidateTag('public', 'default');
-    return NextResponse.json({ error: 'Esta aprobación ya fue firmada' }, { status: 400 });
+      return NextResponse.json({ error: 'Esta aprobación ya fue firmada' }, { status: 400 });
     }
 
     // Build signature components

@@ -1,10 +1,9 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
-import { Loader2, CheckCircle2, Wrench, ShieldCheck, MapPin, AlertTriangle } from 'lucide-react';
+import { Loader2, CheckCircle2, MapPin, AlertTriangle, ShieldCheck } from 'lucide-react';
 import toast from 'react-hot-toast';
-import SignatureCanvas from 'react-signature-canvas';
 
 export default function PublicApprovalPage() {
   const params = useParams();
@@ -16,15 +15,13 @@ export default function PublicApprovalPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
 
-  const sigCanvas = useRef<any>(null);
-
   useEffect(() => {
     fetch(`/api/public/approvals/${params.id}`)
       .then(res => res.json())
       .then(data => {
         if (data.error) throw new Error(data.error);
         setApproval(data);
-        if (data.signatureData) {
+        if (data.signatureHash || data.signatureData) {
           setIsSuccess(true);
         }
       })
@@ -34,10 +31,6 @@ export default function PublicApprovalPage() {
       .finally(() => setIsLoading(false));
   }, [params.id]);
 
-  const handleClearSignature = () => {
-    sigCanvas.current?.clear();
-  };
-
   const handleSubmit = async () => {
     if (!customerName.trim()) {
       return toast.error('El nombre es obligatorio');
@@ -45,12 +38,8 @@ export default function PublicApprovalPage() {
     if (!customerIdentity.trim()) {
       return toast.error('El DNI/Identificación es obligatorio');
     }
-    if (sigCanvas.current?.isEmpty()) {
-      return toast.error('La firma es obligatoria');
-    }
 
     setIsSubmitting(true);
-    const signatureData = sigCanvas.current.getCanvas().toDataURL('image/png');
 
     try {
       const res = await fetch(`/api/public/approvals/${params.id}`, {
@@ -59,7 +48,7 @@ export default function PublicApprovalPage() {
         body: JSON.stringify({
           customerName,
           customerIdentity,
-          signatureData,
+          signatureData: null,
           deviceInfo: navigator.userAgent
         })
       });
@@ -76,7 +65,6 @@ export default function PublicApprovalPage() {
       setIsSuccess(true);
       setApproval((prev: any) => ({ 
         ...prev, 
-        signatureData, 
         customerName, 
         customerIdentity, 
         signatureHash 
@@ -203,10 +191,12 @@ export default function PublicApprovalPage() {
                   <p className="font-semibold text-lg">{approval.customerName}</p>
                   {approval.customerIdentity && <p className="text-sm text-muted-foreground">DNI/ID: {approval.customerIdentity}</p>}
                 </div>
-                <div>
-                  <label className="text-xs text-muted-foreground uppercase font-medium mb-2 block">Firma</label>
-                  <img src={approval.signatureData} alt="Firma del cliente" className="border border-border rounded-xl max-h-32 object-contain bg-white" />
-                </div>
+                {approval.signatureData && (
+                  <div>
+                    <label className="text-xs text-muted-foreground uppercase font-medium mb-2 block">Firma</label>
+                    <img src={approval.signatureData} alt="Firma del cliente" className="border border-border rounded-xl max-h-32 object-contain bg-white" />
+                  </div>
+                )}
                 {approval.signatureHash && (
                   <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 mt-4">
                     <div className="flex items-center gap-2 mb-2 text-primary">
@@ -260,30 +250,22 @@ export default function PublicApprovalPage() {
               </div>
 
               <div>
-                <div className="flex justify-between items-end mb-1">
-                  <label className="label">Firma Digital *</label>
-                  <button onClick={handleClearSignature} type="button" className="text-xs text-primary hover:underline">
-                    Borrar firma
-                  </button>
-                </div>
-                <div className="border border-border rounded-xl bg-white overflow-hidden">
-                  <SignatureCanvas 
-                    ref={sigCanvas}
-                    penColor="black"
-                    canvasProps={{ className: 'w-full h-40' }}
-                  />
-                </div>
-                <p className="text-xs text-muted-foreground mt-2">
-                  Al firmar, usted confirma que los trabajos detallados han sido realizados a su satisfacción.
+                <p className="text-xs text-muted-foreground mt-2 border-t pt-4">
+                  Al confirmar, usted genera un certificado digital firmado y aprueba que los trabajos detallados han sido realizados a su entera satisfacción.
                 </p>
               </div>
 
               <button 
                 onClick={handleSubmit}
                 disabled={isSubmitting}
-                className="btn-primary w-full py-3 text-lg mt-6"
+                className="btn-primary w-full py-3 text-lg mt-6 gap-2"
               >
-                {isSubmitting ? <Loader2 className="w-6 h-6 animate-spin mx-auto" /> : 'Confirmar y Enviar'}
+                {isSubmitting ? <Loader2 className="w-6 h-6 animate-spin mx-auto" /> : (
+                  <>
+                    <ShieldCheck className="w-5 h-5" />
+                    Confirmar y Firmar Digitalmente
+                  </>
+                )}
               </button>
             </div>
           )}
