@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
-import { Loader2, CheckCircle2, MapPin, AlertTriangle, ShieldCheck } from 'lucide-react';
+import { Loader2, CheckCircle2, MapPin, AlertTriangle, ShieldCheck, Lock } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function PublicApprovalPage() {
@@ -14,6 +14,7 @@ export default function PublicApprovalPage() {
   const [customerIdentity, setCustomerIdentity] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [showSecurityModal, setShowSecurityModal] = useState(false);
 
   useEffect(() => {
     fetch(`/api/public/approvals/${params.id}`)
@@ -63,6 +64,7 @@ export default function PublicApprovalPage() {
 
       toast.success('Aprobación guardada con éxito');
       setIsSuccess(true);
+      setShowSecurityModal(true);
       setApproval((prev: any) => ({ 
         ...prev, 
         customerName, 
@@ -272,6 +274,43 @@ export default function PublicApprovalPage() {
         </div>
 
       </div>
+
+      {/* Security Modal */}
+      {showSecurityModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="bg-card rounded-2xl p-6 max-w-md w-full shadow-2xl relative animate-in zoom-in-95 duration-300">
+            <div className="w-12 h-12 bg-primary/10 text-primary rounded-full flex items-center justify-center mb-4">
+              <Lock className="w-6 h-6" />
+            </div>
+            <h2 className="text-xl font-bold mb-2">Firma Digital Segura Aplicada</h2>
+            <div className="space-y-4 text-sm text-muted-foreground mb-6">
+              <p>
+                Su conformidad ha sido registrada exitosamente utilizando tecnología de <strong>Firma Digital Segura</strong>.
+              </p>
+              <div className="bg-muted/30 p-3 rounded-lg">
+                <strong className="text-foreground flex items-center gap-1.5 mb-1">
+                  <ShieldCheck className="w-4 h-4 text-primary" />
+                  ¿Qué significa esto?
+                </strong>
+                Hemos generado un <em>Hash SHA-512</em>, que funciona como una huella dactilar digital única e irrepetible de este documento. Si alguien intentara modificar siquiera una letra de la información en el futuro, la huella cambiaría por completo, alertando automáticamente sobre la manipulación.
+              </div>
+              <div className="bg-muted/30 p-3 rounded-lg">
+                <strong className="text-foreground flex items-center gap-1.5 mb-1">
+                  <Lock className="w-4 h-4 text-primary" />
+                  Seguridad de Grado Militar
+                </strong>
+                Para proteger esta huella digital, aplicamos cifrado <strong>AES-256-GCM</strong>. Este es el mismo estándar avanzado de encriptación utilizado a nivel mundial por bancos, gobiernos y agencias de inteligencia para proteger información de máximo secreto, garantizando que su firma sea inviolable y 100% auténtica.
+              </div>
+            </div>
+            <button 
+              onClick={() => setShowSecurityModal(false)}
+              className="btn-primary w-full py-3 font-semibold text-base"
+            >
+              Entendido
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

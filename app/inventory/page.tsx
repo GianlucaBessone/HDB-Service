@@ -10,6 +10,8 @@ import {
 import clsx from 'clsx';
 import toast from 'react-hot-toast';
 import { t, getStatusColor } from '@/lib/translations';
+import { useConfigStore } from '@/lib/store/useConfigStore';
+import MaterialCombobox from '@/components/MaterialCombobox';
 
 type Tab = 'stock' | 'transfers' | 'debts';
 
@@ -574,9 +576,41 @@ function AddStockModal({
     expirationMonths: '',
   });
   const [saving, setSaving] = useState(false);
+  const [catalogItems, setCatalogItems] = useState<any[]>([]);
+
+  // Fetch catalog when plant changes
+  useEffect(() => {
+    if (form.plantId) {
+      const plant = plants.find(p => p.id === form.plantId);
+      const clientId = plant?.client?.id || plant?.clientId;
+      if (clientId) {
+        fetch(`/api/catalog?clientId=${clientId}`)
+          .then(res => res.json())
+          .then(data => setCatalogItems(Array.isArray(data) ? data : []));
+      } else {
+        setCatalogItems([]);
+      }
+    } else {
+      setCatalogItems([]);
+    }
+  }, [form.plantId, plants]);
 
   // Lock quantity to 1 if serial number is provided
   const isSerialized = !!form.uniqueId.trim();
+
+  const handleCatalogSelect = (code: string) => {
+    const item = catalogItems.find(c => c.code === code);
+    if (item) {
+      setForm(p => ({
+        ...p,
+        materialCode: item.code,
+        nombre: item.nombre,
+        itemType: item.type,
+      }));
+    } else {
+      setForm(p => ({ ...p, materialCode: '', nombre: '' }));
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -660,22 +694,18 @@ function AddStockModal({
                 {plants.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
               </select>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="label">Código Material *</label>
-                <input className="input mt-1" placeholder="FIL-CARB-01" value={form.materialCode} onChange={e => setForm(p => ({ ...p, materialCode: e.target.value }))} required />
-              </div>
-              <div>
-                <label className="label">Tipo</label>
-                <select className="select mt-1" value={form.itemType} onChange={e => setForm(p => ({ ...p, itemType: e.target.value }))}>
-                  <option value="CONSUMABLE">Consumible</option>
-                  <option value="SPARE_PART">Repuesto</option>
-                </select>
-              </div>
-            </div>
             <div>
-              <label className="label">Nombre *</label>
-              <input className="input mt-1" placeholder="Filtro Carbón Activado" value={form.nombre} onChange={e => setForm(p => ({ ...p, nombre: e.target.value }))} required />
+              <label className="label">Repuesto / Consumible *</label>
+              <MaterialCombobox 
+                items={catalogItems}
+                value={form.materialCode}
+                onChange={handleCatalogSelect}
+                disabled={!form.plantId || catalogItems.length === 0}
+                autoFocus
+              />
+              {form.plantId && catalogItems.length === 0 && (
+                <p className="text-xs text-amber-600 mt-1">El cliente de esta planta no tiene repuestos en su catálogo.</p>
+              )}
             </div>
 
             {form.itemType === 'CONSUMABLE' && (

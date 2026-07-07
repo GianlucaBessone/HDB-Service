@@ -29,7 +29,7 @@ export async function GET(req: Request, props: { params: Promise<{ id: string }>
             sector: true,
           },
         },
-        plant: { select: { id: true, nombre: true } }, // Owner plant
+        plant: { select: { id: true, nombre: true, clientId: true } }, // Owner plant
         locationHistory: {
           include: {
             location: { include: { plant: { select: { nombre: true } } } },
@@ -122,7 +122,7 @@ export async function PUT(req: Request, props: { params: Promise<{ id: string }>
 
   try {
     const body = await req.json();
-    const { marca, modelo, lifecycleMonths, numeroSerie, notas, active, plantId, lifecycleStartDate } = body;
+    const { marca, modelo, lifecycleMonths, numeroSerie, fechaCompra, notas, active, plantId, lifecycleStartDate } = body;
 
     const existing = await prisma.dispenser.findUnique({ where: { id: id } });
     if (!existing) {
@@ -137,6 +137,7 @@ export async function PUT(req: Request, props: { params: Promise<{ id: string }>
         ...(modelo !== undefined && { modelo: modelo.trim() }),
         ...(lifecycleMonths !== undefined && { lifecycleMonths }),
         ...(numeroSerie !== undefined && { numeroSerie: numeroSerie?.trim() || null }),
+        ...(fechaCompra !== undefined && { fechaCompra: fechaCompra ? new Date(fechaCompra) : null }),
         ...(notas !== undefined && { notas: notas?.trim() || null }),
         ...(active !== undefined && { active }),
         ...(plantId !== undefined && { plantId: plantId || null }),

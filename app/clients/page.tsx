@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import {
   Settings, Building2, MapPin, Layers, Plus, ChevronRight,
   ChevronDown, X, Loader2, Edit2, Trash2, GlassWater,
-  Download, FileSpreadsheet, Mail, Save, HelpCircle, Server
+  Download, FileSpreadsheet, Mail, Save, HelpCircle, Server, Package
 } from 'lucide-react';
 import clsx from 'clsx';
 import toast from 'react-hot-toast';
@@ -22,7 +22,7 @@ type Location = {
   dispensers: { id: string; marca: string; modelo: string; status: string }[];
 };
 
-type ActiveSection = 'clients' | 'plants' | 'sectors' | 'locations' | 'emails' | 'smtp';
+type ActiveSection = 'clients' | 'plants' | 'sectors' | 'locations' | 'catalog' | 'emails' | 'smtp';
 
 export default function ConfigPage() {
   const [section, setSection] = useState<ActiveSection>('plants');
@@ -41,6 +41,7 @@ export default function ConfigPage() {
     { key: 'plants', label: 'Plantas', icon: Building2 },
     { key: 'sectors', label: 'Sectores', icon: Layers },
     { key: 'locations', label: 'Ubicaciones', icon: MapPin },
+    { key: 'catalog', label: 'Catálogo', icon: Package },
     { key: 'emails', label: 'Emails', icon: Mail },
     { key: 'smtp', label: 'Servidor SMTP', icon: Server },
   ];
@@ -78,6 +79,7 @@ export default function ConfigPage() {
       {section === 'plants' && <PlantsSection />}
       {section === 'sectors' && <SectorsSection />}
       {section === 'locations' && <LocationsSection />}
+      {section === 'catalog' && <CatalogSection />}
       {section === 'emails' && <EmailsSection />}
       {section === 'smtp' && <SmtpSection />}
     </div>
@@ -1164,6 +1166,205 @@ function LoadingSkeleton() {
   return (
     <div className="space-y-3">
       {[...Array(4)].map((_, i) => <div key={i} className="h-16 skeleton rounded-lg" />)}
+    </div>
+  );
+}
+
+// ─── Catalog Section ────────────────────────────────
+function CatalogSection() {
+  const [materials, setMaterials] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [showModal, setShowModal] = useState(false);
+  const [editItem, setEditItem] = useState<any>(null);
+  
+  const { clients, fetchClients } = useConfigStore();
+  const activeClients = clients.filter((c: any) => c.active);
+
+  const fetchMaterials = useCallback(() => {
+    setIsLoading(true);
+    fetch('/api/catalog')
+      .then(res => res.json())
+      .then(data => {
+        setMaterials(Array.isArray(data) ? data : []);
+      })
+      .finally(() => setIsLoading(false));
+  }, []);
+
+  useEffect(() => {
+    fetchMaterials();
+    if (clients.length === 0) fetchClients();
+  }, [fetchMaterials, fetchClients, clients.length]);
+
+  return (
+    <div className="space-y-4 animate-fade-in">
+      <div className="flex items-center justify-between">
+        <h2 className="text-xl font-bold flex items-center gap-2">
+          <Package className="w-5 h-5 text-primary" />
+          Catálogo de Repuestos y Consumibles por Cliente
+        </h2>
+        <button onClick={() => setShowModal(true)} className="btn-primary gap-2">
+          <Plus className="w-4 h-4" />
+          Nuevo Ítem
+        </button>
+      </div>
+
+      <div className="glass-card overflow-hidden">
+        {isLoading ? (
+          <div className="p-8 flex justify-center"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
+        ) : materials.length === 0 ? (
+          <div className="p-12 text-center text-muted-foreground">
+            <Package className="w-12 h-12 mx-auto mb-4 opacity-20" />
+            <p>No hay repuestos registrados en el catálogo.</p>
+          </div>
+        ) : (
+          <table className="table w-full">
+            <thead>
+              <tr>
+                <th className="px-4 py-3">Cliente</th>
+                <th className="px-4 py-3">Código</th>
+                <th className="px-4 py-3">Repuesto / Consumible</th>
+                <th className="px-4 py-3 text-center">Tipo</th>
+                <th className="px-4 py-3 text-center">Meses Vto.</th>
+                <th className="px-4 py-3 text-center">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {materials.map(m => (
+                <tr key={m.id}>
+                  <td className="px-4 py-3 font-medium">
+                    {m.client?.nombre || <span className="text-muted-foreground italic">Genérico</span>}
+                  </td>
+                  <td className="px-4 py-3 font-mono text-xs">{m.code}</td>
+                  <td className="px-4 py-3 font-medium">{m.nombre}</td>
+                  <td className="px-4 py-3 text-center">
+                    <span className={clsx("badge text-xs", m.type === 'CONSUMABLE' ? 'badge-primary' : 'badge-warning')}>
+                      {m.type === 'CONSUMABLE' ? 'Consumible' : 'Repuesto'}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-center font-mono text-xs text-muted-foreground">
+                    {m.expirationMonths ? `${m.expirationMonths}m` : '—'}
+                  </td>
+                  <td className="px-4 py-3 text-center">
+                    <button onClick={() => { setEditItem(m); setShowModal(true); }} className="btn-ghost btn-icon p-1" title="Editar">
+                      <Edit2 className="w-4 h-4 text-blue-600" />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      {showModal && (
+        <CreateMaterialModal
+          clients={activeClients}
+          editItem={editItem}
+          onClose={() => { setShowModal(false); setEditItem(null); }}
+          onSaved={(savedItem: any) => {
+            if (editItem) {
+              setMaterials(prev => prev.map(m => m.id === savedItem.id ? savedItem : m));
+            } else {
+              setMaterials(prev => [...prev, savedItem].sort((a, b) => a.nombre.localeCompare(b.nombre)));
+            }
+            setShowModal(false);
+            setEditItem(null);
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function CreateMaterialModal({ clients, editItem, onClose, onSaved }: { clients: any[]; editItem?: any; onClose: () => void; onSaved: (item: any) => void }) {
+  const isEdit = !!editItem;
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({
+    clientId: editItem?.clientId || '',
+    code: editItem?.code || '',
+    nombre: editItem?.nombre || '',
+    type: editItem?.type || 'SPARE_PART',
+    expirationMonths: editItem?.expirationMonths?.toString() || '',
+  });
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setSaving(true);
+
+    const payload: any = {
+      clientId: form.clientId,
+      code: form.code,
+      nombre: form.nombre,
+      type: form.type,
+      expirationMonths: form.expirationMonths ? parseInt(form.expirationMonths) : null,
+    };
+    if (isEdit) payload.id = editItem.id;
+
+    try {
+      const res = await fetch('/api/catalog', {
+        method: isEdit ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Error');
+      }
+      const savedItem = await res.json();
+      toast.success(isEdit ? 'Ítem actualizado' : 'Repuesto creado correctamente');
+      onSaved(savedItem);
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
+      <div className="bg-card rounded-2xl shadow-xl w-full max-w-lg overflow-hidden border border-border">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-muted/30">
+          <h2 className="text-lg font-bold">{isEdit ? 'Editar Ítem del Catálogo' : 'Nuevo Repuesto / Consumible'}</h2>
+          <button onClick={onClose} className="p-2 hover:bg-accent rounded-full"><X className="w-5 h-5" /></button>
+        </div>
+        <form onSubmit={handleSubmit}>
+          <div className="p-6 space-y-4">
+            <div>
+              <label className="label">Cliente *</label>
+              <select value={form.clientId} onChange={e => setForm({...form, clientId: e.target.value})} className="select mt-1" required>
+                <option value="">Seleccionar cliente...</option>
+                {clients.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="label">Código *</label>
+              <input value={form.code} onChange={e => setForm({...form, code: e.target.value})} className="input mt-1" placeholder="Ej: REP-01" required />
+            </div>
+            <div>
+              <label className="label">Nombre *</label>
+              <input value={form.nombre} onChange={e => setForm({...form, nombre: e.target.value})} className="input mt-1" placeholder="Ej: Filtro de agua" required />
+            </div>
+            <div>
+              <label className="label">Tipo *</label>
+              <select value={form.type} onChange={e => setForm({...form, type: e.target.value})} className="select mt-1" required>
+                <option value="SPARE_PART">Repuesto</option>
+                <option value="CONSUMABLE">Consumible</option>
+              </select>
+            </div>
+            <div>
+              <label className="label">Meses de Vencimiento (Opcional)</label>
+              <input value={form.expirationMonths} onChange={e => setForm({...form, expirationMonths: e.target.value})} type="number" className="input mt-1" placeholder="Ej: 6" />
+            </div>
+          </div>
+          <div className="px-6 py-4 border-t border-border bg-muted/30 flex justify-end gap-3">
+            <button type="button" onClick={onClose} className="btn-outline">Cancelar</button>
+            <button type="submit" disabled={saving} className="btn-primary gap-2">
+              {saving && <Loader2 className="w-4 h-4 animate-spin" />}
+              {isEdit ? 'Guardar Cambios' : 'Guardar'}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }

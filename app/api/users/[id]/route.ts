@@ -22,8 +22,8 @@ export async function PATCH(
     // Prevent self-deactivation
     if (id === auth.id) {
       if (active === false) {
-        await revalidateTag('users', 'default');
-    return NextResponse.json({ error: 'No puedes desactivar tu propia cuenta' }, { status: 400 });
+        revalidateTag('users', 'default');
+        return NextResponse.json({ error: 'No puedes desactivar tu propia cuenta' }, { status: 400 });
       }
     }
 
@@ -33,18 +33,18 @@ export async function PATCH(
     });
 
     if (!existingUser) {
-      await revalidateTag('users', 'default');
-    return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 });
+      revalidateTag('users', 'default');
+      return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 });
     }
 
-    // 2. Update Prisma User
-    const updateData: any = {
-      nombre,
-      apellido,
-      role,
-      clientId: clientId || null,
-      active
-    };
+    // 2. Build update data only with provided fields
+    const updateData: any = {};
+
+    if (nombre !== undefined) updateData.nombre = nombre;
+    if (apellido !== undefined) updateData.apellido = apellido;
+    if (role !== undefined) updateData.role = role;
+    if (clientId !== undefined) updateData.clientId = clientId || null;
+    if (active !== undefined) updateData.active = active;
 
     if (password) {
       updateData.passwordHash = await bcrypt.hash(password, 10);
@@ -66,36 +66,44 @@ export async function PATCH(
       data: updateData
     });
 
-    // 3. Sync with Supabase Auth
-    let supabaseUserId: string | null = null;
+    // 3. Sync with Supabase Auth (only if relevant fields changed and supabaseAdmin is available)
+    if (supabaseAdmin && (nombre !== undefined || apellido !== undefined || role !== undefined || password)) {
+      let supabaseUserId: string | null = null;
 
-    if (isUUID(id)) {
-      supabaseUserId = id;
-    } else {
-      const { data: { users }, error: listError } = await supabaseAdmin.auth.admin.listUsers();
-      if (!listError) {
-        const found = users.find((u: any) => u.email === existingUser.email);
-        if (found) supabaseUserId = found.id;
+      if (isUUID(id)) {
+        supabaseUserId = id;
+      } else {
+        const { data: { users }, error: listError } = await supabaseAdmin.auth.admin.listUsers();
+        if (!listError) {
+          const found = users.find((u: any) => u.email === existingUser.email);
+          if (found) supabaseUserId = found.id;
+        }
+      }
+
+      if (supabaseUserId) {
+        const supabaseUpdate: any = {
+          user_metadata: {
+            nombre: nombre ?? existingUser.nombre,
+            apellido: apellido ?? existingUser.apellido,
+            role: role ?? existingUser.role
+          }
+        };
+
+        if (password) {
+          supabaseUpdate.password = password;
+        }
+
+        await supabaseAdmin.auth.admin.updateUserById(supabaseUserId, supabaseUpdate);
       }
     }
 
-    if (supabaseUserId) {
-      const supabaseUpdate: any = {
-        user_metadata: { nombre, apellido, role }
-      };
-
-      if (password) {
-        supabaseUpdate.password = password;
-      }
-
-      await supabaseAdmin.auth.admin.updateUserById(supabaseUserId, supabaseUpdate);
-    }
-
-    await revalidateTag('users', 'default');
+    revalidateTag('users', 'default');
     return NextResponse.json(user);
-  } catch (error) {
-    console.error('Error updating user:', error);
-    await revalidateTag('users', 'default');
+  } catch (error: any) {
+    console.error('Error updating user:', error?.message || error);
+    console.error('Error stack:', error?.stack);
+    console.error('Error code:', error?.code);
+    revalidateTag('users', 'default');
     return NextResponse.json({ error: 'Error al actualizar usuario' }, { status: 500 });
   }
 }
@@ -112,7 +120,7 @@ export async function DELETE(
 
     // Prevent self-deletion
     if (id === auth.id) {
-      await revalidateTag('users', 'default');
+      revalidateTag('users', 'default');
     return NextResponse.json({ error: 'No puedes eliminar tu propia cuenta' }, { status: 400 });
     }
 
@@ -120,7 +128,7 @@ export async function DELETE(
       where: { id }
     });
 
-    if (existingUser) {
+    if (existingUser && supabaseAdmin) {
       let supabaseUserId: string | null = null;
       
       if (isUUID(id)) {
@@ -140,11 +148,11 @@ export async function DELETE(
       where: { id }
     });
 
-    await revalidateTag('users', 'default');
+    revalidateTag('users', 'default');
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error deleting user:', error);
-    await revalidateTag('users', 'default');
+    revalidateTag('users', 'default');
     return NextResponse.json({ error: 'Error al eliminar usuario' }, { status: 500 });
   }
 }

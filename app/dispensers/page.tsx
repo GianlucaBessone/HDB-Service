@@ -333,7 +333,7 @@ function KpiCard({ label, value, color }: { label: string; value: number; color:
 
 // ─── Create Modal ───────────────────────────────────
 function CreateDispenserModal({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
-  const [form, setForm] = useState({ id: '', marca: '', modelo: '', numeroSerie: '', lifecycleMonths: '60', notas: '', plantId: '' });
+  const [form, setForm] = useState({ id: '', marca: '', modelo: '', numeroSerie: '', fechaCompra: '', lifecycleMonths: '60', notas: '', plantId: '' });
   const [catalog, setCatalog] = useState<any[]>([]);
   const [plants, setPlants] = useState<any[]>([]);
   const [initialConsumables, setInitialConsumables] = useState<Record<string, { selected: boolean, serialNumber: string }>>({});
@@ -386,6 +386,7 @@ function CreateDispenserModal({ onClose, onCreated }: { onClose: () => void; onC
           marca: form.marca.trim(),
           modelo: form.modelo.trim(),
           numeroSerie: form.numeroSerie.trim() || null,
+          fechaCompra: form.fechaCompra || null,
           lifecycleMonths: parseInt(form.lifecycleMonths) || 60,
           notas: form.notas.trim() || null,
           plantId: form.plantId || null,
@@ -445,6 +446,15 @@ function CreateDispenserModal({ onClose, onCreated }: { onClose: () => void; onC
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="label">Fecha de Compra</label>
+                  <input
+                    type="date"
+                    className="input mt-1"
+                    value={form.fechaCompra}
+                    onChange={e => setForm(p => ({ ...p, fechaCompra: e.target.value }))}
+                  />
+                </div>
                 <div>
                   <label className="label">Marca *</label>
                   <input

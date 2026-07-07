@@ -96,6 +96,7 @@ model Client {
   slaConfig    SlaConfig?
   stockEntries StockEntry[]
   dispensers   Dispenser[]
+  materials    MaterialCatalog[]
 }
 
 model Plant {
@@ -327,11 +328,15 @@ model MaterialCatalog {
   type             String // "CONSUMABLE" or "SPARE_PART"
   requiresSerial   Boolean @default(false)
   active           Boolean @default(true)
+  
+  clientId         String?
+  client           Client? @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([code])
+  @@index([clientId])
 }
 
 model Consumable {

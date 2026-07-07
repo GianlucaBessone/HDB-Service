@@ -154,7 +154,7 @@ export default function UsersPage() {
           <table className="w-full">
             <thead>
               <tr className="bg-muted/50 text-muted-foreground text-xs uppercase tracking-wider">
-                <th className="px-6 py-4 font-semibold text-center">Usuario</th>
+                <th className="px-6 py-4 font-semibold text-left">Usuario</th>
                 <th className="px-6 py-4 font-semibold text-center">Rol</th>
                 <th className="px-6 py-4 font-semibold text-center">Cliente / Empresa</th>
                 <th className="px-6 py-4 font-semibold text-center">Estado</th>
@@ -182,7 +182,7 @@ export default function UsersPage() {
                 filteredUsers.map((user) => (
                   <tr key={user.id} className="hover:bg-accent/30 transition-colors group">
                     <td className="px-6 py-4">
-                      <div className="flex items-center justify-center gap-3">
+                      <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold shrink-0">
                           {user.nombre.charAt(0)}
                         </div>
