@@ -7,8 +7,9 @@ interface AuthState {
   nombre: string | null;
   role: UserRole | null;
   clientId: string | null;
+  plantIds: string[];
   isAuthenticated: boolean;
-  setUser: (user: { id: string; email: string; nombre: string; role: UserRole; clientId: string | null }) => void;
+  setUser: (user: { id: string; email: string; nombre: string; role: UserRole; clientId: string | null; plantIds?: string[] }) => void;
   clearUser: () => void;
 }
 
@@ -18,6 +19,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   nombre: null,
   role: null,
   clientId: null,
+  plantIds: [],
   isAuthenticated: false,
   setUser: (user) =>
     set({
@@ -26,6 +28,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       nombre: user.nombre,
       role: user.role,
       clientId: user.clientId,
+      plantIds: user.plantIds || [],
       isAuthenticated: true,
     }),
   clearUser: () =>
@@ -35,6 +38,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       nombre: null,
       role: null,
       clientId: null,
+      plantIds: [],
       isAuthenticated: false,
     }),
 }));

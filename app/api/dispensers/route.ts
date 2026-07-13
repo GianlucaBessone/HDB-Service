@@ -85,7 +85,7 @@ export async function POST(req: Request) {
   return withIdempotency(req, async () => {
     try {
       const body = await req.json();
-      const { id, marca, modelo, lifecycleMonths, numeroSerie, fechaCompra, notas, initialConsumables, plantId } = body;
+      const { id, marca, modelo, lifecycleMonths, numeroSerie, fechaCompra, notas, plantId } = body;
 
       if (!id?.trim() || !marca?.trim() || !modelo?.trim()) {
         await revalidateTag('dispensers', 'default');
@@ -118,37 +118,13 @@ export async function POST(req: Request) {
             plantId: plantId || null,
             status: 'BACKUP', // Starts in backup until assigned
           },
-        });
-
-        // Record initial consumables if provided
-        if (initialConsumables && Array.isArray(initialConsumables)) {
-          for (const item of initialConsumables) {
-            if (!item.materialCode) continue;
-
-            const catalogItem = await tx.materialCatalog.findUnique({
-              where: { code: item.materialCode }
-            });
-
-            if (catalogItem) {
-              const expiresAt = catalogItem.expirationMonths 
-                ? new Date(new Date().setMonth(new Date().getMonth() + catalogItem.expirationMonths))
-                : null;
-
-              await tx.dispenserConsumableHistory.create({
-                data: {
-                  dispenserId: d.id,
-                  materialCode: item.materialCode,
-                  nombre: catalogItem.nombre,
-                  consumableId: null, // Since it's factory included, it might not be in our physical stock yet
-                  installedById: user.id,
-                  expiresAt,
-                  // Optionally record serial if provided
-                  ...(item.serialNumber && { nombre: `${catalogItem.nombre} (S/N: ${item.serialNumber})` })
-                }
-              });
+          include: {
+            plant: {
+              include: { client: true }
             }
           }
-        }
+        });
+
         return d;
       });
 

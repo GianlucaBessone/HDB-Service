@@ -5,6 +5,7 @@ import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { NAV_ITEMS, isNavVisible } from '@/lib/rbac';
 import { Loader2 } from 'lucide-react';
+import { useAuthStore } from '@/lib/store/useAuthStore';
 
 export default function AuthGuard({ 
   children,
@@ -15,10 +16,13 @@ export default function AuthGuard({
 }) {
   const pathname = usePathname();
   const router = useRouter();
+  const setUser = useAuthStore((state) => state.setUser);
+  const clearUser = useAuthStore((state) => state.clearUser);
 
   useEffect(() => {
 
     if (!session?.user) {
+      clearUser();
       if (
         pathname !== '/login' && 
         pathname !== '/login/set-password' && 
@@ -29,6 +33,16 @@ export default function AuthGuard({
       }
       return;
     }
+
+    // Populate global store for client components to use synchronously
+    setUser({
+      id: session.user.id,
+      email: session.user.email,
+      nombre: session.user.nombre,
+      role: session.user.role,
+      clientId: session.user.clientId,
+      plantIds: session.user.plantIds || [],
+    });
 
     // Ignore login routes if authenticated (login page handles its own redirect, but we can do it here too)
     if (pathname === '/login' || pathname === '/login/set-password') {

@@ -10,6 +10,8 @@ import {
 import clsx from 'clsx';
 import toast from 'react-hot-toast';
 import { t, getStatusColor } from '@/lib/translations';
+import InitConsumablesModal from '@/components/InitConsumablesModal';
+import { useAuthStore } from '@/lib/store/useAuthStore';
 
 type Dispenser = {
   id: string;
@@ -31,20 +33,13 @@ type Dispenser = {
 };
 
 export default function DispensersPage() {
+  const { role, plantIds } = useAuthStore();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [dispenserToInit, setDispenserToInit] = useState<any>(null);
   const [sortField, setSortField] = useState<string>('updatedAt');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
-
-  const { data: session } = useQuery({
-    queryKey: ['session'],
-    queryFn: async () => {
-      const res = await fetch('/api/auth/session');
-      if (!res.ok) return { user: null };
-      return res.json();
-    }
-  });
 
   const { data, isLoading, refetch: fetchDispensers } = useQuery({
     queryKey: ['dispensers', search, statusFilter],
@@ -119,7 +114,7 @@ export default function DispensersPage() {
           <p className="text-muted-foreground mt-1">Gestión de equipos dispensadores de agua</p>
         </div>
         <div className="flex items-center gap-2">
-          {(session?.user?.role === 'ADMIN' || session?.user?.role === 'SUPERVISOR' || session?.user?.role === 'TECHNICIAN') && (
+          {(role === 'ADMIN' || role === 'SUPERVISOR' || role === 'TECHNICIAN') && (
             <>
               {sorted.length > 0 ? (
                 <Link
@@ -254,11 +249,11 @@ export default function DispensersPage() {
                             {d.plant && d.location.plant.id !== d.plant.id && (
                               <span className={clsx(
                                 "text-[9px] px-1.5 py-0.5 rounded-full font-bold border",
-                                session?.user?.plantIds?.includes(d.location.plant.id) 
+                                plantIds?.includes(d.location.plant.id) 
                                   ? "bg-blue-100 text-blue-700 border-blue-200" // Borrowed
                                   : "bg-purple-100 text-purple-700 border-purple-200" // Loaned
                               )}>
-                                {session?.user?.plantIds?.includes(d.location.plant.id) ? 'PRESTADO' : 'PRESTADO A OTRO'}
+                                {plantIds?.includes(d.location.plant.id) ? 'PRESTADO' : 'PRESTADO A OTRO'}
                               </span>
                             )}
                           </div>
@@ -307,7 +302,23 @@ export default function DispensersPage() {
       {showCreateModal && (
         <CreateDispenserModal
           onClose={() => setShowCreateModal(false)}
-          onCreated={() => { setShowCreateModal(false); fetchDispensers(); }}
+          onCreated={(newDispenser) => { 
+            setShowCreateModal(false); 
+            fetchDispensers();
+            if (newDispenser) setDispenserToInit(newDispenser);
+          }}
+        />
+      )}
+
+      {/* Init Consumables Modal (auto-open after create) */}
+      {dispenserToInit && (
+        <InitConsumablesModal
+          dispenser={dispenserToInit}
+          onClose={() => setDispenserToInit(null)}
+          onInitialized={() => {
+            setDispenserToInit(null);
+            fetchDispensers();
+          }}
         />
       )}
     </div>
@@ -332,26 +343,13 @@ function KpiCard({ label, value, color }: { label: string; value: number; color:
 }
 
 // ─── Create Modal ───────────────────────────────────
-function CreateDispenserModal({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
+function CreateDispenserModal({ onClose, onCreated }: { onClose: () => void; onCreated: (d?: any) => void }) {
   const [form, setForm] = useState({ id: '', marca: '', modelo: '', numeroSerie: '', fechaCompra: '', lifecycleMonths: '60', notas: '', plantId: '' });
-  const [catalog, setCatalog] = useState<any[]>([]);
   const [plants, setPlants] = useState<any[]>([]);
-  const [initialConsumables, setInitialConsumables] = useState<Record<string, { selected: boolean, serialNumber: string }>>({});
+  const [initConsumablesNow, setInitConsumablesNow] = useState(false);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    fetch('/api/catalog')
-      .then(res => res.json())
-      .then(data => {
-        const consumables = data.filter((m: any) => m.type === 'CONSUMABLE');
-        setCatalog(consumables);
-        const initial: any = {};
-        consumables.forEach((c: any) => {
-          initial[c.code] = { selected: true, serialNumber: '' };
-        });
-        setInitialConsumables(initial);
-      });
-
     fetch('/api/plants')
       .then(res => res.json())
       .then(data => setPlants(data || []));
@@ -364,20 +362,8 @@ function CreateDispenserModal({ onClose, onCreated }: { onClose: () => void; onC
       return;
     }
 
-    // Validate serials for selected consumables that require them
-    for (const c of catalog) {
-      if (initialConsumables[c.code]?.selected && c.requiresSerial && !initialConsumables[c.code].serialNumber) {
-        toast.error(`El ${c.nombre} requiere número de serie`);
-        return;
-      }
-    }
-
     setSaving(true);
     try {
-      const selectedConsumables = Object.entries(initialConsumables)
-        .filter(([_, val]) => val.selected)
-        .map(([code, val]) => ({ materialCode: code, serialNumber: val.serialNumber }));
-
       const res = await fetch('/api/dispensers', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -390,7 +376,6 @@ function CreateDispenserModal({ onClose, onCreated }: { onClose: () => void; onC
           lifecycleMonths: parseInt(form.lifecycleMonths) || 60,
           notas: form.notas.trim() || null,
           plantId: form.plantId || null,
-          initialConsumables: selectedConsumables,
         }),
       });
       if (!res.ok) {
@@ -398,8 +383,9 @@ function CreateDispenserModal({ onClose, onCreated }: { onClose: () => void; onC
         toast.error(err.error || 'Error al crear dispenser');
         return;
       }
+      const newDispenser = await res.json();
       toast.success('Dispenser creado exitosamente');
-      onCreated();
+      onCreated(initConsumablesNow ? newDispenser : undefined);
     } catch {
       toast.error('Error de conexión');
     } finally {
@@ -497,52 +483,21 @@ function CreateDispenserModal({ onClose, onCreated }: { onClose: () => void; onC
 
             {/* Consumables Info */}
             <section className="space-y-4">
-              <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-widest border-b pb-1">Consumibles Incluidos</h3>
-              <div className="grid grid-cols-1 gap-3">
-                {catalog.length === 0 ? (
-                  <p className="text-xs text-muted-foreground italic">Cargando catálogo...</p>
-                ) : catalog.map(m => (
-                  <div key={m.code} className={clsx(
-                    "p-3 rounded-xl border transition-all flex flex-col gap-3",
-                    initialConsumables[m.code]?.selected ? "bg-primary/5 border-primary/20" : "bg-muted/30 border-transparent opacity-60"
-                  )}>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <input
-                          type="checkbox"
-                          className="w-4 h-4 rounded text-primary focus:ring-primary"
-                          checked={initialConsumables[m.code]?.selected || false}
-                          onChange={e => setInitialConsumables(p => ({
-                            ...p,
-                            [m.code]: { ...p[m.code], selected: e.target.checked }
-                          }))}
-                        />
-                        <div>
-                          <p className="text-sm font-bold">{m.nombre}</p>
-                          <p className="text-[10px] text-muted-foreground uppercase">Cód: {m.code}</p>
-                        </div>
-                      </div>
-                      {m.requiresSerial && initialConsumables[m.code]?.selected && (
-                        <span className="badge-warning text-[8px] px-1.5 py-0.5">REQUIERE SERIAL</span>
-                      )}
-                    </div>
-
-                    {m.requiresSerial && initialConsumables[m.code]?.selected && (
-                      <div className="animate-in slide-in-from-top-1 duration-200">
-                        <input
-                          className="input text-xs"
-                          placeholder={`Ingrese N° de Serie para ${m.nombre}`}
-                          value={initialConsumables[m.code]?.serialNumber || ''}
-                          onChange={e => setInitialConsumables(p => ({
-                            ...p,
-                            [m.code]: { ...p[m.code], serialNumber: e.target.value }
-                          }))}
-                          required
-                        />
-                      </div>
-                    )}
-                  </div>
-                ))}
+              <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-widest border-b pb-1">Consumibles</h3>
+              <div className="flex items-center gap-3 p-4 bg-primary/5 rounded-xl border border-primary/20">
+                <input
+                  type="checkbox"
+                  id="initConsumables"
+                  className="w-5 h-5 rounded text-primary focus:ring-primary"
+                  checked={initConsumablesNow}
+                  onChange={e => setInitConsumablesNow(e.target.checked)}
+                />
+                <label htmlFor="initConsumables" className="text-sm font-bold cursor-pointer select-none">
+                  ¿Desea inicializar consumibles ahora?
+                  <p className="text-[10px] text-muted-foreground font-normal mt-0.5">
+                    Al confirmar, se abrirá la ventana para agregar los insumos iniciales del equipo.
+                  </p>
+                </label>
               </div>
             </section>
 
