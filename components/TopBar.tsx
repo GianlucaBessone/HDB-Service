@@ -366,18 +366,18 @@ export default function TopBar({ user }: { user: { nombre: string; email: string
 
         {/* User Dropdown Toggle (Visual) */}
         <div className="flex items-center gap-3">
-          <div className="hidden md:flex flex-col items-end">
-            <span className="text-sm font-semibold leading-none">{user.nombre}</span>
-            <span className="text-xs text-muted-foreground mt-1">
+          <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
+            {user.nombre.charAt(0).toUpperCase()}
+          </div>
+          <div className="hidden md:flex flex-col items-start">
+            <span className="text-sm font-semibold leading-none text-left">{user.nombre}</span>
+            <span className="text-xs text-muted-foreground mt-1 text-left">
               {user.role === 'CLIENT_REQUESTER' 
                 ? 'Referente' 
                 : user.role === 'CLIENT_RESPONSIBLE' 
                 ? 'Responsable' 
                 : t(user.role)}
             </span>
-          </div>
-          <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
-            {user.nombre.charAt(0).toUpperCase()}
           </div>
           <button 
             onClick={handleSignOut}

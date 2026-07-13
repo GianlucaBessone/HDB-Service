@@ -321,9 +321,9 @@ export default function MaintenanceApprovalsPage() {
                           <h3 className="font-bold text-base flex items-center gap-2">
                             {approval.customerName}
                             {approval.signatureHash ? (
-                              <Lock className="w-3.5 h-3.5 text-primary" title="Firma Verificada" />
+                              <span title="Firma Verificada"><Lock className="w-3.5 h-3.5 text-primary" /></span>
                             ) : (
-                              <ShieldAlert className="w-3.5 h-3.5 text-muted-foreground" title="Firma Legacy" />
+                              <span title="Firma Legacy"><ShieldAlert className="w-3.5 h-3.5 text-muted-foreground" /></span>
                             )}
                           </h3>
                           <div className="text-xs text-muted-foreground flex items-center gap-3 mt-1 flex-wrap">

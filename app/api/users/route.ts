@@ -37,11 +37,11 @@ export async function GET() {
       }
     });
 
-    await revalidateTag('users');
+    revalidateTag('users', {});
     return NextResponse.json(users);
   } catch (error) {
     console.error('Error fetching users:', error);
-    await revalidateTag('users');
+    revalidateTag('users', {});
     return NextResponse.json({ error: 'Error al obtener usuarios' }, { status: 500 });
   }
 }
@@ -55,7 +55,7 @@ export async function POST(request: Request) {
     const { email, nombre, apellido, role, clientId, plantIds, password } = body;
 
     if (!email || !nombre || !role || !password) {
-      await revalidateTag('users');
+      revalidateTag('users', {});
     return NextResponse.json({ error: 'Faltan campos obligatorios' }, { status: 400 });
     }
 
@@ -65,7 +65,7 @@ export async function POST(request: Request) {
     });
 
     if (existingUser) {
-      await revalidateTag('users');
+      revalidateTag('users', {});
     return NextResponse.json({ error: 'El usuario ya existe' }, { status: 400 });
     }
 
@@ -79,7 +79,7 @@ export async function POST(request: Request) {
 
     if (authError) {
       console.error('Supabase Create User Error:', authError);
-      await revalidateTag('users');
+      revalidateTag('users', {});
     return NextResponse.json({ error: authError.message }, { status: 400 });
     }
 
@@ -105,11 +105,11 @@ export async function POST(request: Request) {
       }
     });
 
-    await revalidateTag('users');
+    revalidateTag('users', {});
     return NextResponse.json(newUser);
   } catch (error: any) {
     console.error('Error creating user:', error);
-    await revalidateTag('users');
+    revalidateTag('users', {});
     return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
   }
 }
