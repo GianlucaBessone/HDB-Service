@@ -52,32 +52,23 @@ export async function GET(req: Request) {
       ];
     }
 
-    // Technician sees assigned tickets OR unassigned tickets matching authorized plants & equipment types
+    // Technician sees assigned tickets OR unassigned tickets for their authorized plants
     if (user.role === 'TECHNICIAN') {
       const plantFilter = user.plantIds.length > 0 
         ? { location: { plantId: { in: user.plantIds } } }
         : {};
-
-      const techEquipmentTypes = (user as any).equipmentTypes || ['DISPENSER'];
-
-      const equipmentFilter = {
-        OR: [
-          { dispenserId: null },
-          { dispenser: { equipmentType: { in: techEquipmentTypes as any[] } } }
-        ]
-      };
         
       where.OR = [
         { assignedToId: user.id },
-        { assignedToId: null, ...plantFilter, ...equipmentFilter }
+        { assignedToId: null, ...plantFilter }
       ];
     }
 
-    const [tickets, total] = await Promise.all([
+    let [tickets, total] = await Promise.all([
       prisma.ticket.findMany({
         where,
         include: {
-          dispenser: { select: { id: true, marca: true, modelo: true, status: true, equipmentType: true } },
+          dispenser: { select: { id: true, marca: true, modelo: true, status: true } },
           location: {
             include: {
               plant: { select: { nombre: true, client: { select: { nombre: true } } } },
@@ -93,6 +84,32 @@ export async function GET(req: Request) {
       }),
       prisma.ticket.count({ where }),
     ]);
+
+    // For technician role: filter tickets by technician equipmentType specialization
+    if (user.role === 'TECHNICIAN') {
+      const techEquipmentTypes = (user as any).equipmentTypes || ['DISPENSER'];
+
+      try {
+        const dispEqData: any[] = await prisma.$queryRawUnsafe(`SELECT id, "equipmentType" FROM "Dispenser"`);
+        const dispEqMap = new Map(dispEqData.map((d: any) => [d.id, d.equipmentType]));
+
+        tickets = tickets.filter((t: any) => {
+          if (t.assignedToId === user.id) return true;
+          if (!t.dispenserId) return true;
+          const eqType = dispEqMap.get(t.dispenserId) || 'DISPENSER';
+          return techEquipmentTypes.includes(eqType);
+        });
+
+        // Attach equipmentType to dispenser object for frontend rendering
+        tickets.forEach((t: any) => {
+          if (t.dispenser) {
+            t.dispenser.equipmentType = dispEqMap.get(t.dispenser.id) || 'DISPENSER';
+          }
+        });
+      } catch {
+        // Fallback
+      }
+    }
 
     return NextResponse.json({ tickets, total, page, limit });
   } catch (error) {
