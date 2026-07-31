@@ -56,9 +56,9 @@ export default function MaintenanceApprovalsPage() {
 
   useEffect(() => {
     fetch('/api/plants')
-      .then(res => res.json())
-      .then(setPlants)
-      .catch(console.error);
+      .then(res => res.ok ? res.json() : [])
+      .then(data => setPlants(Array.isArray(data) ? data : []))
+      .catch(() => setPlants([]));
   }, []);
 
   return (
@@ -97,7 +97,7 @@ export default function MaintenanceApprovalsPage() {
               onChange={e => setFilterPlant(e.target.value)}
             >
               <option value="">Todas las plantas</option>
-              {plants.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
+              {(Array.isArray(plants) ? plants : []).map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
             </select>
           </div>
 

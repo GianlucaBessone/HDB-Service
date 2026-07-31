@@ -34,25 +34,20 @@ export default function UserModal({ user, onClose, onSuccess }: UserModalProps) 
 
   useEffect(() => {
     fetch('/api/clients')
-      .then(res => res.json())
-      .then(data => setClients(data))
-      .catch(() => console.error('Error loading clients'));
+      .then(res => res.ok ? res.json() : [])
+      .then(data => setClients(Array.isArray(data) ? data : []))
+      .catch(() => setClients([]));
   }, []);
 
   useEffect(() => {
     if (form.clientId) {
       setIsLoadingPlants(true);
       fetch(`/api/plants?clientId=${form.clientId}`)
-        .then(res => res.json())
+        .then(res => res.ok ? res.json() : [])
         .then(data => {
-          setAvailablePlants(data);
-          // If editing and no plants selected yet, initialize if they come in user object
-          // Otherwise, if changing client, clear selected plants
-          if (!isEditing || form.clientId !== user?.clientId) {
-            // Only clear if the client actually changed manually
-            // Wait, logic: if I select a client, I should see their plants.
-          }
+          setAvailablePlants(Array.isArray(data) ? data : []);
         })
+        .catch(() => setAvailablePlants([]))
         .finally(() => setIsLoadingPlants(false));
     } else {
       setAvailablePlants([]);

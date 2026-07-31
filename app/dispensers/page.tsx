@@ -351,8 +351,9 @@ function CreateDispenserModal({ onClose, onCreated }: { onClose: () => void; onC
 
   useEffect(() => {
     fetch('/api/plants')
-      .then(res => res.json())
-      .then(data => setPlants(data || []));
+      .then(res => res.ok ? res.json() : [])
+      .then(data => setPlants(Array.isArray(data) ? data : []))
+      .catch(() => setPlants([]));
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -472,7 +473,7 @@ function CreateDispenserModal({ onClose, onCreated }: { onClose: () => void; onC
                     required
                   >
                     <option value="">Seleccionar Planta...</option>
-                    {plants.map(p => (
+                    {(Array.isArray(plants) ? plants : []).map(p => (
                       <option key={p.id} value={p.id}>{p.nombre}</option>
                     ))}
                   </select>

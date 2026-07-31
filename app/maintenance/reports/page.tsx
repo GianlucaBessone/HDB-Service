@@ -23,7 +23,7 @@ export default function MaintenanceReportsPage() {
   const [matrixMonths, setMatrixMonths] = useState<string[]>([]);
 
   // Cascading logic
-  const availablePlants = plantsData.filter(p => !clientId || p.clientId === clientId);
+  const availablePlants = (Array.isArray(plantsData) ? plantsData : []).filter(p => !clientId || p.clientId === clientId);
 
   useEffect(() => {
     // Set default month range (last 6 months)
@@ -38,23 +38,23 @@ export default function MaintenanceReportsPage() {
 
     // Initial data load
     fetch('/api/plants')
-      .then(res => res.json())
-      .then(data => setPlantsData(data))
-      .catch(() => toast.error('Error al cargar plantas'));
+      .then(res => res.ok ? res.json() : [])
+      .then(data => setPlantsData(Array.isArray(data) ? data : []))
+      .catch(() => setPlantsData([]));
 
     fetch('/api/clients')
-      .then(res => res.json())
-      .then(data => setClientsData(data))
-      .catch(() => console.error('Error al cargar clientes'));
+      .then(res => res.ok ? res.json() : [])
+      .then(data => setClientsData(Array.isArray(data) ? data : []))
+      .catch(() => setClientsData([]));
   }, []);
 
   // Fetch sectors when plant changes
   useEffect(() => {
     if (plantId) {
       fetch(`/api/sectors?plantId=${plantId}`)
-        .then(res => res.json())
-        .then(data => setSectorsData(data))
-        .catch(() => toast.error('Error al cargar sectores'));
+        .then(res => res.ok ? res.json() : [])
+        .then(data => setSectorsData(Array.isArray(data) ? data : []))
+        .catch(() => setSectorsData([]));
     } else {
       setSectorsData([]);
       setSectorId('');

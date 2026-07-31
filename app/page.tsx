@@ -16,7 +16,7 @@ import {
   ScanLine,
   Users,
   FileText,
-  ArrowRight,
+  ChevronRight,
   Loader2
 } from 'lucide-react';
 
@@ -93,43 +93,42 @@ export default function Home() {
       </div>
 
       {/* Grid para Mobile */}
-      <div className="grid md:hidden grid-cols-2 gap-4">
+      <div className="grid md:hidden grid-cols-2 gap-3.5">
         {visibleItems.map((item) => {
           const Icon = iconMap[item.icon];
-          const borderLeftClass = item.borderLeftClass || 'border-l-primary';
-          const bgClass = item.bgClass || 'bg-primary/10 text-primary';
           const isScan = item.key === '/qr/scan';
 
           return (
             <Link
               key={item.key}
               href={item.key}
-              className={`group glass-card p-4 border-l-4 ${borderLeftClass} active:scale-95 transition-all flex flex-col justify-between h-28 cursor-pointer hover:shadow-md ${
-                isScan ? 'ring-1.5 ring-rose-500/30 bg-rose-500/[0.02] dark:bg-rose-500/[0.03]' : ''
+              className={`group relative rounded-2xl border border-border/60 bg-card/90 dark:bg-card/40 p-4 transition-all duration-200 active:scale-[0.98] flex flex-col justify-between min-h-[110px] cursor-pointer shadow-sm hover:border-primary/40 ${
+                isScan ? 'border-primary/40 bg-primary/[0.03]' : ''
               }`}
             >
-              <div className="flex justify-between items-start">
-                <div className={`p-2 rounded-lg ${bgClass} group-active:scale-110 transition-transform ${
-                  isScan ? 'animate-pulse-soft' : ''
+              <div className="flex items-center justify-between">
+                <div className={`p-2.5 rounded-xl transition-all duration-200 ${
+                  isScan 
+                    ? 'bg-primary text-white shadow-sm shadow-primary/30' 
+                    : 'bg-primary/10 text-primary group-active:bg-primary group-active:text-white'
                 }`}>
                   {Icon && <Icon className="w-5 h-5" />}
                 </div>
-                <ArrowRight className="w-4 h-4 text-muted-foreground opacity-50 group-active:translate-x-1 transition-transform" />
               </div>
-              <span className="font-bold text-sm text-foreground tracking-tight">
-                {item.label}
-              </span>
+              <div>
+                <span className="font-semibold text-sm text-foreground tracking-tight block leading-snug group-active:text-primary transition-colors">
+                  {item.label}
+                </span>
+              </div>
             </Link>
           );
         })}
       </div>
 
       {/* Grid para PC */}
-      <div className="hidden md:grid grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="hidden md:grid grid-cols-2 lg:grid-cols-3 gap-5">
         {visibleItems.map((item) => {
           const Icon = iconMap[item.icon];
-          const colorClass = item.colorClass || 'text-primary border-t-primary';
-          const bgClass = item.bgClass || 'bg-primary/10 text-primary';
           const description = item.description || `Acceder a la sección de ${item.label}.`;
           const isScan = item.key === '/qr/scan';
 
@@ -137,27 +136,33 @@ export default function Home() {
             <Link
               key={item.key}
               href={item.key}
-              className={`group glass-card p-6 border-t-4 ${colorClass} hover:scale-[1.02] transition-all hover:shadow-lg flex flex-col justify-between h-56 cursor-pointer ${
-                isScan ? 'ring-1.5 ring-rose-500/20 bg-rose-500/[0.01] dark:bg-rose-500/[0.02]' : ''
+              className={`group relative rounded-2xl border border-border/60 bg-card/80 dark:bg-card/30 backdrop-blur-sm p-6 transition-all duration-300 hover:border-primary/40 hover:shadow-lg hover:-translate-y-0.5 flex flex-col justify-between min-h-[170px] cursor-pointer overflow-hidden ${
+                isScan ? 'border-primary/40 bg-primary/[0.02]' : ''
               }`}
             >
+              {/* Subtle hover accent bar */}
+              <div className="absolute top-0 left-0 right-0 h-[3px] bg-primary/0 group-hover:bg-primary/80 transition-all duration-300" />
+
               <div>
-                <div className="flex justify-between items-center mb-4">
-                  <span className="font-bold text-lg text-foreground group-hover:text-primary transition-colors">
-                    {item.label}
-                  </span>
-                  <div className={`p-2.5 rounded-xl ${bgClass} group-hover:scale-110 transition-transform duration-300 ${
-                    isScan ? 'animate-pulse-soft' : ''
+                <div className="flex justify-between items-start mb-3">
+                  <div className={`p-3 rounded-xl transition-all duration-300 ${
+                    isScan 
+                      ? 'bg-primary text-white shadow-md shadow-primary/20' 
+                      : 'bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white group-hover:shadow-md group-hover:shadow-primary/20'
                   }`}>
                     {Icon && <Icon className="w-6 h-6" />}
                   </div>
+                  <div className="flex items-center gap-1 text-xs font-semibold text-muted-foreground group-hover:text-primary transition-colors">
+                    <span>Ingresar</span>
+                    <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+                  </div>
                 </div>
-                <p className="text-sm text-muted-foreground line-clamp-3 leading-relaxed">
+                <h3 className="font-bold text-lg text-foreground group-hover:text-primary transition-colors">
+                  {item.label}
+                </h3>
+                <p className="text-xs md:text-sm text-muted-foreground line-clamp-2 leading-relaxed mt-1">
                   {description}
                 </p>
-              </div>
-              <div className="mt-4 flex items-center gap-1.5 text-xs font-bold text-primary opacity-0 group-hover:opacity-100 transition-opacity">
-                Ingresar <ArrowRight className="w-4 h-4" />
               </div>
             </Link>
           );

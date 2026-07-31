@@ -70,6 +70,7 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     'notifications:read',
   ],
   TECHNICIAN: [
+    'plants:read',
     'dispensers:read', 'dispensers:status',
     'locations:read',
     'tickets:read', 'tickets:write',
@@ -93,6 +94,7 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     'notifications:read',
   ],
   CLIENT_REQUESTER: [
+    'plants:read',
     'dispensers:read',
     'locations:read',
     'tickets:read', 'tickets:write',

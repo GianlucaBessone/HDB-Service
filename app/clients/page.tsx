@@ -600,7 +600,10 @@ function PlantsSection() {
     if (locations.length === 0) {
       fetchLocations();
     }
-    fetch('/api/clients').then(res => res.json()).then(setClients).catch(console.error);
+    fetch('/api/clients')
+      .then(res => res.ok ? res.json() : [])
+      .then(data => setClients(Array.isArray(data) ? data : []))
+      .catch(() => setClients([]));
   }, [plants.length, locations.length, fetchPlants, fetchLocations]);
 
   // Group locations by plantId for instant access
