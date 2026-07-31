@@ -7,6 +7,7 @@ const ONESIGNAL_APP_ID = process.env.ONESIGNAL_APP_ID || '';
 const ONESIGNAL_API_KEY = process.env.ONESIGNAL_API_KEY || '';
 
 interface SendNotificationParams {
+  userIds?: string[];
   playerIds?: string[];
   title: string;
   message: string;
@@ -16,6 +17,7 @@ interface SendNotificationParams {
 
 /**
  * Send push notification to specific users via OneSignal.
+ * Supports targeting by user IDs (linked via OneSignal.login(userId)) or legacy playerIds.
  */
 export async function sendPushNotification(params: SendNotificationParams): Promise<boolean> {
   if (!ONESIGNAL_APP_ID || !ONESIGNAL_API_KEY) {
@@ -23,26 +25,38 @@ export async function sendPushNotification(params: SendNotificationParams): Prom
     return false;
   }
 
-  if (!params.playerIds || params.playerIds.length === 0) {
-    console.warn('[OneSignal] No playerIds provided, skipping.');
+  const userIds = (params.userIds || []).filter(Boolean);
+  const playerIds = (params.playerIds || []).filter(Boolean);
+
+  if (userIds.length === 0 && playerIds.length === 0) {
+    console.warn('[OneSignal] No userIds or playerIds provided, skipping.');
     return false;
   }
 
   try {
+    const payload: any = {
+      app_id: ONESIGNAL_APP_ID,
+      headings: { es: params.title, en: params.title },
+      contents: { es: params.message, en: params.message },
+      data: params.data || {},
+      url: params.url,
+    };
+
+    if (userIds.length > 0) {
+      payload.include_external_user_ids = userIds;
+      payload.include_aliases = { external_id: userIds };
+      payload.target_channel = 'push';
+    } else if (playerIds.length > 0) {
+      payload.include_player_ids = playerIds;
+    }
+
     const response = await fetch('https://onesignal.com/api/v1/notifications', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Basic ${ONESIGNAL_API_KEY}`,
       },
-      body: JSON.stringify({
-        app_id: ONESIGNAL_APP_ID,
-        include_player_ids: params.playerIds.filter(Boolean),
-        headings: { en: params.title },
-        contents: { en: params.message },
-        data: params.data || {},
-        url: params.url,
-      }),
+      body: JSON.stringify(payload),
     });
 
     if (!response.ok) {
@@ -72,15 +86,13 @@ export async function notifyByRole(
   const { prisma } = await import('./prisma');
 
   const users = await prisma.user.findMany({
-    where: { role: role as any, active: true, onesignalPlayerId: { not: null } },
-    select: { onesignalPlayerId: true },
+    where: { role: role as any, active: true },
+    select: { id: true },
   });
 
-  const playerIds = users
-    .map(u => u.onesignalPlayerId)
-    .filter((id): id is string => !!id);
+  const userIds = users.map(u => u.id);
 
-  if (playerIds.length > 0) {
-    await sendPushNotification({ playerIds, title, message, data });
+  if (userIds.length > 0) {
+    await sendPushNotification({ userIds, title, message, data });
   }
 }

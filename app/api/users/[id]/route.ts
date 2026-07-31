@@ -17,8 +17,8 @@ export async function PATCH(
   try {
     const { id } = await params;
     const body = await request.json();
-    const { nombre, apellido, role, clientId, password, active, plantIds } = body;
-    
+    const { nombre, apellido, role, clientId, password, active, plantIds, equipmentTypes } = body;
+
     // Prevent self-deactivation
     if (id === auth.id) {
       if (active === false) {
@@ -43,8 +43,26 @@ export async function PATCH(
     if (nombre !== undefined) updateData.nombre = nombre;
     if (apellido !== undefined) updateData.apellido = apellido;
     if (role !== undefined) updateData.role = role;
-    if (clientId !== undefined) updateData.clientId = clientId || null;
+    if (clientId !== undefined) {
+      if (clientId) {
+        updateData.client = { connect: { id: clientId } };
+      } else {
+        updateData.client = { disconnect: true };
+      }
+    }
     if (active !== undefined) updateData.active = active;
+
+    if (equipmentTypes !== undefined) {
+      try {
+        await prisma.$executeRawUnsafe(
+          `UPDATE "User" SET "equipmentTypes" = $1::"EquipmentType"[] WHERE id = $2`,
+          equipmentTypes,
+          id
+        );
+      } catch (e) {
+        console.warn('[API] EquipmentTypes raw update warning:', e);
+      }
+    }
 
     if (password) {
       updateData.passwordHash = await bcrypt.hash(password, 10);

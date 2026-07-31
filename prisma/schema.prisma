@@ -35,8 +35,11 @@ model User {
   clientId String?
   client   Client? @relation(fields: [clientId], references: [id])
 
-  // Plant-level access (for CLIENT_REQUESTER)
+  // Plant-level access (for CLIENT_REQUESTER and TECHNICIAN)
   plantAccess UserPlantAccess[]
+
+  // Equipment specialization (for TECHNICIAN)
+  equipmentTypes EquipmentType[] @default([DISPENSER])
 
   // OneSignal device
   onesignalPlayerId String?
@@ -178,6 +181,13 @@ model Location {
 // DISPENSER — Core Entity
 // ═══════════════════════════════════════════════════════
 
+enum EquipmentType {
+  DISPENSER
+  AIR_CONDITIONER
+  REFRIGERATOR
+  OTHER
+}
+
 enum DispenserStatus {
   IN_SERVICE
   UNDER_REPAIR
@@ -189,10 +199,11 @@ enum DispenserStatus {
 }
 
 model Dispenser {
-  id     String          @id // GLOBAL UNIQUE — user-defined
-  marca  String // Brand
-  modelo String // Model
-  status DispenserStatus @default(IN_SERVICE)
+  id            String          @id // GLOBAL UNIQUE — user-defined
+  equipmentType EquipmentType   @default(DISPENSER)
+  marca         String // Brand
+  modelo        String // Model
+  status        DispenserStatus @default(IN_SERVICE)
 
   // Current location (nullable if in BACKUP/REPAIR/OUT_OF_SERVICE)
   locationId String?

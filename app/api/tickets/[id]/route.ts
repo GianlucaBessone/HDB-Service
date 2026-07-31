@@ -81,7 +81,8 @@ export async function PUT(req: Request, props: { params: Promise<{ id: string }>
       where: { id: id },
       include: { 
         reportedBy: { select: { id: true, onesignalPlayerId: true, nombre: true } },
-        location: { include: { plant: true } }
+        location: { include: { plant: true } },
+        dispenser: { select: { id: true, status: true } },
       }
     });
     if (!ticket) {
@@ -90,8 +91,26 @@ export async function PUT(req: Request, props: { params: Promise<{ id: string }>
     }
 
     // Security: Prevent Horizontal Privilege Escalation (IDOR)
-    if (user.role === 'TECHNICIAN' && ticket.assignedToId !== user.id) {
-      return NextResponse.json({ error: 'Acceso denegado: el ticket no te está asignado' }, { status: 403 });
+    // Technicians can update tickets assigned to them OR claim unassigned tickets for their authorized plants
+    if (user.role === 'TECHNICIAN') {
+      const isClaiming = assignedToId === user.id && ticket.assignedToId === null;
+      const isMyTicket = ticket.assignedToId === user.id;
+
+      if (!isMyTicket && !isClaiming) {
+        return NextResponse.json({ error: 'Acceso denegado: el ticket ya está asignado a otro técnico o no tienes permisos' }, { status: 403 });
+      }
+
+      if (isClaiming) {
+        if (user.plantIds.length > 0 && ticket.location?.plantId && !user.plantIds.includes(ticket.location.plantId)) {
+          return NextResponse.json({ error: 'No tienes acceso a la planta de este ticket' }, { status: 403 });
+        }
+
+        const userEquipTypes = (user as any).equipmentTypes || ['DISPENSER'];
+        const dispEquipType = (ticket as any).dispenser?.equipmentType;
+        if (dispEquipType && !userEquipTypes.includes(dispEquipType)) {
+          return NextResponse.json({ error: 'No tienes permisos para esta especialidad de equipo' }, { status: 403 });
+        }
+      }
     }
 
     const updateData: any = {};
@@ -100,7 +119,7 @@ export async function PUT(req: Request, props: { params: Promise<{ id: string }>
     if (status && status !== ticket.status) {
       if (!Object.values(TicketStatus).includes(status)) {
         await revalidateTag('tickets', 'default');
-    return NextResponse.json({ error: 'Estado inválido' }, { status: 400 });
+        return NextResponse.json({ error: 'Estado inválido' }, { status: 400 });
       }
 
       // Permission check for closing
@@ -136,7 +155,7 @@ export async function PUT(req: Request, props: { params: Promise<{ id: string }>
           fromStatus: ticket.status,
           toStatus: status,
           changedBy: user.nombre,
-          notes: notes?.trim() || null,
+          notes: notes?.trim() || (assignedToId === user.id && ticket.assignedToId === null ? `Ticket tomado por ${user.nombre}` : null),
         },
       });
 
@@ -164,37 +183,43 @@ export async function PUT(req: Request, props: { params: Promise<{ id: string }>
 
     // Assign technician
     if (assignedToId !== undefined) {
-      const assignUser = await requirePermission('tickets:assign');
-      if (assignUser instanceof NextResponse) return assignUser;
+      // Technicians can self-assign (claim) open tickets, supervisors/admins can assign any
+      if (user.role !== 'TECHNICIAN') {
+        const assignUser = await requirePermission('tickets:assign');
+        if (assignUser instanceof NextResponse) return assignUser;
+      }
 
       updateData.assignedToId = assignedToId;
+      if (!status && ticket.status === 'OPEN') {
+        updateData.status = 'IN_PROGRESS';
+      }
 
       // Notify assigned technician
       if (assignedToId) {
         const tech = await prisma.user.findUnique({
           where: { id: assignedToId },
-          select: { onesignalPlayerId: true, id: true, nombre: true },
+          select: { id: true, nombre: true, email: true },
         });
 
-        if (tech?.onesignalPlayerId) {
+        if (tech?.id && tech.id !== user.id) {
           await sendPushNotification({
-            playerIds: [tech.onesignalPlayerId],
+            userIds: [tech.id],
             title: 'Ticket Asignado',
             message: `Se te asignó el ticket: ${ticket.reason.substring(0, 80)}`,
             data: { ticketId: id, type: 'TICKET_ASSIGNED' },
           });
-        }
 
-        // In-app notification
-        await prisma.notification.create({
-          data: {
-            userId: assignedToId,
-            title: 'Ticket Asignado',
-            message: ticket.reason.substring(0, 200),
-            type: 'TICKET_ASSIGNED',
-            relatedId: id,
-          },
-        });
+          // In-app notification
+          await prisma.notification.create({
+            data: {
+              userId: assignedToId,
+              title: 'Ticket Asignado',
+              message: ticket.reason.substring(0, 200),
+              type: 'TICKET_ASSIGNED',
+              relatedId: id,
+            },
+          });
+        }
 
         // Send Email for Assignment
         const techEmail = 'tecnico@empresa.com'; // overridden

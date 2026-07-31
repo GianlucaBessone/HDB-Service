@@ -60,8 +60,33 @@ export default function TicketDetailPanel({ ticketId, onClose, onUpdate }: Ticke
     initialDataUpdatedAt: () => queryClient.getQueryState(['tickets'])?.dataUpdatedAt,
   });
 
+  const [isClaiming, setIsClaiming] = useState(false);
+
+  const handleClaimTicket = async () => {
+    if (!session?.user?.id) return;
+    setIsClaiming(true);
+    try {
+      const res = await fetch(`/api/tickets/${ticketId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ assignedToId: session.user.id, status: 'IN_PROGRESS' }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Error al tomar el ticket');
+      }
+      toast.success('¡Has tomado el ticket exitosamente!');
+      await refetch();
+      onUpdate();
+    } catch (err: any) {
+      toast.error(err.message || 'Error al tomar el ticket');
+    } finally {
+      setIsClaiming(false);
+    }
+  };
+
   const handleRegisterRepair = async () => {
-    if (!ticket?.dispenser) return toast.error('No hay dispenser asociado');
+    if (!ticket?.dispenser) return toast.error('No hay equipo asociado');
 
     if (ticket.dispenser.status !== 'UNDER_REPAIR') {
       setShowConfirmRepairModal(true);
@@ -75,12 +100,12 @@ export default function TicketDetailPanel({ ticketId, onClose, onUpdate }: Ticke
     try {
       const res = await fetch(`/api/dispensers/${ticket.dispenser.id}/set-repair`, { method: 'POST' });
       if (!res.ok) throw new Error();
-      toast.success('Dispenser movido a Reparación');
+      toast.success('Equipo movido a Reparación');
       await refetch();
       onUpdate();
       setShowRepairModal(true);
     } catch {
-      toast.error('Error al actualizar dispenser');
+      toast.error('Error al actualizar equipo');
     } finally {
       setIsSettingRepair(false);
       setShowConfirmRepairModal(false);
@@ -115,6 +140,9 @@ export default function TicketDetailPanel({ ticketId, onClose, onUpdate }: Ticke
     );
   }
 
+  const isTech = session?.user?.role === 'TECHNICIAN';
+  const isUnassigned = !ticket.assignedToId;
+
   return (
     <div className="flex flex-col h-full bg-background border-l border-border shadow-2xl absolute md:relative top-0 right-0 w-full md:w-auto z-50">
       
@@ -142,9 +170,22 @@ export default function TicketDetailPanel({ ticketId, onClose, onUpdate }: Ticke
               {t(ticket.status)}
             </span>
             <span className="text-xs">Creado: {new Date(ticket.createdAt).toLocaleDateString('es-AR')}</span>
+            {ticket.assignedTo && (
+              <span className="badge text-xs badge-neutral">Asignado a: {ticket.assignedTo.nombre}</span>
+            )}
           </div>
 
           <div className="flex flex-wrap items-start gap-2 pt-2">
+            {isTech && isUnassigned && ticket.status !== 'RESOLVED' && ticket.status !== 'CLOSED' && (
+              <button
+                onClick={handleClaimTicket}
+                disabled={isClaiming}
+                className="btn-primary btn-sm gap-2 w-full md:w-auto justify-center bg-emerald-600 hover:bg-emerald-700 text-white"
+              >
+                {isClaiming ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+                Tomar Ticket
+              </button>
+            )}
             {ticket.status !== 'RESOLVED' && ticket.status !== 'CLOSED' && (
               <button 
                 onClick={handleRegisterRepair} 

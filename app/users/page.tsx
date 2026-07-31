@@ -53,6 +53,25 @@ export default function UsersPage() {
     }
   });
 
+  // Prefetch clients and plants for instant modal rendering
+  useQuery({
+    queryKey: ['clients-list'],
+    queryFn: async () => {
+      const res = await fetch('/api/clients');
+      return res.ok ? res.json() : [];
+    },
+    staleTime: 10 * 60 * 1000,
+  });
+
+  useQuery({
+    queryKey: ['plants-list', '', 'TECHNICIAN'],
+    queryFn: async () => {
+      const res = await fetch('/api/plants');
+      return res.ok ? res.json() : [];
+    },
+    staleTime: 10 * 60 * 1000,
+  });
+
   const handleDeleteUser = async () => {
     if (!confirmDelete) return;
     

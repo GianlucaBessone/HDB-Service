@@ -37,6 +37,16 @@ export async function GET() {
       }
     });
 
+    try {
+      const eqData: any[] = await prisma.$queryRawUnsafe(`SELECT id, "equipmentTypes" FROM "User"`);
+      const eqMap = new Map(eqData.map((d: any) => [d.id, d.equipmentTypes]));
+      users.forEach((u: any) => {
+        u.equipmentTypes = eqMap.get(u.id) || ['DISPENSER'];
+      });
+    } catch {
+      users.forEach((u: any) => { u.equipmentTypes = ['DISPENSER']; });
+    }
+
     revalidateTag('users', {});
     return NextResponse.json(users);
   } catch (error) {
@@ -52,7 +62,7 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    const { email, nombre, apellido, role, clientId, plantIds, password } = body;
+    const { email, nombre, apellido, role, clientId, plantIds, equipmentTypes, password } = body;
 
     if (!email || !nombre || !role || !password) {
       revalidateTag('users', {});
@@ -95,7 +105,7 @@ export async function POST(request: Request) {
         nombre,
         apellido,
         role,
-        clientId: clientId || null,
+        client: clientId ? { connect: { id: clientId } } : undefined,
         mustChangePassword: true,
         plantAccess: {
           create: (plantIds || []).map((plantId: string) => ({
@@ -104,6 +114,18 @@ export async function POST(request: Request) {
         }
       }
     });
+
+    if (equipmentTypes && equipmentTypes.length > 0) {
+      try {
+        await prisma.$executeRawUnsafe(
+          `UPDATE "User" SET "equipmentTypes" = $1::"EquipmentType"[] WHERE id = $2`,
+          equipmentTypes,
+          newUser.id
+        );
+      } catch (e) {
+        console.warn('[API] EquipmentTypes raw create warning:', e);
+      }
+    }
 
     revalidateTag('users', {});
     return NextResponse.json(newUser);

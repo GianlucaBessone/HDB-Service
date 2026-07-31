@@ -52,23 +52,39 @@ export async function GET(req: Request) {
       ];
     }
 
-    // Technician sees only their assigned tickets
+    // Technician sees assigned tickets OR unassigned tickets matching authorized plants & equipment types
     if (user.role === 'TECHNICIAN') {
-      where.assignedToId = user.id;
+      const plantFilter = user.plantIds.length > 0 
+        ? { location: { plantId: { in: user.plantIds } } }
+        : {};
+
+      const techEquipmentTypes = (user as any).equipmentTypes || ['DISPENSER'];
+
+      const equipmentFilter = {
+        OR: [
+          { dispenserId: null },
+          { dispenser: { equipmentType: { in: techEquipmentTypes as any[] } } }
+        ]
+      };
+        
+      where.OR = [
+        { assignedToId: user.id },
+        { assignedToId: null, ...plantFilter, ...equipmentFilter }
+      ];
     }
 
     const [tickets, total] = await Promise.all([
       prisma.ticket.findMany({
         where,
         include: {
-          dispenser: { select: { id: true, marca: true, modelo: true, status: true } },
+          dispenser: { select: { id: true, marca: true, modelo: true, status: true, equipmentType: true } },
           location: {
             include: {
               plant: { select: { nombre: true, client: { select: { nombre: true } } } },
             },
           },
           reportedBy: { select: { nombre: true, role: true } },
-          assignedTo: { select: { nombre: true } },
+          assignedTo: { select: { id: true, nombre: true } },
           _count: { select: { comments: true } },
         },
         orderBy: [{ priority: 'desc' }, { createdAt: 'desc' }],
@@ -97,28 +113,56 @@ export async function POST(req: Request) {
 
       if (!reason?.trim()) {
         await revalidateTag('tickets', 'default');
-    return NextResponse.json({ error: 'El motivo es requerido' }, { status: 400 });
+        return NextResponse.json({ error: 'El motivo es requerido' }, { status: 400 });
       }
 
-      // Resolve location from dispenser if not provided
+      // Resolve location & equipment type from dispenser if provided
       let resolvedLocationId = locationId;
-      if (dispenserId && !locationId) {
+      let ticketEquipmentType = 'DISPENSER';
+
+      if (dispenserId) {
         const dispenser = await prisma.dispenser.findUnique({
           where: { id: dispenserId },
-          select: { locationId: true },
+          select: { locationId: true, equipmentType: true },
         });
-        resolvedLocationId = dispenser?.locationId;
+        if (dispenser?.equipmentType) {
+          ticketEquipmentType = dispenser.equipmentType;
+        }
+        if (!resolvedLocationId) resolvedLocationId = dispenser?.locationId;
       }
 
-      // Get SLA config for the client
+      // Get SLA config and target plant ID
       let slaConfig = null;
+      let targetPlantId: string | null = null;
       if (resolvedLocationId) {
         const location = await prisma.location.findUnique({
           where: { id: resolvedLocationId },
           include: { plant: { include: { client: { include: { slaConfig: true } } } } },
         });
         slaConfig = location?.plant?.client?.slaConfig;
+        targetPlantId = location?.plantId || null;
       }
+
+      // Find technicians assigned to target plant WHO ALSO COVER THIS EQUIPMENT TYPE
+      let plantTechs: { id: string; email: string; nombre: string }[] = [];
+      if (targetPlantId) {
+        const accesses = await prisma.userPlantAccess.findMany({
+          where: {
+            plantId: targetPlantId,
+            user: { role: 'TECHNICIAN', active: true }
+          },
+          select: { user: { select: { id: true, email: true, nombre: true } } }
+        });
+        plantTechs = accesses
+          .map((a: any) => a.user)
+          .filter((u: any) => {
+            const types = (u as any).equipmentTypes || ['DISPENSER'];
+            return types.includes(ticketEquipmentType);
+          });
+      }
+
+      // If exactly 1 technician is assigned to this plant, auto-assign ticket
+      const autoAssignedTechId = plantTechs.length === 1 ? plantTechs[0].id : null;
 
       const ticketPriority = priority || 'MEDIUM';
       const now = new Date();
@@ -129,6 +173,8 @@ export async function POST(req: Request) {
           dispenserId: dispenserId || null,
           locationId: resolvedLocationId || null,
           reportedById: user.id,
+          assignedToId: autoAssignedTechId,
+          status: autoAssignedTechId ? 'IN_PROGRESS' : 'OPEN',
           reason: reason.trim(),
           description: description?.trim() || null,
           priority: ticketPriority,
@@ -150,45 +196,45 @@ export async function POST(req: Request) {
         data: {
           ticketId: ticket.id,
           fromStatus: 'OPEN',
-          toStatus: 'OPEN',
+          toStatus: autoAssignedTechId ? 'IN_PROGRESS' : 'OPEN',
           changedBy: user.nombre,
-          notes: 'Ticket creado',
+          notes: autoAssignedTechId ? `Ticket creado y asignado automáticamente a ${plantTechs[0].nombre}` : 'Ticket creado',
         },
       });
 
-      // Create in-app and push notifications for supervisors and admins (instead of spamming all technicians)
+      // Combine notification target users (supervisors/admins + plant technicians)
       const supervisorsAndAdmins = await prisma.user.findMany({
         where: { role: { in: ['SUPERVISOR', 'ADMIN'] }, active: true },
-        select: { id: true, onesignalPlayerId: true },
+        select: { id: true, email: true },
       });
 
-      const playerIds = supervisorsAndAdmins
-        .map(u => u.onesignalPlayerId)
-        .filter((id): id is string => !!id);
+      const notifyUserIds = Array.from(new Set([
+        ...supervisorsAndAdmins.map(u => u.id),
+        ...plantTechs.map(u => u.id)
+      ]));
 
-      if (playerIds.length > 0) {
+      if (notifyUserIds.length > 0) {
         await sendPushNotification({
-          playerIds,
-          title: `Nuevo Ticket: ${ticketPriority}`,
+          userIds: notifyUserIds,
+          title: `Nuevo Ticket [${ticketPriority}]`,
           message: `${reason.substring(0, 100)}${reason.length > 100 ? '...' : ''}`,
           data: { ticketId: ticket.id, type: 'NEW_TICKET' },
         });
+
+        await prisma.notification.createMany({
+          data: notifyUserIds.map(uId => ({
+            userId: uId,
+            title: `Nuevo Ticket [${ticketPriority}]`,
+            message: reason.substring(0, 200),
+            type: 'NEW_TICKET',
+            relatedId: ticket.id,
+          })),
+        });
       }
 
-      await prisma.notification.createMany({
-        data: supervisorsAndAdmins.map(u => ({
-          userId: u.id,
-          title: `Nuevo Ticket [${ticketPriority}]`,
-          message: reason.substring(0, 200),
-          type: 'NEW_TICKET',
-          relatedId: ticket.id,
-        })),
-      });
-
       // Send Email
-      const adminEmails = supervisorsAndAdmins.map(u => 'admin@empresa.com'); // Placeholder, since it's overridden
       sendEmail({
-        to: adminEmails.length > 0 ? adminEmails : 'fallback@empresa.com',
+        to: Array.from(new Set([...supervisorsAndAdmins.map(u => u.email), ...plantTechs.map(u => u.email)])).filter(Boolean),
         templateType: 'TICKET_CREATED',
         variables: {
           id_ticket: ticket.id,
@@ -196,8 +242,8 @@ export async function POST(req: Request) {
           reportador_completo: user.nombre,
           primer_nombre_reportador: user.nombre.split(' ')[0],
           prioridad: ticketPriority,
-          planta: ticket.location?.plant?.nombre || 'N/A',
-          ubicacion: ticket.location?.nombre || 'N/A',
+          planta: (ticket as any).location?.plant?.nombre || 'N/A',
+          ubicacion: (ticket as any).location?.nombre || 'N/A',
         }
       }).catch(console.error);
 

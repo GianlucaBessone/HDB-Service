@@ -150,6 +150,9 @@ export default function TicketsPage() {
                   <div className="flex justify-between items-start mb-2 gap-2">
                     <span className={clsx("text-xs font-mono shrink-0", isSelected ? "text-primary font-bold" : "text-muted-foreground")}>{ticket.id}</span>
                     <div className="flex flex-wrap justify-end gap-1.5">
+                      {!ticket.assignedToId && (
+                        <span className="badge text-[10px] px-1.5 py-0 border bg-amber-100 text-amber-700 border-amber-200 font-bold">LIBRE</span>
+                      )}
                       <span className={clsx('badge text-[10px] px-1.5 py-0 border', ticket.priority === 'CRITICAL' ? 'bg-red-100 text-red-700 border-red-200' : 'bg-slate-100 text-slate-700 border-slate-200')}>{t(ticket.priority)}</span>
                       <span className={clsx('badge text-[10px] px-1.5 py-0 border', getStatusColor(ticket.status))}>
                         {ticket.status === 'OPEN' ? <Ticket className="w-3 h-3 mr-1" /> :

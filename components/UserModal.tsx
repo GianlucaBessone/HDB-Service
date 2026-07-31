@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { X, Loader2, User, Mail, Shield, Building2, Lock, Eye, EyeOff, Send, Check, MapPin, UserPlus } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { X, Loader2, User, Mail, Shield, Building2, Lock, Eye, EyeOff, Check, MapPin, UserPlus, ChevronDown } from 'lucide-react';
 import clsx from 'clsx';
 import toast from 'react-hot-toast';
 import { UserRole } from '@prisma/client';
@@ -13,12 +14,140 @@ interface UserModalProps {
   onSuccess: () => void;
 }
 
+function CustomSelect({
+  value,
+  onChange,
+  options,
+  placeholder,
+  disabled,
+  icon: Icon
+}: {
+  value: string;
+  onChange: (val: string) => void;
+  options: { value: string; label: string; sublabel?: string }[];
+  placeholder?: string;
+  disabled?: boolean;
+  icon?: any;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const selectedOption = options.find(o => o.value === value);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  return (
+    <div ref={dropdownRef} className="relative w-full">
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => !disabled && setIsOpen(!isOpen)}
+        className={clsx(
+          'w-full flex items-center justify-between gap-2 px-3.5 py-2.5 rounded-lg border text-sm font-medium transition-all text-left',
+          disabled
+            ? 'opacity-50 cursor-not-allowed bg-muted/30 border-border text-muted-foreground'
+            : isOpen
+              ? 'border-primary ring-2 ring-primary/20 bg-background shadow-sm text-foreground'
+              : 'bg-card border-border hover:border-muted-foreground/40 hover:bg-accent/40 text-foreground'
+        )}
+      >
+        <div className="flex items-center gap-2 truncate min-w-0">
+          {Icon && <Icon className="w-4 h-4 text-muted-foreground shrink-0" />}
+          <span className={clsx('truncate', !selectedOption && 'text-muted-foreground')}>
+            {selectedOption ? selectedOption.label : (placeholder || 'Seleccionar...')}
+          </span>
+        </div>
+        <ChevronDown className={clsx('w-4 h-4 text-muted-foreground shrink-0 transition-transform duration-200', isOpen && 'rotate-180')} />
+      </button>
+
+      {isOpen && !disabled && (
+        <div className="absolute left-0 right-0 top-full mt-1.5 z-50 max-h-60 overflow-y-auto rounded-xl bg-card border border-border shadow-xl p-1.5 custom-scrollbar animate-in fade-in zoom-in-95 duration-150">
+          {options.length === 0 ? (
+            <div className="p-3 text-xs text-muted-foreground text-center italic">
+              No hay opciones disponibles
+            </div>
+          ) : (
+            options.map(opt => {
+              const isSelected = opt.value === value;
+              return (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => {
+                    onChange(opt.value);
+                    setIsOpen(false);
+                  }}
+                  className={clsx(
+                    'w-full flex items-center justify-between gap-2 px-3 py-2.5 rounded-lg text-xs font-medium text-left transition-all',
+                    isSelected
+                      ? 'bg-primary/10 text-primary font-semibold'
+                      : 'hover:bg-accent hover:text-foreground text-muted-foreground'
+                  )}
+                >
+                  <div className="min-w-0">
+                    <p className="truncate">{opt.label}</p>
+                    {opt.sublabel && <p className="text-[10px] opacity-70 truncate mt-0.5">{opt.sublabel}</p>}
+                  </div>
+                  {isSelected && <Check className="w-3.5 h-3.5 text-primary shrink-0 stroke-[3]" />}
+                </button>
+              );
+            })
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CustomCheckbox({
+  checked,
+  onChange,
+  label,
+  id
+}: {
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+  label: string;
+  id?: string;
+}) {
+  return (
+    <button
+      type="button"
+      id={id}
+      onClick={() => onChange(!checked)}
+      className={clsx(
+        'w-full flex items-center gap-3 p-3 rounded-lg border text-left transition-all cursor-pointer group',
+        checked
+          ? 'bg-primary/10 border-primary text-primary shadow-sm font-semibold'
+          : 'bg-card border-border hover:border-muted-foreground/30 hover:bg-muted/30 text-foreground'
+      )}
+    >
+      <div
+        className={clsx(
+          'w-4 h-4 rounded border flex items-center justify-center transition-all shrink-0',
+          checked
+            ? 'bg-primary border-primary text-primary-foreground'
+            : 'bg-background border-border group-hover:border-muted-foreground/50'
+        )}
+      >
+        {checked && <Check className="w-3 h-3 stroke-[3]" />}
+      </div>
+      <span className="text-sm font-medium">{label}</span>
+    </button>
+  );
+}
+
 export default function UserModal({ user, onClose, onSuccess }: UserModalProps) {
   const isEditing = !!user;
   const [isLoading, setIsLoading] = useState(false);
-  const [clients, setClients] = useState<any[]>([]);
-  const [availablePlants, setAvailablePlants] = useState<any[]>([]);
-  const [isLoadingPlants, setIsLoadingPlants] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
   const [form, setForm] = useState({
@@ -28,31 +157,56 @@ export default function UserModal({ user, onClose, onSuccess }: UserModalProps) 
     role: user?.role || 'TECHNICIAN',
     clientId: user?.clientId || '',
     plantIds: user?.plantAccess?.map((pa: any) => pa.plantId) || [],
+    equipmentTypes: user?.equipmentTypes || ['DISPENSER'],
     password: '',
     active: user?.active !== undefined ? user.active : true,
   });
 
-  useEffect(() => {
-    fetch('/api/clients')
-      .then(res => res.ok ? res.json() : [])
-      .then(data => setClients(Array.isArray(data) ? data : []))
-      .catch(() => setClients([]));
-  }, []);
+  const isClientRole = form.role === 'CLIENT_RESPONSIBLE' || form.role === 'CLIENT_REQUESTER';
+  const isTechnician = form.role === 'TECHNICIAN';
+  const canAssignPlants = isClientRole || isTechnician;
+  const isRequester = form.role === 'CLIENT_REQUESTER';
 
-  useEffect(() => {
-    if (form.clientId) {
-      setIsLoadingPlants(true);
-      fetch(`/api/plants?clientId=${form.clientId}`)
-        .then(res => res.ok ? res.json() : [])
-        .then(data => {
-          setAvailablePlants(Array.isArray(data) ? data : []);
-        })
-        .catch(() => setAvailablePlants([]))
-        .finally(() => setIsLoadingPlants(false));
-    } else {
-      setAvailablePlants([]);
-    }
-  }, [form.clientId]);
+  const toggleEquipmentType = (type: string) => {
+    setForm(prev => {
+      const current = prev.equipmentTypes || [];
+      const updated = current.includes(type)
+        ? current.filter((t: string) => t !== type)
+        : [...current, type];
+      return {
+        ...prev,
+        equipmentTypes: updated.length === 0 ? [type] : updated
+      };
+    });
+  };
+
+  // Pre-cached Clients query with React Query
+  const { data: clients = [] } = useQuery({
+    queryKey: ['clients-list'],
+    queryFn: async () => {
+      const res = await fetch('/api/clients');
+      if (!res.ok) return [];
+      const data = await res.json();
+      return Array.isArray(data) ? data : [];
+    },
+    staleTime: 10 * 60 * 1000,
+    gcTime: 60 * 60 * 1000,
+  });
+
+  // Pre-cached Plants query with React Query
+  const { data: availablePlants = [], isLoading: isLoadingPlants } = useQuery({
+    queryKey: ['plants-list', form.clientId, form.role],
+    queryFn: async () => {
+      const url = form.clientId ? `/api/plants?clientId=${form.clientId}` : '/api/plants';
+      const res = await fetch(url);
+      if (!res.ok) return [];
+      const data = await res.json();
+      return Array.isArray(data) ? data : [];
+    },
+    enabled: canAssignPlants,
+    staleTime: 10 * 60 * 1000,
+    gcTime: 60 * 60 * 1000,
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -82,9 +236,6 @@ export default function UserModal({ user, onClose, onSuccess }: UserModalProps) 
     }
   };
 
-  const isClientRole = form.role === 'CLIENT_RESPONSIBLE' || form.role === 'CLIENT_REQUESTER';
-  const isRequester = form.role === 'CLIENT_REQUESTER';
-
   const togglePlant = (plantId: string) => {
     setForm(prev => ({
       ...prev,
@@ -93,6 +244,16 @@ export default function UserModal({ user, onClose, onSuccess }: UserModalProps) 
         : [...prev.plantIds, plantId]
     }));
   };
+
+  const roleOptions = Object.values(UserRole).map(role => ({
+    value: role,
+    label: t(role)
+  }));
+
+  const clientOptions = [
+    { value: '', label: isTechnician ? 'Todos los clientes (o filtrar...)' : 'Seleccione un cliente...' },
+    ...clients.map((c: any) => ({ value: c.id, label: c.nombre }))
+  ];
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
@@ -110,6 +271,7 @@ export default function UserModal({ user, onClose, onSuccess }: UserModalProps) 
             </div>
           </div>
           <button 
+            type="button"
             onClick={onClose}
             className="p-2 hover:bg-accent rounded-full transition-colors"
           >
@@ -118,7 +280,7 @@ export default function UserModal({ user, onClose, onSuccess }: UserModalProps) 
         </div>
 
         <form onSubmit={handleSubmit}>
-          <div className="p-6 space-y-5 max-h-[70vh] overflow-y-auto">
+          <div className="p-6 space-y-5 max-h-[70vh] overflow-y-auto custom-scrollbar">
             
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
@@ -167,42 +329,35 @@ export default function UserModal({ user, onClose, onSuccess }: UserModalProps) 
                   <Shield className="w-3.5 h-3.5 text-muted-foreground" />
                   Rol de Sistema <span className="text-red-500">*</span>
                 </label>
-                <select
-                  className="select"
+                <CustomSelect
                   value={form.role}
-                  onChange={e => setForm({ ...form, role: e.target.value, clientId: e.target.value.includes('CLIENT') ? form.clientId : '' })}
-                >
-                  {Object.values(UserRole).map(role => (
-                    <option key={role} value={role}>{t(role)}</option>
-                  ))}
-                </select>
+                  onChange={val => setForm({ ...form, role: val as any, clientId: val.includes('CLIENT') ? form.clientId : '' })}
+                  options={roleOptions}
+                  icon={Shield}
+                />
               </div>
 
               <div className="space-y-1.5">
                 <label className="text-sm font-semibold flex items-center gap-2">
                   <Building2 className="w-3.5 h-3.5 text-muted-foreground" />
-                  Cliente / Empresa
+                  Cliente / Empresa {isClientRole && <span className="text-red-500">*</span>}
                 </label>
-                <select
-                  disabled={!isClientRole}
-                  className="select disabled:opacity-50"
+                <CustomSelect
+                  disabled={!isClientRole && !isTechnician}
                   value={form.clientId}
-                  onChange={e => setForm({ ...form, clientId: e.target.value, plantIds: [] })}
-                  required={isClientRole}
-                >
-                  <option value="">Seleccione un cliente...</option>
-                  {clients.map(c => (
-                    <option key={c.id} value={c.id}>{c.nombre}</option>
-                  ))}
-                </select>
+                  onChange={val => setForm({ ...form, clientId: val, plantIds: [] })}
+                  options={clientOptions}
+                  placeholder={isTechnician ? 'Todos los clientes' : 'Seleccione cliente...'}
+                  icon={Building2}
+                />
               </div>
             </div>
 
-            {isClientRole && form.clientId && (
+            {canAssignPlants && (
               <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
                 <label className="text-sm font-semibold flex items-center gap-2">
                   <MapPin className="w-3.5 h-3.5 text-muted-foreground" />
-                  Plantas autorizadas (Acceso) <span className="text-red-500">*</span>
+                  Plantas asignadas / autorizadas {isClientRole && <span className="text-red-500">*</span>}
                 </label>
                 
                 {isLoadingPlants ? (
@@ -212,11 +367,11 @@ export default function UserModal({ user, onClose, onSuccess }: UserModalProps) 
                   </div>
                 ) : availablePlants.length === 0 ? (
                   <div className="text-xs text-amber-600 p-4 bg-amber-50 rounded-lg border border-amber-100 italic">
-                    Este cliente no tiene plantas registradas aún.
+                    {form.clientId ? 'Este cliente no tiene plantas registradas aún.' : 'No hay plantas disponibles.'}
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto p-1 custom-scrollbar">
-                    {availablePlants.map(plant => {
+                    {availablePlants.map((plant: any) => {
                       const isSelected = form.plantIds.includes(plant.id);
                       return (
                         <button
@@ -226,15 +381,15 @@ export default function UserModal({ user, onClose, onSuccess }: UserModalProps) 
                           className={clsx(
                             'flex items-center gap-3 p-3 rounded-lg border text-left transition-all group',
                             isSelected 
-                              ? 'bg-primary/10 border-primary text-primary shadow-sm' 
-                              : 'bg-card border-border hover:border-muted-foreground/30 hover:bg-muted/30'
+                              ? 'bg-primary/10 border-primary text-primary shadow-sm font-semibold' 
+                              : 'bg-card border-border hover:border-muted-foreground/30 hover:bg-muted/30 text-foreground'
                           )}
                         >
                           <div className={clsx(
-                            'w-4 h-4 rounded border flex items-center justify-center transition-colors',
-                            isSelected ? 'bg-primary border-primary' : 'bg-background border-border group-hover:border-muted-foreground/50'
+                            'w-4 h-4 rounded border flex items-center justify-center transition-colors shrink-0',
+                            isSelected ? 'bg-primary border-primary text-primary-foreground' : 'bg-background border-border group-hover:border-muted-foreground/50'
                           )}>
-                            {isSelected && <Check className="w-2.5 h-2.5 text-white stroke-[3]" />}
+                            {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
                           </div>
                           <div className="min-w-0">
                             <p className="text-xs font-bold truncate leading-tight">{plant.nombre}</p>
@@ -248,13 +403,61 @@ export default function UserModal({ user, onClose, onSuccess }: UserModalProps) 
                 {isClientRole && form.plantIds.length === 0 && availablePlants.length > 0 && (
                   <p className="text-[10px] text-amber-600 font-medium">Si no selecciona ninguna planta, {isRequester ? 'el referente no tendrá acceso a ningún equipo.' : 'el responsable verá todas las plantas del cliente por defecto.'}</p>
                 )}
+                {isTechnician && (
+                  <p className="text-[10px] text-muted-foreground italic">
+                    * Los tickets de las plantas seleccionadas se enviarán y enrutarán automáticamente a este técnico.
+                  </p>
+                )}
+              </div>
+            )}
+
+            {isTechnician && (
+              <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300 border-t border-border/60 pt-4">
+                <label className="text-sm font-semibold flex items-center gap-2">
+                  <Shield className="w-3.5 h-3.5 text-primary" />
+                  Especialidad / Equipos que Atiende <span className="text-red-500">*</span>
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {[
+                    { id: 'DISPENSER', label: 'Dispensers / Bebederos' },
+                    { id: 'AIR_CONDITIONER', label: 'Aires Acondicionados' },
+                    { id: 'REFRIGERATOR', label: 'Heladeras / Freezers' },
+                    { id: 'OTHER', label: 'Otros Equipos' }
+                  ].map(eq => {
+                    const isSelected = (form.equipmentTypes || []).includes(eq.id);
+                    return (
+                      <button
+                        key={eq.id}
+                        type="button"
+                        onClick={() => toggleEquipmentType(eq.id)}
+                        className={clsx(
+                          'flex items-center gap-3 p-3 rounded-lg border text-left transition-all group',
+                          isSelected 
+                            ? 'bg-primary/10 border-primary text-primary shadow-sm font-semibold' 
+                            : 'bg-card border-border hover:border-muted-foreground/30 hover:bg-muted/30 text-foreground'
+                        )}
+                      >
+                        <div className={clsx(
+                          'w-4 h-4 rounded border flex items-center justify-center transition-colors shrink-0',
+                          isSelected ? 'bg-primary border-primary text-primary-foreground' : 'bg-background border-border group-hover:border-muted-foreground/50'
+                        )}>
+                          {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
+                        </div>
+                        <p className="text-xs font-bold truncate">{eq.label}</p>
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="text-[10px] text-muted-foreground italic">
+                  * El técnico solo verá y recibirá notificaciones de tickets correspondientes a sus especialidades.
+                </p>
               </div>
             )}
 
             <div className="space-y-1.5">
               <label className="text-sm font-semibold flex items-center gap-2">
                 <Lock className="w-3.5 h-3.5 text-muted-foreground" />
-                {isEditing ? 'Nueva Contraseña (opcional)' : 'Contraseña Inicial'} <span className="text-red-500">*</span>
+                {isEditing ? 'Nueva Contraseña (opcional)' : 'Contraseña Inicial'} {!isEditing && <span className="text-red-500">*</span>}
               </label>
               <div className="relative">
                 <input
@@ -282,18 +485,12 @@ export default function UserModal({ user, onClose, onSuccess }: UserModalProps) 
             </div>
 
             {isEditing && (
-              <div className="flex items-center gap-3 p-3 bg-muted/20 rounded-lg border border-border">
-                <input
-                  type="checkbox"
-                  id="active"
-                  className="w-4 h-4 rounded border-border text-primary focus:ring-primary"
-                  checked={form.active}
-                  onChange={e => setForm({ ...form, active: e.target.checked })}
-                />
-                <label htmlFor="active" className="text-sm font-medium cursor-pointer">
-                  Usuario Activo (Permitir acceso al sistema)
-                </label>
-              </div>
+              <CustomCheckbox
+                id="active"
+                checked={form.active}
+                onChange={val => setForm({ ...form, active: val })}
+                label="Usuario Activo (Permitir acceso al sistema)"
+              />
             )}
 
           </div>
