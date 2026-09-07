@@ -12,11 +12,19 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
   try {
     const { id } = params;
     const body = await req.json();
-    const { condicionGeneral, fallas, problemasEstructurales, observaciones, consumablesUsed } = body;
+    const { 
+      condicionGeneral, 
+      fallas, 
+      problemasEstructurales, 
+      observaciones, 
+      consumablesUsed, 
+      measurements, 
+      checklistItems 
+    } = body;
 
     if (!condicionGeneral) {
       await revalidateTag('maintenance', 'default');
-    return NextResponse.json({ error: 'Condición general requerida' }, { status: 400 });
+      return NextResponse.json({ error: 'Condición general requerida' }, { status: 400 });
     }
 
     // Check if checklist already exists and get plant info
@@ -129,6 +137,8 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
           fallas: fallas || [],
           problemasEstructurales: problemasEstructurales || [],
           observaciones: observaciones || '',
+          measurements: measurements || null,
+          checklistItems: checklistItems || null,
           completedById: user.id
         }
       });

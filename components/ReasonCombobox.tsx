@@ -1,31 +1,8 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-
-const SUGGESTED_REASONS = [
-  'Pérdida de agua',
-  'No enfría',
-  'No calienta',
-  'Cortocircuito',
-  'Ruido excesivo',
-  'No enciende',
-  'Agua con mal sabor',
-  'Agua con mal olor',
-  'Fuga en canilla',
-  'Fuga en manguera',
-  'Botón roto',
-  'Canilla rota (Agua Fría)',
-  'Canilla rota (Agua Caliente)',
-  'Bandeja desborda',
-  'Display apagado',
-  'Error eléctrico',
-  'Filtro obstruido',
-  'Mantenimiento preventivo',
-  'Instalación',
-  'Desinstalación',
-  'Reubicación',
-  'Otro',
-];
+import { useState, useEffect, useRef, useMemo } from 'react';
+import { EquipmentType } from '@prisma/client';
+import { getReasonsForEquipment } from '@/lib/ticketReasons';
 
 function normalize(str: string): string {
   return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
@@ -34,15 +11,18 @@ function normalize(str: string): string {
 interface ReasonComboboxProps {
   value: string;
   onChange: (val: string) => void;
+  equipmentType?: EquipmentType | string | null;
 }
 
-export default function ReasonCombobox({ value, onChange }: ReasonComboboxProps) {
+export default function ReasonCombobox({ value, onChange, equipmentType }: ReasonComboboxProps) {
   const [open, setOpen] = useState(false);
   const [highlightIdx, setHighlightIdx] = useState(-1);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
 
-  const filtered = SUGGESTED_REASONS.filter(r =>
+  const reasons = useMemo(() => getReasonsForEquipment(equipmentType), [equipmentType]);
+
+  const filtered = reasons.filter(r =>
     normalize(r).includes(normalize(value))
   );
 

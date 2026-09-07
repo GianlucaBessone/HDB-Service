@@ -4,13 +4,15 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   Wrench, Calendar, Settings2, Clock, 
-  CheckCircle2, AlertTriangle, Loader2, ChevronRight, MapPin, ShieldCheck, QrCode, X
+  CheckCircle2, AlertTriangle, Loader2, ChevronRight, MapPin, ShieldCheck, QrCode, X, Building2
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import clsx from 'clsx';
 import toast from 'react-hot-toast';
 import { t, getStatusColor } from '@/lib/translations';
 import ChecklistModal from '@/components/ChecklistModal';
+import { getEquipmentTypeLabel, getEquipmentTypeIcon } from '@/lib/equipment';
+import { EquipmentType } from '@prisma/client';
 
 const COMMON_FAILURES = [
   'Pérdida de agua', 'Filtro saturado', 'Canilla rota/goteando', 
@@ -23,17 +25,31 @@ export default function MaintenancePage() {
   const currentMonthStr = new Date().toISOString().slice(0, 7); // YYYY-MM
   const [month, setMonth] = useState(currentMonthStr);
   const [statusFilter, setStatusFilter] = useState('');
+  const [clientId, setClientId] = useState('');
+  const [equipmentTypeFilter, setEquipmentTypeFilter] = useState('');
 
   const [selectedSchedule, setSelectedSchedule] = useState<any>(null);
   const [selectedForApproval, setSelectedForApproval] = useState<string[]>([]);
   const [approvalModalId, setApprovalModalId] = useState<string | null>(null);
   const [isGeneratingApproval, setIsGeneratingApproval] = useState(false);
 
+  const { data: clients = [] } = useQuery<any[]>({
+    queryKey: ['clients'],
+    queryFn: async () => {
+      const res = await fetch('/api/clients');
+      if (!res.ok) return [];
+      const d = await res.json();
+      return Array.isArray(d) ? d : (d.clients || []);
+    }
+  });
+
   const { data: schedules = [], isLoading, refetch: fetchSchedules } = useQuery<any[]>({
-    queryKey: ['maintenance-schedules', month, statusFilter],
+    queryKey: ['maintenance-schedules', month, statusFilter, equipmentTypeFilter, clientId],
     queryFn: async () => {
       const params = new URLSearchParams({ month });
       if (statusFilter) params.set('status', statusFilter);
+      if (equipmentTypeFilter) params.set('equipmentType', equipmentTypeFilter);
+      if (clientId) params.set('clientId', clientId);
       
       const res = await fetch(`/api/maintenance?${params}`);
       if (!res.ok) throw new Error('Failed to fetch');
@@ -157,6 +173,19 @@ export default function MaintenancePage() {
             className="input pl-10"
           />
         </div>
+        <div className="relative">
+          <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <select
+            value={clientId}
+            onChange={e => setClientId(e.target.value)}
+            className="select pl-10 min-w-[180px]"
+          >
+            <option value="">Todas las Empresas</option>
+            {clients.map((c: any) => (
+              <option key={c.id} value={c.id}>{c.nombre}</option>
+            ))}
+          </select>
+        </div>
         <select
           value={statusFilter}
           onChange={e => setStatusFilter(e.target.value)}
@@ -168,6 +197,19 @@ export default function MaintenancePage() {
           <option value="OVERDUE">Atrasado</option>
           <option value="EXPIRED">Vencido</option>
           <option value="SIGNED">Firmado</option>
+        </select>
+        <select
+          value={equipmentTypeFilter}
+          onChange={e => setEquipmentTypeFilter(e.target.value)}
+          className="select min-w-[180px]"
+        >
+          <option value="">Todos los activos</option>
+          <option value="AIR_CONDITIONER">Aires Acondicionados</option>
+          <option value="COLD_ROOM">Cámaras Frigoríficas</option>
+          <option value="DISPENSER">Dispensers de Agua</option>
+          <option value="REFRIGERATOR">Heladeras Comerciales</option>
+          <option value="VENTILATION">Ventilación / Extracción</option>
+          <option value="OTHER">Otros Equipos</option>
         </select>
       </div>
 
@@ -189,6 +231,9 @@ export default function MaintenancePage() {
           {schedules.map(schedule => {
             const isCompleted = schedule.status === 'COMPLETED';
             const isSelected = selectedForApproval.includes(schedule.id);
+            const clientName = schedule.dispenser?.client?.nombre || 
+                               schedule.dispenser?.plant?.client?.nombre || 
+                               schedule.dispenser?.location?.plant?.client?.nombre;
 
             return (
               <div key={schedule.id} className={clsx('glass-card p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-colors', isSelected && 'border-primary shadow-sm')}>
@@ -201,18 +246,76 @@ export default function MaintenancePage() {
                       onChange={() => toggleApprovalSelection(schedule.id)}
                     />
                   )}
-                  <div className={clsx('w-12 h-12 rounded-full flex items-center justify-center shrink-0', isCompleted ? 'bg-emerald-100 text-emerald-600' : 'bg-primary/10 text-primary')}>
-                    <Clock className="w-6 h-6" />
-                  </div>
+                  {(() => {
+                    const eqType = schedule.dispenser?.equipmentType || 'DISPENSER';
+                    const Icon = getEquipmentTypeIcon(eqType);
+                    return (
+                      <div className={clsx(
+                        'w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-sm', 
+                        isCompleted ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20' : 'bg-primary/10 text-primary border border-primary/20'
+                      )}>
+                        <Icon className="w-6 h-6" />
+                      </div>
+                    );
+                  })()}
                   <div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <span className="font-bold text-lg">{schedule.dispenserId}</span>
-                      <span className={clsx('badge text-[10px] px-1.5 py-0', getStatusColor(schedule.status))}>{t(schedule.status)}</span>
+                      <span className={clsx('badge text-[10px] px-2 py-0.5', getStatusColor(schedule.status))}>
+                        {t(schedule.status)}
+                      </span>
+                      {clientName && (
+                        <span className="badge bg-primary/10 text-primary border border-primary/20 text-[10px] px-2 py-0.5 flex items-center gap-1 font-semibold">
+                          <Building2 className="w-3 h-3 shrink-0" />
+                          {clientName}
+                        </span>
+                      )}
+                      <span className="badge badge-outline text-[10px] px-1.5 py-0">
+                        {getEquipmentTypeLabel(schedule.dispenser?.equipmentType || 'DISPENSER')}
+                      </span>
+                      {schedule.dispenser?.criticality === 'CRITICAL' && (
+                        <span className="badge bg-red-100 text-red-700 dark:bg-red-950/40 dark:text-red-400 text-[10px] px-1.5 py-0 font-bold">
+                          CRÍTICO
+                        </span>
+                      )}
                     </div>
-                    <p className="text-sm text-muted-foreground flex items-center gap-1 mt-0.5">
-                      <MapPin className="w-3.5 h-3.5" />
-                      {schedule.dispenser?.location?.plant?.nombre} — {schedule.dispenser?.location?.nombre || 'Sin ubicación'}
+                    <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
+                      <MapPin className="w-3.5 h-3.5 shrink-0" />
+                      <span>{schedule.dispenser?.location?.plant?.nombre}</span>
+                      {schedule.dispenser?.location?.sector?.nombre && (
+                        <span>— {schedule.dispenser.location.sector.nombre}</span>
+                      )}
+                      <span>({schedule.dispenser?.location?.nombre || 'Sin ubicación'})</span>
                     </p>
+                    {schedule.dispenser?.marca && (
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {schedule.dispenser.marca} {schedule.dispenser.modelo || ''}
+                      </p>
+                    )}
+                    {schedule.checklist?.measurements && Object.keys(schedule.checklist.measurements).length > 0 && (
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {schedule.checklist.measurements.presionBajaPsi && (
+                          <span className="text-[10px] px-2 py-0.5 rounded bg-muted/60 text-foreground font-mono">
+                            Succión: <strong>{schedule.checklist.measurements.presionBajaPsi} PSI</strong>
+                          </span>
+                        )}
+                        {schedule.checklist.measurements.saltoTermicoC && (
+                          <span className="text-[10px] px-2 py-0.5 rounded bg-muted/60 text-foreground font-mono">
+                            Salto Térmico: <strong>{schedule.checklist.measurements.saltoTermicoC} °C</strong>
+                          </span>
+                        )}
+                        {schedule.checklist.measurements.tempCamaraC && (
+                          <span className="text-[10px] px-2 py-0.5 rounded bg-muted/60 text-foreground font-mono">
+                            Cámara: <strong>{schedule.checklist.measurements.tempCamaraC} °C</strong>
+                          </span>
+                        )}
+                        {schedule.checklist.measurements.corrienteCompresorA && (
+                          <span className="text-[10px] px-2 py-0.5 rounded bg-muted/60 text-foreground font-mono">
+                            I: <strong>{schedule.checklist.measurements.corrienteCompresorA} A</strong>
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
 

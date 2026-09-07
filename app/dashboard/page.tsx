@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { createClient } from '@/utils/supabase/client';
 import {
@@ -12,7 +13,9 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   BarChart3,
-  HeartPulse
+  HeartPulse,
+  Building2,
+  Cpu
 } from 'lucide-react';
 import Link from 'next/link';
 import clsx from 'clsx';
@@ -27,11 +30,23 @@ interface DashboardStats {
 
 export default function DashboardPage() {
   const supabase = createClient();
+  const [selectedClient, setSelectedClient] = useState('');
+
+  const { data: clients = [] } = useQuery({
+    queryKey: ['clients'],
+    queryFn: async () => {
+      const res = await fetch('/api/clients');
+      const data = await res.json();
+      return Array.isArray(data) ? data : (data.clients || []);
+    }
+  });
 
   const { data: stats, isLoading } = useQuery<DashboardStats>({
-    queryKey: ['dashboard-stats'],
+    queryKey: ['dashboard-stats', selectedClient],
     queryFn: async () => {
-      const res = await fetch('/api/dashboard');
+      const params = new URLSearchParams();
+      if (selectedClient) params.set('clientId', selectedClient);
+      const res = await fetch(`/api/dashboard?${params}`);
       if (!res.ok) throw new Error('Failed to fetch dashboard stats');
       return res.json();
     }
@@ -55,13 +70,31 @@ export default function DashboardPage() {
   return (
     <div className="space-y-8 animate-fade-in">
       
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">
-          Hola, {stats.user.nombre.split(' ')[0]}
-        </h1>
-        <p className="text-muted-foreground mt-1">
-          Aquí tienes el resumen de operaciones de hoy.
-        </p>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">
+            Hola, {stats.user.nombre.split(' ')[0]}
+          </h1>
+          <p className="text-muted-foreground mt-1">
+            Aquí tienes el resumen de operaciones de hoy.
+          </p>
+        </div>
+
+        {(role === 'ADMIN' || role === 'SUPERVISOR' || role === 'TECHNICIAN') && (
+          <div className="relative">
+            <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <select
+              value={selectedClient}
+              onChange={e => setSelectedClient(e.target.value)}
+              className="select pl-10 min-w-[200px]"
+            >
+              <option value="">Todas las Empresas (Global)</option>
+              {clients.map((c: any) => (
+                <option key={c.id} value={c.id}>{c.nombre}</option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
 
       {/* KPI Cards */}
@@ -94,11 +127,11 @@ export default function DashboardPage() {
         <Link href="/dispensers" className="metric-card border-t-4 border-t-emerald-500 hover:scale-[1.02] transition-transform cursor-pointer group">
           <div className="flex justify-between items-start">
             <div>
-              <p className="metric-label">Dispensers Activos</p>
+              <p className="metric-label">Activos en Servicio</p>
               <p className="metric-value">{stats.dispensers.inService}</p>
             </div>
             <div className="p-2 bg-emerald-500/10 rounded-lg group-hover:bg-emerald-500/20 transition-colors">
-              <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+              <Cpu className="w-5 h-5 text-emerald-500" />
             </div>
           </div>
           <div className="mt-2 flex items-center gap-4 text-xs text-muted-foreground">

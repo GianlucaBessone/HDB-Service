@@ -25,13 +25,14 @@ export async function GET(req: Request) {
     };
 
     if (plantId) where.plantId = plantId;
+    if (clientId && !user.clientId) where.clientId = clientId;
     if (itemType) where.itemType = itemType;
 
     const entries = await prisma.stockEntry.findMany({
       where,
       include: {
-        client: { select: { nombre: true } },
-        plant: { select: { nombre: true } },
+        client: { select: { id: true, nombre: true } },
+        plant: { select: { id: true, nombre: true } },
       },
       orderBy: [{ plant: { nombre: 'asc' } }, { nombre: 'asc' }],
     });
@@ -39,6 +40,7 @@ export async function GET(req: Request) {
     // Fetch serial numbers for consumable entries
     const consWhere: any = { active: true, uniqueId: { not: null } };
     if (plantId) consWhere.plantId = plantId;
+    if (clientId && !user.clientId) consWhere.plant = { clientId };
     
     const consumables = await prisma.consumable.findMany({
       where: consWhere,

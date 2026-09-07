@@ -61,6 +61,7 @@ model User {
   createdAt           DateTime              @default(now())
   updatedAt           DateTime              @updatedAt
   MaintenanceApproval MaintenanceApproval[]
+  quotationsCreated   Quotation[]
 
   @@index([email])
   @@index([role])
@@ -100,6 +101,7 @@ model Client {
   stockEntries StockEntry[]
   dispensers   Dispenser[]
   materials    MaterialCatalog[]
+  quotations   Quotation[]
 }
 
 model Plant {
@@ -184,8 +186,17 @@ model Location {
 enum EquipmentType {
   DISPENSER
   AIR_CONDITIONER
+  COLD_ROOM
   REFRIGERATOR
+  VENTILATION
   OTHER
+}
+
+enum AssetCriticality {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
 }
 
 enum DispenserStatus {
@@ -201,9 +212,11 @@ enum DispenserStatus {
 model Dispenser {
   id            String          @id // GLOBAL UNIQUE — user-defined
   equipmentType EquipmentType   @default(DISPENSER)
+  criticality   AssetCriticality @default(MEDIUM)
   marca         String // Brand
   modelo        String // Model
   status        DispenserStatus @default(IN_SERVICE)
+  technicalSpecs Json?
 
   // Current location (nullable if in BACKUP/REPAIR/OUT_OF_SERVICE)
   locationId String?
@@ -244,6 +257,7 @@ model Dispenser {
   // Relations — Operations
   tickets              Ticket[]
   maintenanceSchedules MaintenanceSchedule[]
+  quotations           Quotation[]
 
   @@index([status])
   @@index([locationId])
@@ -337,6 +351,7 @@ model MaterialCatalog {
   descripcion      String?
   expirationMonths Int? // meses de VTO
   type             String // "CONSUMABLE" or "SPARE_PART"
+  category         String? // "REFRIGERATION" | "WATER_FILTERS" | "ELECTRICAL" | "MECHANICAL" | "GENERAL"
   requiresSerial   Boolean @default(false)
   active           Boolean @default(true)
   
@@ -517,6 +532,7 @@ model Ticket {
   // Relations
   comments      TicketComment[]
   statusHistory TicketStatusHistory[]
+  quotations    Quotation[]
 
   @@index([status])
   @@index([priority])
@@ -626,6 +642,8 @@ model MaintenanceChecklist {
   problemasEstructurales Json? // string[] — structural issues
   observaciones          String?         @db.Text
   fotosUrls              Json? // string[] — photo URLs or base64
+  measurements           Json? // Medidas técnicas según tipo de equipo (PSI, Amperes, °C, etc.)
+  checklistItems         Json? // Record<string, boolean> de puntos de control validados
 
   // Completion
   completedById String
@@ -798,4 +816,47 @@ model Sugerencia {
   @@index([usuario_id])
   @@index([estado])
   @@index([fecha_creacion])
+}
+
+// ═══════════════════════════════════════════════════════
+// QUOTATIONS & CLIENT PURCHASE ORDERS (PRESUPUESTOS Y OC)
+// ═══════════════════════════════════════════════════════
+
+enum QuotationStatus {
+  DRAFT
+  SENT
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+model Quotation {
+  id              String          @id @default(cuid())
+  clientId        String
+  client          Client          @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  dispenserId     String?
+  dispenser       Dispenser?      @relation(fields: [dispenserId], references: [id], onDelete: SetNull)
+  ticketId        String?
+  ticket          Ticket?         @relation(fields: [ticketId], references: [id], onDelete: SetNull)
+  createdByUserId String
+  createdByUser   User            @relation(fields: [createdByUserId], references: [id])
+  
+  titulo          String
+  descripcion     String?         @db.Text
+  moneda          String          @default("ARS") // ARS, USD
+  total           Float           @default(0)
+  items           Json            // array of { description, quantity, unitPrice, subtotal }
+  status          QuotationStatus @default(DRAFT)
+  orderNumber     String?         // Nro de Orden de Compra (OC) provista por el cliente
+  approvedAt      DateTime?
+  approvedBy      String?         // Nombre / contacto que aprueba la OC
+  notes           String?         @db.Text
+
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@index([clientId])
+  @@index([dispenserId])
+  @@index([ticketId])
+  @@index([status])
 }

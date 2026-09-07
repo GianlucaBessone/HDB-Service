@@ -35,7 +35,10 @@ export type Permission =
   | 'reports:generate'
   | 'audit:read'
   | 'sla_config:write'
-  | 'notifications:read';
+  | 'notifications:read'
+  | 'quotations:read'
+  | 'quotations:write'
+  | 'quotations:approve';
 
 const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
   ADMIN: [
@@ -53,6 +56,7 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     'audit:read',
     'sla_config:write',
     'notifications:read',
+    'quotations:read', 'quotations:write', 'quotations:approve',
   ],
   SUPERVISOR: [
     'clients:read', 'clients:write',
@@ -68,6 +72,7 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     'reports:read', 'reports:generate',
     'audit:read',
     'notifications:read',
+    'quotations:read', 'quotations:write', 'quotations:approve',
   ],
   TECHNICIAN: [
     'plants:read',
@@ -79,6 +84,7 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     'dashboard:read',
     'reports:read',
     'notifications:read',
+    'quotations:read', 'quotations:write',
   ],
   CLIENT_RESPONSIBLE: [
     'clients:read',
@@ -92,6 +98,7 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     'dashboard:read',
     'reports:read', 'reports:generate',
     'notifications:read',
+    'quotations:read', 'quotations:approve',
   ],
   CLIENT_REQUESTER: [
     'plants:read',
@@ -170,10 +177,10 @@ export const NAV_ITEMS: NavItem[] = [
   },
   { 
     key: '/dispensers', 
-    label: 'Dispensers', 
+    label: 'Equipos y Activos', 
     icon: 'GlassWater', 
     roles: ['ADMIN', 'SUPERVISOR', 'TECHNICIAN', 'CLIENT_RESPONSIBLE', 'CLIENT_REQUESTER'],
-    description: 'Catálogo de dispensers instalados, historial de reparaciones y estado en tiempo real.',
+    description: 'Catálogo de equipos y maquinaria instalada, historial de reparaciones y fichas técnicas.',
     colorClass: 'text-emerald-500 border-t-emerald-500',
     bgClass: 'bg-emerald-500/10 text-emerald-500',
     borderLeftClass: 'border-l-emerald-500'
@@ -237,6 +244,16 @@ export const NAV_ITEMS: NavItem[] = [
     colorClass: 'text-orange-500 border-t-orange-500',
     bgClass: 'bg-orange-500/10 text-orange-500',
     borderLeftClass: 'border-l-orange-500'
+  },
+  { 
+    key: '/quotations', 
+    label: 'Presupuestos & OC', 
+    icon: 'FileSignature', 
+    roles: ['ADMIN', 'SUPERVISOR', 'TECHNICIAN', 'CLIENT_RESPONSIBLE'],
+    description: 'Cotizaciones de reparaciones y mano de obra, vinculación con Órdenes de Compra (OC).',
+    colorClass: 'text-emerald-600 border-t-emerald-600',
+    bgClass: 'bg-emerald-600/10 text-emerald-600',
+    borderLeftClass: 'border-l-emerald-600'
   },
   { 
     key: '/maintenance/reports', 

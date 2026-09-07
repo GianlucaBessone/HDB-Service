@@ -10,7 +10,7 @@ export const TRANSLATIONS: Record<string, string> = {
   CLIENT_RESPONSIBLE: 'Responsable Cliente',
   CLIENT_REQUESTER: 'Referente Cliente',
 
-  // Estados de Dispenser
+  // Estados de Dispenser / Activo
   IN_SERVICE: 'En Servicio',
   UNDER_REPAIR: 'En Reparación',
   OUT_OF_SERVICE: 'Fuera de Servicio',
@@ -18,6 +18,20 @@ export const TRANSLATIONS: Record<string, string> = {
   BACKUP: 'Backup / Reserva',
   IN_TECHNICAL_SERVICE: 'En Servicio Técnico',
   BLOCKED_WAITING_OC: 'Bloqueado (Esperando OC)',
+
+  // Tipos de Activos / Equipos
+  DISPENSER: 'Dispenser / Bebedero',
+  AIR_CONDITIONER: 'Aire Acondicionado',
+  COLD_ROOM: 'Cámara Frigorífica',
+  REFRIGERATOR: 'Heladera / Freezer',
+  VENTILATION: 'Ventilación / Extracción',
+  OTHER: 'Otro Equipo',
+
+  // Criticidad
+  CRITICALITY_LOW: 'Baja',
+  CRITICALITY_MEDIUM: 'Media',
+  CRITICALITY_HIGH: 'Alta',
+  CRITICALITY_CRITICAL: 'Crítica',
 
   // Estados de Ticket
   OPEN: 'Abierto',

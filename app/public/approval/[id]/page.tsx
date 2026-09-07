@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
-import { Loader2, CheckCircle2, MapPin, AlertTriangle, ShieldCheck, Lock } from 'lucide-react';
+import { Loader2, CheckCircle2, MapPin, AlertTriangle, ShieldCheck, Lock, Gauge, ClipboardCheck } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { getEquipmentTypeLabel, getEquipmentTypeIcon } from '@/lib/equipment';
 
 export default function PublicApprovalPage() {
   const params = useParams();
@@ -124,9 +125,25 @@ export default function PublicApprovalPage() {
           {approval.schedules.map((schedule: any) => (
             <div key={schedule.id} className="bg-card p-5 rounded-2xl shadow-sm border border-border">
               <div className="flex justify-between items-start mb-3">
-                <div>
-                  <h3 className="font-bold text-lg">{schedule.dispenser.id}</h3>
-                  <p className="text-sm text-muted-foreground">{schedule.dispenser.marca} {schedule.dispenser.modelo}</p>
+                <div className="flex items-center gap-3">
+                  {(() => {
+                    const eqType = schedule.dispenser.equipmentType || 'DISPENSER';
+                    const Icon = getEquipmentTypeIcon(eqType);
+                    return (
+                      <div className="p-2.5 bg-primary/10 rounded-xl text-primary shrink-0">
+                        <Icon className="w-5 h-5" />
+                      </div>
+                    );
+                  })()}
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-bold text-lg">{schedule.dispenser.id}</h3>
+                      <span className="badge badge-outline text-[10px]">
+                        {getEquipmentTypeLabel(schedule.dispenser.equipmentType || 'DISPENSER')}
+                      </span>
+                    </div>
+                    <p className="text-sm text-muted-foreground">{schedule.dispenser.marca} {schedule.dispenser.modelo}</p>
+                  </div>
                 </div>
                 <span className="badge badge-success text-xs">Completado</span>
               </div>
@@ -141,7 +158,7 @@ export default function PublicApprovalPage() {
               </div>
 
               {schedule.checklist && (
-                <div className="text-sm space-y-2 border-t border-border pt-4">
+                <div className="text-sm space-y-3 border-t border-border pt-4">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Condición General:</span>
                     <span className="font-medium">
@@ -153,6 +170,52 @@ export default function PublicApprovalPage() {
                       }[schedule.checklist.condicionGeneral as string] || schedule.checklist.condicionGeneral}
                     </span>
                   </div>
+
+                  {/* Mediciones Técnicas */}
+                  {schedule.checklist.measurements && Object.keys(schedule.checklist.measurements).length > 0 && (
+                    <div className="p-3 bg-muted/20 border border-border rounded-xl space-y-2">
+                      <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
+                        <Gauge className="w-3.5 h-3.5 text-primary" />
+                        <span>Mediciones Técnicas de Servicio</span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        {Object.entries(schedule.checklist.measurements).map(([k, val]: [string, any]) => {
+                          if (val === undefined || val === null || val === '') return null;
+                          const labels: Record<string, string> = {
+                            presionBajaPsi: 'Presión Succión: ' + val + ' PSI',
+                            presionAltaPsi: 'Presión Descarga: ' + val + ' PSI',
+                            corrienteCompresorA: 'Corriente Compresor: ' + val + ' A',
+                            tempAmbienteC: 'Temp. Ambiente: ' + val + ' °C',
+                            tempInyeccionC: 'Temp. Inyección: ' + val + ' °C',
+                            saltoTermicoC: 'Salto Térmico: ' + val + ' °C',
+                            tempCamaraC: 'Temp. Cámara: ' + val + ' °C',
+                            tempEvaporadorC: 'Temp. Evaporador: ' + val + ' °C',
+                            tempAguaFriaC: 'Temp. Frío: ' + val + ' °C',
+                            tempAguaCalienteC: 'Temp. Calor: ' + val + ' °C',
+                            presionEntradaBar: 'Presión Agua: ' + val + ' bar',
+                            tdsSalidaPpm: 'TDS Filtrada: ' + val + ' ppm',
+                            caudalM3h: 'Caudal: ' + val + ' m³/h',
+                          };
+                          return (
+                            <span key={k} className="p-1.5 bg-card rounded border font-mono text-[11px]">
+                              {labels[k] || `${k}: ${val}`}
+                            </span>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Puntos de control verificados */}
+                  {schedule.checklist.checklistItems && (
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <ClipboardCheck className="w-4 h-4 text-emerald-600" />
+                      <span>
+                        Protocolo verificado: {Object.values(schedule.checklist.checklistItems).filter(Boolean).length} puntos conformes
+                      </span>
+                    </div>
+                  )}
+
                   {schedule.checklist.observaciones && (
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Observaciones:</span>

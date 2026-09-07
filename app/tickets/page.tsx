@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   Ticket, Search, Plus, Filter,
-  Clock, CheckCircle2, Archive, Loader2, MessageSquare, QrCode
+  Clock, CheckCircle2, Archive, Loader2, MessageSquare, QrCode, Building2
 } from 'lucide-react';
 import clsx from 'clsx';
 import toast from 'react-hot-toast';
@@ -16,15 +16,27 @@ export default function TicketsPage() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [priorityFilter, setPriorityFilter] = useState('');
+  const [clientIdFilter, setClientIdFilter] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
 
+  const { data: clients = [] } = useQuery<any[]>({
+    queryKey: ['clients'],
+    queryFn: async () => {
+      const res = await fetch('/api/clients');
+      if (!res.ok) return [];
+      const d = await res.json();
+      return Array.isArray(d) ? d : (d.clients || []);
+    }
+  });
+
   const { data, isLoading, refetch } = useQuery({
-    queryKey: ['tickets', statusFilter, priorityFilter],
+    queryKey: ['tickets', statusFilter, priorityFilter, clientIdFilter],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (statusFilter) params.set('status', statusFilter);
       if (priorityFilter) params.set('priority', priorityFilter);
+      if (clientIdFilter) params.set('clientId', clientIdFilter);
       const res = await fetch(`/api/tickets?${params}`);
       if (!res.ok) throw new Error('Failed to fetch');
       return res.json();
@@ -96,11 +108,21 @@ export default function TicketsPage() {
               className="input pl-9 h-9 text-sm w-full"
             />
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
+            <select
+              value={clientIdFilter}
+              onChange={e => setClientIdFilter(e.target.value)}
+              className="select h-9 text-sm px-2"
+            >
+              <option value="">Empresas (Todas)</option>
+              {clients.map((c: any) => (
+                <option key={c.id} value={c.id}>{c.nombre}</option>
+              ))}
+            </select>
             <select
               value={statusFilter}
               onChange={e => setStatusFilter(e.target.value)}
-              className="select h-9 text-sm w-1/2 xl:w-auto px-2"
+              className="select h-9 text-sm px-2"
             >
               <option value="">Estados (Todos)</option>
               <option value="OPEN">Abierto</option>
@@ -111,7 +133,7 @@ export default function TicketsPage() {
             <select
               value={priorityFilter}
               onChange={e => setPriorityFilter(e.target.value)}
-              className="select h-9 text-sm w-1/2 xl:w-auto px-2"
+              className="select h-9 text-sm px-2"
             >
               <option value="">Prioridad (Todas)</option>
               <option value="LOW">Baja</option>
@@ -138,6 +160,7 @@ export default function TicketsPage() {
           <div className={clsx("grid gap-4", selectedTicketId ? "grid-cols-1" : "grid-cols-1 md:grid-cols-2 lg:grid-cols-3")}>
             {filteredTickets.map(ticket => {
               const isSelected = selectedTicketId === ticket.id;
+              const clientName = ticket.location?.plant?.client?.nombre || ticket.dispenser?.client?.nombre;
               return (
                 <button 
                   key={ticket.id} 
@@ -150,6 +173,12 @@ export default function TicketsPage() {
                   <div className="flex justify-between items-start mb-2 gap-2">
                     <span className={clsx("text-xs font-mono shrink-0", isSelected ? "text-primary font-bold" : "text-muted-foreground")}>{ticket.id}</span>
                     <div className="flex flex-wrap justify-end gap-1.5">
+                      {clientName && (
+                        <span className="badge text-[9px] px-1.5 py-0 border bg-primary/10 text-primary border-primary/20 flex items-center gap-1 font-semibold">
+                          <Building2 className="w-2.5 h-2.5 shrink-0" />
+                          {clientName}
+                        </span>
+                      )}
                       {!ticket.assignedToId && (
                         <span className="badge text-[10px] px-1.5 py-0 border bg-amber-100 text-amber-700 border-amber-200 font-bold">LIBRE</span>
                       )}

@@ -13,7 +13,9 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const month = searchParams.get('month'); // YYYY-MM
     const plantId = searchParams.get('plantId');
+    const clientId = searchParams.get('clientId');
     const status = searchParams.get('status');
+    const equipmentType = searchParams.get('equipmentType');
 
     const where: any = {
       ...getDataFilter(user, {
@@ -23,11 +25,39 @@ export async function GET(req: Request) {
     if (month) where.scheduledMonth = month;
     if (status) where.status = status;
     if (plantId) where.dispenser = { ...where.dispenser, location: { plantId } };
+    if (clientId) {
+      where.dispenser = {
+        ...where.dispenser,
+        OR: [
+          { clientId },
+          { plant: { clientId } },
+          { location: { plant: { clientId } } },
+        ]
+      };
+    }
+    if (equipmentType) where.dispenser = { ...where.dispenser, equipmentType: equipmentType as any };
 
     const schedules = await prisma.maintenanceSchedule.findMany({
       where,
       include: {
-        dispenser: { select: { id: true, marca: true, modelo: true, location: { include: { plant: { select: { nombre: true } } } } } },
+        dispenser: { 
+          select: { 
+            id: true, 
+            marca: true, 
+            modelo: true, 
+            equipmentType: true,
+            criticality: true,
+            technicalSpecs: true,
+            client: { select: { id: true, nombre: true } },
+            plant: { select: { id: true, nombre: true, client: { select: { id: true, nombre: true } } } },
+            location: { 
+              include: { 
+                plant: { select: { id: true, nombre: true, client: { select: { id: true, nombre: true } } } },
+                sector: { select: { nombre: true } }
+              } 
+            } 
+          } 
+        },
         checklist: true,
       },
       orderBy: [{ scheduledMonth: 'desc' }, { dispenserId: 'asc' }],

@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient, useIsFetching } from '@tanstack/
 import {
   Package, Search, Plus, Filter, AlertTriangle, ArrowRightLeft,
   CreditCard, X, Loader2, CheckCircle2,
-  Settings2,
+  Settings2, Building2
 } from 'lucide-react';
 import clsx from 'clsx';
 import toast from 'react-hot-toast';
@@ -57,6 +57,7 @@ type Debt = {
 
 export default function InventoryPage() {
   const [activeTab, setActiveTab] = useState<Tab>('stock');
+  const [selectedClient, setSelectedClient] = useState('');
   const [selectedPlant, setSelectedPlant] = useState('');
   const queryClient = useQueryClient();
 
@@ -78,6 +79,15 @@ export default function InventoryPage() {
 
   const role = session?.user?.role;
 
+  const { data: clients = [] } = useQuery({
+    queryKey: ['clients'],
+    queryFn: async () => {
+      const res = await fetch('/api/clients');
+      const data = await res.json();
+      return Array.isArray(data) ? data : (data.clients || []);
+    }
+  });
+
   const { data: plants = [] } = useQuery({
     queryKey: ['plants'],
     queryFn: async () => {
@@ -88,9 +98,10 @@ export default function InventoryPage() {
   });
 
   const { data: stock = [], isLoading } = useQuery({
-    queryKey: ['stock', selectedPlant],
+    queryKey: ['stock', selectedClient, selectedPlant],
     queryFn: async () => {
       const params = new URLSearchParams();
+      if (selectedClient) params.set('clientId', selectedClient);
       if (selectedPlant) params.set('plantId', selectedPlant);
       const res = await fetch(`/api/stock?${params}`);
       const data = await res.json();
@@ -123,20 +134,71 @@ export default function InventoryPage() {
         </button>
       </div>
 
-      {/* Plant Filter */}
+      {/* Client & Plant Filter */}
       {activeTab !== 'debts' && (
-        <div className="glass-card p-4 flex items-center gap-3">
-          <Filter className="w-4 h-4 text-muted-foreground shrink-0" />
-          <select
-            value={selectedPlant}
-            onChange={e => setSelectedPlant(e.target.value)}
-            className="select max-w-xs"
-          >
-            <option value="">Todas las plantas (Global)</option>
-            {plants.map((p: any) => (
-              <option key={p.id} value={p.id}>{p.nombre}</option>
-            ))}
-          </select>
+        <div className="glass-card p-4 flex flex-wrap items-center gap-3">
+          <div className="relative">
+            <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <select
+              value={selectedClient}
+              onChange={e => {
+                const newClient = e.target.value;
+                setSelectedClient(newClient);
+                if (newClient && selectedPlant) {
+                  const match = plants.find((p: any) => p.id === selectedPlant);
+                  if (match && (match.clientId !== newClient && match.client?.id !== newClient)) {
+                    setSelectedPlant('');
+                  }
+                }
+              }}
+              className="select pl-10 min-w-[200px]"
+            >
+              <option value="">Todas las Empresas (Global)</option>
+              {clients.map((c: any) => (
+                <option key={c.id} value={c.id}>{c.nombre}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="relative">
+            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <select
+              value={selectedPlant}
+              onChange={e => {
+                const newPlantId = e.target.value;
+                setSelectedPlant(newPlantId);
+                if (newPlantId && !selectedClient) {
+                  const match = plants.find((p: any) => p.id === newPlantId);
+                  const cId = match?.client?.id || match?.clientId;
+                  if (cId) setSelectedClient(cId);
+                }
+              }}
+              className="select pl-10 min-w-[200px]"
+            >
+              <option value="">
+                {selectedClient ? 'Todas las plantas del cliente' : 'Todas las plantas (Global)'}
+              </option>
+              {selectedClient ? (
+                plants
+                  .filter((p: any) => p.clientId === selectedClient || p.client?.id === selectedClient)
+                  .map((p: any) => (
+                    <option key={p.id} value={p.id}>{p.nombre}</option>
+                  ))
+              ) : (
+                clients.map((c: any) => {
+                  const clientPlants = plants.filter((p: any) => p.clientId === c.id || p.client?.id === c.id);
+                  if (clientPlants.length === 0) return null;
+                  return (
+                    <optgroup key={c.id} label={c.nombre}>
+                      {clientPlants.map((p: any) => (
+                        <option key={p.id} value={p.id}>{p.nombre}</option>
+                      ))}
+                    </optgroup>
+                  );
+                })
+              )}
+            </select>
+          </div>
         </div>
       )}
 
@@ -690,8 +752,12 @@ function AddStockModal({
             <div>
               <label className="label">Planta *</label>
               <select className="select mt-1" value={form.plantId} onChange={e => setForm(p => ({ ...p, plantId: e.target.value }))} required>
-                <option value="">Seleccionar...</option>
-                {plants.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
+                <option value="">Seleccionar Planta...</option>
+                {plants.map(p => (
+                  <option key={p.id} value={p.id}>
+                    {p.client?.nombre ? `${p.client.nombre} — ` : ''}{p.nombre}
+                  </option>
+                ))}
               </select>
             </div>
             <div>

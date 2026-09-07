@@ -8,7 +8,7 @@ import {
   ArrowLeft, GlassWater, MapPin, Wrench, Package, Ticket,
   Clock, CheckCircle2, AlertTriangle, Archive, CalendarClock,
   ChevronRight, Loader2, X, RefreshCw, QrCode, Download, Pencil,
-  PlusCircle, ShieldCheck
+  PlusCircle, ShieldCheck, SlidersHorizontal, Wind, Snowflake, Fan, Cpu, Layers, Building2
 } from 'lucide-react';
 import clsx from 'clsx';
 import toast from 'react-hot-toast';
@@ -20,6 +20,18 @@ import CreateTicketModal from '@/components/CreateTicketModal';
 import { useAuthStore } from '@/lib/store/useAuthStore';
 import DispenserQRModal from '@/components/DispenserQRModal';
 import InitConsumablesModal from '@/components/InitConsumablesModal';
+import {
+  EquipmentType,
+  AssetCriticality,
+  EQUIPMENT_TYPE_LABELS,
+  CRITICALITY_LABELS,
+  CRITICALITY_COLORS,
+  SPEC_FIELDS_BY_TYPE,
+  getEquipmentTypeLabel,
+  getCriticalityColor,
+  getCriticalityLabel
+} from '@/lib/equipment';
+import { getEquipmentIcon } from '../page';
 
 const ALL_STATUSES = ['IN_SERVICE', 'UNDER_REPAIR', 'IN_TECHNICAL_SERVICE', 'BLOCKED', 'BLOCKED_WAITING_OC', 'OUT_OF_SERVICE', 'BACKUP'];
 
@@ -92,13 +104,22 @@ export default function DispenserDetailPage() {
       <div className="glass-card p-4 flex flex-wrap items-center justify-between gap-4 border-l-4 border-l-primary">
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center shrink-0">
-            <GlassWater className="w-6 h-6 text-primary" />
+            {(() => {
+              const TypeIcon = getEquipmentIcon(dispenser.equipmentType);
+              return <TypeIcon className="w-6 h-6 text-primary" />;
+            })()}
           </div>
           <div>
             <h1 className="text-xl font-bold tracking-tight leading-none mb-1">{dispenser.id}</h1>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <p className="text-xs text-muted-foreground">{dispenser.marca} {dispenser.modelo}</p>
               <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">
+                {getEquipmentTypeLabel(dispenser.equipmentType)}
+              </span>
+              <span className={clsx('text-[10px] font-bold px-2 py-0.5 rounded-full border', getCriticalityColor(dispenser.criticality))}>
+                {getCriticalityLabel(dispenser.criticality)}
+              </span>
+              <span className="text-[10px] bg-muted text-muted-foreground px-2 py-0.5 rounded-full font-medium">
                 {dispenser.plant?.nombre || 'Sin Planta Dueña'}
               </span>
             </div>
@@ -433,9 +454,13 @@ export default function DispenserDetailPage() {
 
 function InfoTab({ dispenser }: { dispenser: any }) {
   const currentConsumables = dispenser.consumableHistory?.filter((c: any) => !c.removedAt) || [];
-  
+  const clientName = dispenser.client?.nombre || dispenser.plant?.client?.nombre || dispenser.location?.plant?.client?.nombre || '—';
+
   const fields = [
-    { label: 'ID Dispenser', value: dispenser.id, mono: true },
+    { label: 'ID del Activo', value: dispenser.id, mono: true },
+    { label: 'Tipo de Activo', value: getEquipmentTypeLabel(dispenser.equipmentType) },
+    { label: 'Criticidad Operativa', value: getCriticalityLabel(dispenser.criticality) },
+    { label: 'Empresa / Cliente', value: clientName },
     { label: 'Marca', value: dispenser.marca },
     { label: 'Modelo', value: dispenser.modelo },
     { label: 'Planta Dueña', value: dispenser.plant?.nombre || '—', mono: true },
@@ -445,6 +470,10 @@ function InfoTab({ dispenser }: { dispenser: any }) {
     { label: 'Fecha Compra', value: dispenser.fechaCompra ? new Date(dispenser.fechaCompra).toLocaleDateString('es-AR', { timeZone: 'UTC' }) : '—' },
     { label: 'Creado el', value: new Date(dispenser.createdAt).toLocaleDateString('es-AR') },
   ];
+
+  const specFields = SPEC_FIELDS_BY_TYPE[dispenser.equipmentType as EquipmentType] || [];
+  const technicalSpecs = dispenser.technicalSpecs || {};
+  const hasSpecs = Object.keys(technicalSpecs).length > 0;
 
   return (
     <div className="space-y-8">
@@ -456,6 +485,35 @@ function InfoTab({ dispenser }: { dispenser: any }) {
           </div>
         ))}
       </div>
+
+      {/* Ficha Técnica Dinámica */}
+      {hasSpecs && (
+        <div className="p-5 bg-muted/20 border border-border/70 rounded-2xl space-y-3">
+          <div className="flex items-center justify-between border-b pb-2">
+            <h4 className="text-xs font-bold text-primary uppercase tracking-widest flex items-center gap-2">
+              <SlidersHorizontal className="w-4 h-4" />
+              Ficha Técnica / Especificaciones
+            </h4>
+            <span className="text-[11px] font-semibold text-muted-foreground">
+              {getEquipmentTypeLabel(dispenser.equipmentType)}
+            </span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 pt-1">
+            {Object.entries(technicalSpecs).map(([key, val]) => {
+              if (val === null || val === undefined || val === '') return null;
+              const def = specFields.find(f => f.key === key);
+              const label = def ? def.label : key;
+              const unit = def?.unit ? ` ${def.unit}` : '';
+              return (
+                <div key={key} className="flex justify-between items-center py-1.5 border-b border-border/30 text-xs">
+                  <span className="text-muted-foreground font-medium">{label}</span>
+                  <span className="font-bold text-foreground font-mono">{String(val)}{unit}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {currentConsumables.length > 0 && (
         <div className="p-4 bg-primary/5 border border-primary/20 rounded-2xl">
@@ -773,18 +831,23 @@ function EditDispenserModal({
   const [form, setForm] = useState({
     marca: dispenser.marca || '',
     modelo: dispenser.modelo || '',
+    equipmentType: (dispenser.equipmentType || 'DISPENSER') as EquipmentType,
+    criticality: (dispenser.criticality || 'MEDIUM') as AssetCriticality,
+    technicalSpecs: (dispenser.technicalSpecs || {}) as Record<string, any>,
     numeroSerie: dispenser.numeroSerie || '',
     fechaCompra: dispenser.fechaCompra ? new Date(dispenser.fechaCompra).toISOString().split('T')[0] : '',
     lifecycleMonths: dispenser.lifecycleMonths || 60,
     lifecycleStartDate: dispenser.lifecycleStartDate ? new Date(dispenser.lifecycleStartDate).toISOString().split('T')[0] : '',
     notas: dispenser.notas || '',
     locationId: dispenser.locationId || '',
+    clientId: dispenser.clientId || dispenser.plant?.clientId || '',
     plantId: dispenser.plantId || '',
   });
   
   const { role } = useAuthStore();
   
   const [locations, setLocations] = useState<any[]>([]);
+  const [clients, setClients] = useState<any[]>([]);
   const [plants, setPlants] = useState<any[]>([]);
   const [saving, setSaving] = useState(false);
 
@@ -794,11 +857,23 @@ function EditDispenserModal({
       .then(data => setLocations(Array.isArray(data) ? data : []))
       .catch(err => console.error(err));
 
+    fetch('/api/clients')
+      .then(res => res.ok ? res.json() : [])
+      .then(data => setClients(Array.isArray(data) ? data : (data.clients || [])))
+      .catch(err => console.error(err));
+
     fetch('/api/plants')
       .then(res => res.json())
       .then(data => setPlants(data || []))
       .catch(err => console.error(err));
   }, []);
+
+  const handleSpecChange = (key: string, value: any) => {
+    setForm(p => ({
+      ...p,
+      technicalSpecs: { ...p.technicalSpecs, [key]: value }
+    }));
+  };
 
   const handleSave = async () => {
     setSaving(true);
@@ -809,17 +884,21 @@ function EditDispenserModal({
         body: JSON.stringify({
           marca: form.marca,
           modelo: form.modelo,
+          equipmentType: form.equipmentType,
+          criticality: form.criticality,
+          technicalSpecs: form.technicalSpecs,
           numeroSerie: form.numeroSerie,
           fechaCompra: form.fechaCompra ? new Date(form.fechaCompra).toISOString() : null,
           lifecycleMonths: Number(form.lifecycleMonths),
           lifecycleStartDate: form.lifecycleStartDate ? new Date(form.lifecycleStartDate).toISOString() : undefined,
           notas: form.notas,
+          clientId: form.clientId || null,
           plantId: form.plantId || null,
         }),
       });
       if (!res.ok) {
         const err = await res.json();
-        throw new Error(err.error || 'Error al actualizar dispenser');
+        throw new Error(err.error || 'Error al actualizar equipo');
       }
 
       if (form.locationId && form.locationId !== dispenser.locationId) {
@@ -843,19 +922,49 @@ function EditDispenserModal({
     }
   };
 
+  const activeSpecFields = SPEC_FIELDS_BY_TYPE[form.equipmentType] || [];
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-card rounded-2xl shadow-2xl border border-border w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-muted/30">
+      <div className="bg-card rounded-2xl shadow-2xl border border-border w-full max-w-xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-muted/30 shrink-0">
           <h2 className="text-lg font-bold flex items-center gap-2">
             <Pencil className="w-5 h-5 text-primary" />
-            Editar Información del Equipo
+            Editar Información del Activo
           </h2>
           <button onClick={onClose} className="p-2 hover:bg-accent rounded-full transition-colors text-muted-foreground">
             <X className="w-5 h-5" />
           </button>
         </div>
-        <div className="px-6 py-4 space-y-4 max-h-[70vh] overflow-y-auto scrollbar-thin">
+        <div className="px-6 py-4 space-y-4 overflow-y-auto scrollbar-thin flex-1">
+          {/* Categoría y Criticidad */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-muted/20 p-3 rounded-xl border border-border/50">
+            <div>
+              <label className="text-xs font-semibold mb-1 block">Tipo de Activo</label>
+              <select
+                className="select text-xs w-full"
+                value={form.equipmentType}
+                onChange={e => setForm({ ...form, equipmentType: e.target.value as EquipmentType })}
+              >
+                {Object.entries(EQUIPMENT_TYPE_LABELS).map(([k, v]) => (
+                  <option key={k} value={k}>{v}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs font-semibold mb-1 block">Criticidad</label>
+              <select
+                className="select text-xs w-full"
+                value={form.criticality}
+                onChange={e => setForm({ ...form, criticality: e.target.value as AssetCriticality })}
+              >
+                {(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'] as AssetCriticality[]).map(crit => (
+                  <option key={crit} value={crit}>{CRITICALITY_LABELS[crit]}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="text-sm font-semibold mb-1 block">Marca</label>
@@ -891,17 +1000,52 @@ function EditDispenserModal({
               />
             </div>
             <div>
-              <label className="text-sm font-semibold mb-1 block text-primary font-bold">Planta Dueña (Propiedad) *</label>
+              <label className="text-sm font-semibold mb-1 block text-primary font-bold flex items-center gap-1">
+                <Building2 className="w-3.5 h-3.5 text-primary" />
+                Empresa / Cliente *
+              </label>
               <select
-                className="select font-bold text-primary"
-                value={form.plantId}
-                onChange={e => setForm({ ...form, plantId: e.target.value })}
+                className="select font-bold text-primary w-full"
+                value={form.clientId}
+                onChange={e => {
+                  const newClientId = e.target.value;
+                  setForm(p => ({
+                    ...p,
+                    clientId: newClientId,
+                    plantId: plants.some(pl => pl.id === p.plantId && pl.clientId === newClientId) ? p.plantId : ''
+                  }));
+                }}
                 required
               >
-                <option value="">Seleccionar Planta...</option>
-                {plants.map(p => (
-                  <option key={p.id} value={p.id}>{p.nombre}</option>
+                <option value="">Seleccionar Empresa...</option>
+                {clients.map(c => (
+                  <option key={c.id} value={c.id}>{c.nombre}</option>
                 ))}
+              </select>
+            </div>
+            <div>
+              <label className="text-sm font-semibold mb-1 block text-primary font-bold">Planta Dueña (Propiedad) *</label>
+              <select
+                className="select font-bold text-primary w-full"
+                value={form.plantId}
+                onChange={e => {
+                  const selectedPlant = plants.find(p => p.id === e.target.value);
+                  setForm(p => ({ 
+                    ...p, 
+                    plantId: e.target.value,
+                    clientId: selectedPlant?.clientId || p.clientId 
+                  }));
+                }}
+                required
+              >
+                <option value="">
+                  {form.clientId ? 'Seleccionar Planta del Cliente...' : 'Seleccionar Planta...'}
+                </option>
+                {plants
+                  .filter(p => !form.clientId || p.clientId === form.clientId)
+                  .map(p => (
+                    <option key={p.id} value={p.id}>{p.nombre}</option>
+                  ))}
               </select>
             </div>
             <div>
@@ -914,7 +1058,7 @@ function EditDispenserModal({
               />
             </div>
             {role === 'ADMIN' && (
-              <div>
+              <div className="sm:col-span-2">
                 <label className="text-sm font-semibold mb-1 block">Inicio Ciclo (Admin)</label>
                 <input 
                   type="date" 
@@ -925,6 +1069,52 @@ function EditDispenserModal({
               </div>
             )}
           </div>
+
+          {/* Dynamic Technical Specs in Edit */}
+          {activeSpecFields.length > 0 && (
+            <div className="p-4 bg-muted/20 border border-border/70 rounded-xl space-y-3">
+              <h4 className="text-xs font-bold text-primary uppercase tracking-widest flex items-center gap-2">
+                <SlidersHorizontal className="w-3.5 h-3.5" />
+                Ficha Técnica ({getEquipmentTypeLabel(form.equipmentType)})
+              </h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {activeSpecFields.map(field => {
+                  const value = form.technicalSpecs[field.key] || '';
+                  if (field.type === 'select') {
+                    return (
+                      <div key={field.key}>
+                        <label className="text-xs font-semibold text-foreground/80 mb-1 block">{field.label}</label>
+                        <select
+                          className="select text-xs w-full"
+                          value={value}
+                          onChange={e => handleSpecChange(field.key, e.target.value)}
+                        >
+                          <option value="">Seleccionar...</option>
+                          {field.options?.map(opt => (
+                            <option key={opt} value={opt}>{opt}</option>
+                          ))}
+                        </select>
+                      </div>
+                    );
+                  }
+                  return (
+                    <div key={field.key}>
+                      <label className="text-xs font-semibold text-foreground/80 mb-1 block">
+                        {field.label} {field.unit && <span className="text-muted-foreground font-normal">({field.unit})</span>}
+                      </label>
+                      <input
+                        type={field.type === 'number' ? 'number' : 'text'}
+                        className="input text-xs w-full"
+                        placeholder={field.placeholder || ''}
+                        value={value}
+                        onChange={e => handleSpecChange(field.key, e.target.value)}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           <div className="p-4 bg-primary/5 border border-primary/20 rounded-xl">
             <label className="text-sm font-bold text-primary mb-2 flex items-center gap-2">
@@ -958,7 +1148,7 @@ function EditDispenserModal({
             />
           </div>
         </div>
-        <div className="px-6 py-4 border-t border-border bg-muted/30 flex items-center justify-end gap-3">
+        <div className="px-6 py-4 border-t border-border bg-muted/30 flex items-center justify-end gap-3 shrink-0">
           <button onClick={onClose} className="btn-outline">Cancelar</button>
           <button onClick={handleSave} disabled={saving} className="btn-primary px-8 gap-2">
             {saving && <Loader2 className="w-4 h-4 animate-spin" />}

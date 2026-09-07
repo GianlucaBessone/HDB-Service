@@ -11,6 +11,7 @@ export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
     const plantId = searchParams.get('plantId');
+    const clientId = searchParams.get('clientId');
 
     // Security check: restrict non-admins/supervisors from querying unassigned plants
     if (user.role !== 'ADMIN' && user.role !== 'SUPERVISOR' && plantId) {
@@ -35,6 +36,21 @@ export async function GET(req: Request) {
         plantIdField: 'plantId'
       })
     };
+
+    if (clientId && !user.clientId) {
+      whereTickets.location = { ...whereTickets.location, plant: { clientId } };
+      whereDispensers.AND = [
+        ...(whereDispensers.AND || []),
+        {
+          OR: [
+            { clientId },
+            { plant: { clientId } },
+            { location: { plant: { clientId } } },
+          ]
+        }
+      ];
+      whereStock.clientId = clientId;
+    }
 
     if (plantId) {
       whereTickets.location = { ...whereTickets.location, plantId };

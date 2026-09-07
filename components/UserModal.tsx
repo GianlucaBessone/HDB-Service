@@ -421,7 +421,9 @@ export default function UserModal({ user, onClose, onSuccess }: UserModalProps) 
                   {[
                     { id: 'DISPENSER', label: 'Dispensers / Bebederos' },
                     { id: 'AIR_CONDITIONER', label: 'Aires Acondicionados' },
-                    { id: 'REFRIGERATOR', label: 'Heladeras / Freezers' },
+                    { id: 'COLD_ROOM', label: 'Cámaras Frigoríficas' },
+                    { id: 'REFRIGERATOR', label: 'Heladeras / Freezers Comerciales' },
+                    { id: 'VENTILATION', label: 'Ventilación / Extracción' },
                     { id: 'OTHER', label: 'Otros Equipos' }
                   ].map(eq => {
                     const isSelected = (form.equipmentTypes || []).includes(eq.id);

@@ -13,6 +13,9 @@ interface CreateTicketModalProps {
   onCreated: () => void;
 }
 
+import { getEquipmentTypeLabel, getEquipmentTypeIcon } from '@/lib/equipment';
+import { EquipmentType } from '@prisma/client';
+
 export default function CreateTicketModal({ initialDispenserId = '', onClose, onCreated }: CreateTicketModalProps) {
   const [form, setForm] = useState({ 
     dispenserId: initialDispenserId, 
@@ -24,6 +27,39 @@ export default function CreateTicketModal({ initialDispenserId = '', onClose, on
   });
   const [saving, setSaving] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
+  const [detectedAsset, setDetectedAsset] = useState<any>(null);
+  const [loadingAsset, setLoadingAsset] = useState(false);
+
+  useEffect(() => {
+    if (!form.dispenserId || form.dispenserId.length < 3) {
+      setDetectedAsset(null);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setLoadingAsset(true);
+      try {
+        const res = await fetch(`/api/dispensers/${encodeURIComponent(form.dispenserId)}`);
+        if (res.ok) {
+          const data = await res.json();
+          setDetectedAsset(data);
+          if (data.criticality === 'CRITICAL') {
+            setForm(f => ({ ...f, priority: 'CRITICAL' }));
+          } else if (data.criticality === 'HIGH') {
+            setForm(f => f.priority === 'MEDIUM' ? { ...f, priority: 'HIGH' } : f);
+          }
+        } else {
+          setDetectedAsset(null);
+        }
+      } catch {
+        setDetectedAsset(null);
+      } finally {
+        setLoadingAsset(false);
+      }
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [form.dispenserId]);
 
   useEffect(() => {
     if (!isScanning) return;
@@ -97,11 +133,11 @@ export default function CreateTicketModal({ initialDispenserId = '', onClose, on
         <form onSubmit={handleSubmit}>
           <div className="px-6 py-4 space-y-4">
             <div>
-              <label className="text-sm font-semibold mb-1 block">Equipo (ID Dispenser) *</label>
+              <label className="text-sm font-semibold mb-1 block">Identificador del Activo / Equipo *</label>
               <div className="flex gap-2">
                 <input
                   className="input uppercase flex-1 font-mono font-bold"
-                  placeholder="DISP-XXXX"
+                  placeholder="Ej: AA-01, CF-002, DISP-01..."
                   value={form.dispenserId}
                   onChange={e => setForm(p => ({ ...p, dispenserId: e.target.value.toUpperCase() }))}
                   required
@@ -121,12 +157,46 @@ export default function CreateTicketModal({ initialDispenserId = '', onClose, on
                   <div id="reader" className="w-full"></div>
                 </div>
               )}
+              {detectedAsset && (
+                <div className="mt-2 p-2.5 rounded-lg border border-primary/20 bg-primary/5 flex items-center justify-between text-xs animate-in fade-in">
+                  <div className="flex items-center gap-2">
+                    {(() => {
+                      const Icon = getEquipmentTypeIcon(detectedAsset.equipmentType);
+                      return <Icon className="w-4 h-4 text-primary shrink-0" />;
+                    })()}
+                    <div>
+                      <span className="font-bold text-foreground">
+                        {getEquipmentTypeLabel(detectedAsset.equipmentType)}
+                      </span>
+                      <span className="text-muted-foreground ml-1.5">
+                        {detectedAsset.marca} {detectedAsset.modelo}
+                      </span>
+                      {detectedAsset.location?.nombre && (
+                        <p className="text-[11px] text-muted-foreground">
+                          {detectedAsset.location.plant?.nombre} — {detectedAsset.location.nombre}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  {detectedAsset.criticality && (
+                    <span className={clsx(
+                      'px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider',
+                      detectedAsset.criticality === 'CRITICAL' ? 'bg-red-100 text-red-700 dark:bg-red-950/40 dark:text-red-400' :
+                      detectedAsset.criticality === 'HIGH' ? 'bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400' :
+                      'bg-muted text-muted-foreground'
+                    )}>
+                      {detectedAsset.criticality}
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
             <div>
               <label className="text-sm font-semibold mb-1 block">Motivo *</label>
               <ReasonCombobox
                 value={form.reason}
                 onChange={(val: string) => setForm(p => ({ ...p, reason: val }))}
+                equipmentType={detectedAsset?.equipmentType}
               />
             </div>
             <div>

@@ -21,6 +21,7 @@ export async function GET(req: Request) {
     const priority = searchParams.get('priority');
     const assignedToId = searchParams.get('assignedToId');
     const dispenserId = searchParams.get('dispenserId');
+    const clientId = searchParams.get('clientId');
     const slaStatus = searchParams.get('slaStatus'); // ON_TIME | NEAR_BREACH | BREACHED
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '50');
@@ -34,6 +35,12 @@ export async function GET(req: Request) {
     if (priority) where.priority = priority;
     if (assignedToId) where.assignedToId = assignedToId;
     if (dispenserId) where.dispenserId = dispenserId;
+    if (clientId && !user.clientId) {
+      where.location = {
+        ...where.location,
+        plant: { clientId }
+      };
+    }
 
     // SLA filtering
     if (slaStatus === 'BREACHED') {
@@ -68,10 +75,19 @@ export async function GET(req: Request) {
       prisma.ticket.findMany({
         where,
         include: {
-          dispenser: { select: { id: true, marca: true, modelo: true, status: true } },
+          dispenser: { 
+            select: { 
+              id: true, 
+              marca: true, 
+              modelo: true, 
+              status: true, 
+              equipmentType: true,
+              client: { select: { id: true, nombre: true } }
+            } 
+          },
           location: {
             include: {
-              plant: { select: { nombre: true, client: { select: { nombre: true } } } },
+              plant: { select: { id: true, nombre: true, client: { select: { id: true, nombre: true } } } },
             },
           },
           reportedBy: { select: { nombre: true, role: true } },
@@ -89,26 +105,12 @@ export async function GET(req: Request) {
     if (user.role === 'TECHNICIAN') {
       const techEquipmentTypes = (user as any).equipmentTypes || ['DISPENSER'];
 
-      try {
-        const dispEqData: any[] = await prisma.$queryRawUnsafe(`SELECT id, "equipmentType" FROM "Dispenser"`);
-        const dispEqMap = new Map(dispEqData.map((d: any) => [d.id, d.equipmentType]));
-
-        tickets = tickets.filter((t: any) => {
-          if (t.assignedToId === user.id) return true;
-          if (!t.dispenserId) return true;
-          const eqType = dispEqMap.get(t.dispenserId) || 'DISPENSER';
-          return techEquipmentTypes.includes(eqType);
-        });
-
-        // Attach equipmentType to dispenser object for frontend rendering
-        tickets.forEach((t: any) => {
-          if (t.dispenser) {
-            t.dispenser.equipmentType = dispEqMap.get(t.dispenser.id) || 'DISPENSER';
-          }
-        });
-      } catch {
-        // Fallback
-      }
+      tickets = tickets.filter((t: any) => {
+        if (t.assignedToId === user.id) return true;
+        if (!t.dispenserId || !t.dispenser) return true;
+        const eqType = t.dispenser.equipmentType || 'DISPENSER';
+        return techEquipmentTypes.includes(eqType);
+      });
     }
 
     return NextResponse.json({ tickets, total, page, limit });

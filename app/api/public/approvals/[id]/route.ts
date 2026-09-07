@@ -18,6 +18,9 @@ export async function GET(req: Request, props: { params: Promise<{ id: string }>
                 id: true,
                 marca: true,
                 modelo: true,
+                equipmentType: true,
+                criticality: true,
+                technicalSpecs: true,
                 location: {
                   include: {
                     plant: { select: { nombre: true, client: { select: { nombre: true } } } },
