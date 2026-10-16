@@ -18,7 +18,6 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
     });
 
     if (!dispenser) {
-      await revalidateTag('dispensers', 'default');
     return NextResponse.json({ error: 'Dispenser no encontrado' }, { status: 404 });
     }
 
@@ -56,11 +55,10 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
       });
     });
 
-    await revalidateTag('dispensers', 'default');
+    revalidateTag('dispensers', 'default');
     return NextResponse.json({ success: true });
   } catch (error: any) {
     console.error('[API] POST /api/dispensers/set-repair error:', error);
-    await revalidateTag('dispensers', 'default');
     return NextResponse.json({ error: 'Error al actualizar dispenser' }, { status: 500 });
   }
 }

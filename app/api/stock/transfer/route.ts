@@ -51,11 +51,9 @@ export async function GET(req: Request) {
       orderBy: { createdAt: 'desc' },
     });
 
-    await revalidateTag('stock', 'default');
     return NextResponse.json(transfers);
   } catch (error) {
     console.error('[API] GET /api/stock/transfer error:', error);
-    await revalidateTag('stock', 'default');
     return NextResponse.json({ error: 'Error al obtener transferencias' }, { status: 500 });
   }
 }
@@ -70,17 +68,14 @@ export async function POST(req: Request) {
     const { fromPlantId, toPlantId, itemType, materialCode, nombre, cantidad } = body;
 
     if (!fromPlantId || !toPlantId || !itemType || !materialCode || !cantidad) {
-      await revalidateTag('stock', 'default');
     return NextResponse.json({ error: 'Faltan campos requeridos' }, { status: 400 });
     }
 
     if (cantidad <= 0) {
-      await revalidateTag('stock', 'default');
     return NextResponse.json({ error: 'La cantidad debe ser mayor a 0' }, { status: 400 });
     }
 
     if (fromPlantId === toPlantId) {
-      await revalidateTag('stock', 'default');
     return NextResponse.json({ error: 'No se puede transferir a la misma planta' }, { status: 400 });
     }
 
@@ -90,7 +85,6 @@ export async function POST(req: Request) {
     });
 
     if (!sourceStock || sourceStock.cantidad < cantidad) {
-      await revalidateTag('stock', 'default');
     return NextResponse.json({ error: 'Stock insuficiente en la planta origen' }, { status: 400 });
     }
 
@@ -101,7 +95,6 @@ export async function POST(req: Request) {
     });
 
     if (!targetPlant) {
-      await revalidateTag('stock', 'default');
     return NextResponse.json({ error: 'Planta destino no encontrada' }, { status: 404 });
     }
 
@@ -196,11 +189,10 @@ export async function POST(req: Request) {
       newValue: transfer,
     });
 
-    await revalidateTag('stock', 'default');
+    revalidateTag('stock', 'default');
     return NextResponse.json(transfer, { status: 201 });
   } catch (error) {
     console.error('[API] POST /api/stock/transfer error:', error);
-    await revalidateTag('stock', 'default');
     return NextResponse.json({ error: 'Error al procesar transferencia' }, { status: 500 });
   }
 }

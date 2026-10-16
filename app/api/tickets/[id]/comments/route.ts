@@ -20,7 +20,6 @@ export async function GET(req: Request, props: { params: Promise<{ id: string }>
     return NextResponse.json(comments);
   } catch (error) {
     console.error('[API] GET /api/tickets/[id]/comments error:', error);
-    await revalidateTag('tickets', 'default');
     return NextResponse.json({ error: 'Error al obtener comentarios' }, { status: 500 });
   }
 }
@@ -36,7 +35,6 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
     const { message } = body;
 
     if (!message?.trim()) {
-      await revalidateTag('tickets', 'default');
     return NextResponse.json({ error: 'El mensaje es requerido' }, { status: 400 });
     }
 
@@ -49,11 +47,10 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
       include: { user: { select: { nombre: true, apellido: true, role: true } } },
     });
 
-    await revalidateTag('tickets', 'default');
+    revalidateTag('tickets', 'default');
     return NextResponse.json(comment, { status: 201 });
   } catch (error) {
     console.error('[API] POST /api/tickets/[id]/comments error:', error);
-    await revalidateTag('tickets', 'default');
     return NextResponse.json({ error: 'Error al crear comentario' }, { status: 500 });
   }
 }

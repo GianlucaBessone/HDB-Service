@@ -36,15 +36,12 @@ export async function GET(req: Request, props: { params: Promise<{ id: string }>
     });
 
     if (!approval) {
-      await revalidateTag('public', 'default');
     return NextResponse.json({ error: 'Aprobación no encontrada' }, { status: 404 });
     }
 
-    await revalidateTag('public', 'default');
     return NextResponse.json(approval);
   } catch (error) {
     console.error('[API] GET /api/public/approvals/[id] error:', error);
-    await revalidateTag('public', 'default');
     return NextResponse.json({ error: 'Error interno' }, { status: 500 });
   }
 }
@@ -56,7 +53,6 @@ export async function PUT(req: Request, props: { params: Promise<{ id: string }>
     const { customerName, customerIdentity, signatureData, deviceInfo } = await req.json();
 
     if (!customerName || !customerIdentity) {
-      await revalidateTag('public', 'default');
       return NextResponse.json({ error: 'Nombre y DNI/Identificación son requeridos' }, { status: 400 });
     }
 
@@ -68,12 +64,10 @@ export async function PUT(req: Request, props: { params: Promise<{ id: string }>
     });
 
     if (!approval) {
-      await revalidateTag('public', 'default');
       return NextResponse.json({ error: 'Aprobación no encontrada' }, { status: 404 });
     }
 
     if (approval.signatureHash || approval.signatureData) {
-      await revalidateTag('public', 'default');
       return NextResponse.json({ error: 'Esta aprobación ya fue firmada' }, { status: 400 });
     }
 
@@ -113,11 +107,10 @@ export async function PUT(req: Request, props: { params: Promise<{ id: string }>
       data: { status: 'SIGNED' }
     });
 
-    await revalidateTag('public', 'default');
+    revalidateTag('public', 'default');
     return NextResponse.json(updatedApproval);
   } catch (error) {
     console.error('[API] PUT /api/public/approvals/[id] error:', error);
-    await revalidateTag('public', 'default');
     return NextResponse.json({ error: 'Error al guardar la firma' }, { status: 500 });
   }
 }

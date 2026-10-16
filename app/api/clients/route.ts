@@ -29,11 +29,9 @@ export async function GET() {
       orderBy: { nombre: 'asc' },
     });
 
-    await revalidateTag('clients', 'default');
     return NextResponse.json(clients);
   } catch (error) {
     console.error('[API] GET /api/clients error:', error);
-    await revalidateTag('clients', 'default');
     return NextResponse.json({ error: 'Error al obtener clientes' }, { status: 500 });
   }
 }
@@ -49,7 +47,6 @@ export async function POST(req: Request) {
       const { nombre, email, telefono, direccion } = body;
 
       if (!nombre?.trim()) {
-        await revalidateTag('clients', 'default');
     return NextResponse.json({ error: 'El nombre es requerido' }, { status: 400 });
       }
 
@@ -71,11 +68,10 @@ export async function POST(req: Request) {
         newValue: client,
       });
 
-      await revalidateTag('clients', 'default');
+      revalidateTag('clients', 'default');
     return NextResponse.json(client, { status: 201 });
     } catch (error) {
       console.error('[API] POST /api/clients error:', error);
-      await revalidateTag('clients', 'default');
     return NextResponse.json({ error: 'Error al crear cliente' }, { status: 500 });
     }
   });

@@ -25,7 +25,6 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
     const { locationId, force } = body;
 
     if (!locationId) {
-      await revalidateTag('dispensers', 'default');
     return NextResponse.json({ error: 'locationId es requerido' }, { status: 400 });
     }
 
@@ -38,17 +37,14 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
     ]);
 
     if (!dispenser) {
-      await revalidateTag('dispensers', 'default');
     return NextResponse.json({ error: 'Dispenser no encontrado' }, { status: 404 });
     }
     if (!location) {
-      await revalidateTag('dispensers', 'default');
     return NextResponse.json({ error: 'Ubicación no encontrada' }, { status: 404 });
     }
 
     // Check: only 1 active dispenser per location
     if (location.dispensers.length > 0 && location.dispensers[0].id !== params.id) {
-      await revalidateTag('dispensers', 'default');
     return NextResponse.json(
         { error: `La ubicación ya tiene un dispenser activo: ${location.dispensers[0].id}` },
         { status: 409 }
@@ -58,7 +54,6 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
     // If dispenser is currently assigned somewhere else, close that assignment
     if (dispenser.locationId && dispenser.locationId !== locationId) {
       if (!force) {
-        await revalidateTag('dispensers', 'default');
     return NextResponse.json(
           { error: 'El dispenser ya está asignado a otra ubicación. Use force=true para reasignar.' },
           { status: 409 }
@@ -124,11 +119,10 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
       newValue: { locationId, status: 'IN_SERVICE' },
     });
 
-    await revalidateTag('dispensers', 'default');
+    revalidateTag('dispensers', 'default');
     return NextResponse.json(updated);
   } catch (error) {
     console.error('[API] POST /api/dispensers/[id]/assign error:', error);
-    await revalidateTag('dispensers', 'default');
     return NextResponse.json({ error: 'Error al asignar dispenser' }, { status: 500 });
   }
 }

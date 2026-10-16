@@ -31,7 +31,6 @@ export async function PUT(req: Request, props: { params: Promise<{ id: string }>
     const { status, reason } = body;
 
     if (!status || !Object.values(DispenserStatus).includes(status)) {
-      await revalidateTag('dispensers', 'default');
     return NextResponse.json(
         { error: `Estado inválido. Valores: ${Object.values(DispenserStatus).join(', ')}` },
         { status: 400 }
@@ -48,7 +47,6 @@ export async function PUT(req: Request, props: { params: Promise<{ id: string }>
       }
     });
     if (!dispenser) {
-      await revalidateTag('dispensers', 'default');
       return NextResponse.json({ error: 'Dispenser no encontrado' }, { status: 404 });
     }
 
@@ -63,7 +61,6 @@ export async function PUT(req: Request, props: { params: Promise<{ id: string }>
     // Handle BLOCKED
     if (status === 'BLOCKED') {
       if (!reason?.trim()) {
-        await revalidateTag('dispensers', 'default');
         return NextResponse.json({ error: 'Motivo de bloqueo requerido' }, { status: 400 });
       }
       updateData.blockedReason = reason.trim();
@@ -190,11 +187,10 @@ export async function PUT(req: Request, props: { params: Promise<{ id: string }>
       newValue: { status, reason },
     });
 
-    await revalidateTag('dispensers', 'default');
+    revalidateTag('dispensers', 'default');
     return NextResponse.json(updated);
   } catch (error) {
     console.error('[API] PUT /api/dispensers/[id]/status error:', error);
-    await revalidateTag('dispensers', 'default');
     return NextResponse.json({ error: 'Error al cambiar estado' }, { status: 500 });
   }
 }

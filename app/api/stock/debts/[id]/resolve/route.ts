@@ -24,12 +24,10 @@ async function handleResolve(req: Request, props: { params: Promise<{ id: string
     });
 
     if (!debt) {
-      await revalidateTag('stock', 'default');
       return NextResponse.json({ error: 'Deuda no encontrada' }, { status: 404 });
     }
 
     if (debt.status === 'RESOLVED') {
-      await revalidateTag('stock', 'default');
       return NextResponse.json({ error: 'La deuda ya está resuelta' }, { status: 400 });
     }
 
@@ -44,11 +42,10 @@ async function handleResolve(req: Request, props: { params: Promise<{ id: string
       oldValue: { status: 'PENDING' }, newValue: { status: 'RESOLVED' },
     });
 
-    await revalidateTag('stock', 'default');
+    revalidateTag('stock', 'default');
     return NextResponse.json(resolvedDebt);
   } catch (error) {
     console.error('[API] POST/PATCH /api/stock/debts/[id]/resolve error:', error);
-    await revalidateTag('stock', 'default');
     return NextResponse.json({ error: 'Error al resolver deuda' }, { status: 500 });
   }
 }

@@ -86,7 +86,6 @@ export async function PUT(req: Request, props: { params: Promise<{ id: string }>
       }
     });
     if (!ticket) {
-      await revalidateTag('tickets', 'default');
       return NextResponse.json({ error: 'Ticket no encontrado' }, { status: 404 });
     }
 
@@ -118,7 +117,6 @@ export async function PUT(req: Request, props: { params: Promise<{ id: string }>
     // Status change
     if (status && status !== ticket.status) {
       if (!Object.values(TicketStatus).includes(status)) {
-        await revalidateTag('tickets', 'default');
         return NextResponse.json({ error: 'Estado inválido' }, { status: 400 });
       }
 
@@ -300,11 +298,10 @@ export async function PUT(req: Request, props: { params: Promise<{ id: string }>
       );
     }
 
-    await revalidateTag('tickets', 'default');
+    revalidateTag('tickets', 'default');
     return NextResponse.json(updated);
   } catch (error) {
     console.error('[API] PUT /api/tickets/[id] error:', error);
-    await revalidateTag('tickets', 'default');
     return NextResponse.json({ error: 'Error al actualizar ticket' }, { status: 500 });
   }
 }

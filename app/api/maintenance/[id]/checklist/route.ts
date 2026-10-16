@@ -23,7 +23,6 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
     } = body;
 
     if (!condicionGeneral) {
-      await revalidateTag('maintenance', 'default');
       return NextResponse.json({ error: 'Condición general requerida' }, { status: 400 });
     }
 
@@ -34,12 +33,10 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
     });
 
     if (!schedule) {
-      await revalidateTag('maintenance', 'default');
     return NextResponse.json({ error: 'Mantenimiento no encontrado' }, { status: 404 });
     }
 
     if (schedule.checklist) {
-      await revalidateTag('maintenance', 'default');
     return NextResponse.json({ error: 'El checklist ya fue completado para este mantenimiento' }, { status: 400 });
     }
 
@@ -152,13 +149,12 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
       return [newChecklist, newSchedule];
     });
 
-    await revalidateTag('maintenance', 'default');
+    revalidateTag('maintenance', 'default');
     return NextResponse.json({ success: true, checklist, schedule: updatedSchedule });
   } catch (error: any) {
     console.error('[API] POST /api/maintenance/checklist error:', error);
     // Return the specific stock error if it was thrown intentionally
     const message = error.message.includes('Sin stock suficiente') ? error.message : 'Error al procesar el checklist';
-    await revalidateTag('maintenance', 'default');
     return NextResponse.json({ error: message }, { status: error.message.includes('stock') ? 400 : 500 });
   }
 }

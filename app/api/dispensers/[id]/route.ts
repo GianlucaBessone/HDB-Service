@@ -148,7 +148,6 @@ export async function PUT(req: Request, props: { params: Promise<{ id: string }>
 
     const existing = await prisma.dispenser.findUnique({ where: { id: id } });
     if (!existing) {
-      await revalidateTag('dispensers', 'default');
       return NextResponse.json({ error: 'Equipo no encontrado' }, { status: 404 });
     }
 
@@ -189,11 +188,10 @@ export async function PUT(req: Request, props: { params: Promise<{ id: string }>
       newValue: updated,
     });
 
-    await revalidateTag('dispensers', 'default');
+    revalidateTag('dispensers', 'default');
     return NextResponse.json(updated);
   } catch (error) {
     console.error('[API] PUT /api/dispensers/[id] error:', error);
-    await revalidateTag('dispensers', 'default');
     return NextResponse.json({ error: 'Error al actualizar dispenser' }, { status: 500 });
   }
 }
@@ -208,14 +206,12 @@ export async function DELETE(req: Request, props: { params: Promise<{ id: string
   if (user instanceof NextResponse) return user;
   
   if (user.role !== 'ADMIN') {
-    await revalidateTag('dispensers', 'default');
     return NextResponse.json({ error: 'Sólo administradores pueden eliminar equipos' }, { status: 403 });
   }
 
   try {
     const existing = await prisma.dispenser.findUnique({ where: { id: id } });
     if (!existing) {
-      await revalidateTag('dispensers', 'default');
     return NextResponse.json({ error: 'Dispenser no encontrado' }, { status: 404 });
     }
 
@@ -232,11 +228,10 @@ export async function DELETE(req: Request, props: { params: Promise<{ id: string
       oldValue: existing,
     });
 
-    await revalidateTag('dispensers', 'default');
+    revalidateTag('dispensers', 'default');
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('[API] DELETE /api/dispensers/[id] error:', error);
-    await revalidateTag('dispensers', 'default');
     return NextResponse.json({ error: 'Error al eliminar dispenser' }, { status: 500 });
   }
 }

@@ -177,8 +177,8 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
       newValue: { event: 'INITIALIZED_CONSUMABLES', itemCount: items.length },
     });
 
-    await revalidateTag('dispensers', 'default');
-    await revalidateTag('stock', 'default');
+    revalidateTag('dispensers', 'default');
+    revalidateTag('stock', 'default');
 
     return NextResponse.json({ success: true });
   } catch (error: any) {

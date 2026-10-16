@@ -22,12 +22,10 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
     const { action, justificacion, newCantidad } = body;
 
     if (!justificacion?.trim()) {
-      await revalidateTag('stock', 'default');
     return NextResponse.json({ error: 'La justificación es obligatoria' }, { status: 400 });
     }
 
     if (!action || !['DELETE', 'ADJUST_QTY'].includes(action)) {
-      await revalidateTag('stock', 'default');
     return NextResponse.json({ error: 'Acción inválida' }, { status: 400 });
     }
 
@@ -38,7 +36,6 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
     });
 
     if (!entry) {
-      await revalidateTag('stock', 'default');
     return NextResponse.json({ error: 'Registro de stock no encontrado' }, { status: 404 });
     }
 
@@ -73,7 +70,6 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
     } else if (action === 'ADJUST_QTY') {
       const qty = parseFloat(newCantidad);
       if (isNaN(qty) || qty < 0) {
-        await revalidateTag('stock', 'default');
     return NextResponse.json({ error: 'Cantidad inválida' }, { status: 400 });
       }
 
@@ -123,12 +119,11 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
     }
 
     console.log(`[API] Stock adjustment: ${auditAction} by ${user.email} on ${entry.materialCode}`);
-    await revalidateTag('stock', 'default');
+    revalidateTag('stock', 'default');
     return NextResponse.json({ success: true, action: auditAction, oldState, newState });
 
   } catch (error: any) {
     console.error('[API] POST /api/stock/adjust error:', error?.message || error);
-    await revalidateTag('stock', 'default');
     return NextResponse.json({ error: 'Error al ajustar inventario' }, { status: 500 });
   }
 }

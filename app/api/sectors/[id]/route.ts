@@ -33,11 +33,10 @@ export async function PUT(req: Request, props: { params: Promise<{ id: string }>
       oldValue: existing, newValue: updated,
     });
 
-    await revalidateTag('sectors', 'default');
+    revalidateTag('sectors', 'default');
     return NextResponse.json(updated);
   } catch (error) {
     console.error('[API] PUT /api/sectors/[id] error:', error);
-    await revalidateTag('sectors', 'default');
     return NextResponse.json({ error: 'Error al actualizar sector' }, { status: 500 });
   }
 }
@@ -60,11 +59,10 @@ export async function DELETE(req: Request, props: { params: Promise<{ id: string
       action: 'DELETE', entity: 'SECTOR', entityId: id,
     });
 
-    await revalidateTag('sectors', 'default');
+    revalidateTag('sectors', 'default');
     return NextResponse.json(updated);
   } catch (error) {
     console.error('[API] DELETE /api/sectors/[id] error:', error);
-    await revalidateTag('sectors', 'default');
     return NextResponse.json({ error: 'Error al eliminar sector' }, { status: 500 });
   }
 }

@@ -1,4 +1,3 @@
-import { revalidateTag } from 'next/cache';
 import { NextResponse } from 'next/server';
 import { renderToStream } from '@react-pdf/renderer';
 import React from 'react';

@@ -15,7 +15,6 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
     const { condicionGeneral, fallas, problemasEstructurales, observaciones, fotosUrls } = body;
 
     if (!condicionGeneral) {
-      await revalidateTag('maintenance', 'default');
     return NextResponse.json({ error: 'Condición general es requerida' }, { status: 400 });
     }
 
@@ -25,12 +24,10 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
     });
 
     if (!schedule) {
-      await revalidateTag('maintenance', 'default');
     return NextResponse.json({ error: 'Mantenimiento no encontrado' }, { status: 404 });
     }
 
     if (schedule.status === 'COMPLETED') {
-      await revalidateTag('maintenance', 'default');
     return NextResponse.json({ error: 'El mantenimiento ya fue completado' }, { status: 400 });
     }
 
@@ -63,11 +60,10 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
       newValue: { status: 'COMPLETED', condicionGeneral },
     });
 
-    await revalidateTag('maintenance', 'default');
+    revalidateTag('maintenance', 'default');
     return NextResponse.json(updated);
   } catch (error) {
     console.error('[API] POST /api/maintenance/[id]/complete error:', error);
-    await revalidateTag('maintenance', 'default');
     return NextResponse.json({ error: 'Error al completar mantenimiento' }, { status: 500 });
   }
 }

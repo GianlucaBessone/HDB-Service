@@ -25,7 +25,6 @@ export async function GET(req: Request) {
         },
         orderBy: { sector: { nombre: 'asc' } },
       });
-      await revalidateTag('sectors', 'default');
     return NextResponse.json(plantSectors.map(ps => ps.sector));
     }
 
@@ -38,11 +37,9 @@ export async function GET(req: Request) {
       orderBy: { nombre: 'asc' },
     });
 
-    await revalidateTag('sectors', 'default');
     return NextResponse.json(sectors);
   } catch (error) {
     console.error('[API] GET /api/sectors error:', error);
-    await revalidateTag('sectors', 'default');
     return NextResponse.json({ error: 'Error al obtener sectores' }, { status: 500 });
   }
 }
@@ -58,7 +55,6 @@ export async function POST(req: Request) {
       const { nombre, descripcion } = body;
 
       if (!nombre?.trim()) {
-        await revalidateTag('sectors', 'default');
     return NextResponse.json({ error: 'Nombre es requerido' }, { status: 400 });
       }
 
@@ -78,11 +74,10 @@ export async function POST(req: Request) {
         newValue: sector,
       });
 
-      await revalidateTag('sectors', 'default');
+      revalidateTag('sectors', 'default');
     return NextResponse.json(sector, { status: 201 });
     } catch (error) {
       console.error('[API] POST /api/sectors error:', error);
-      await revalidateTag('sectors', 'default');
     return NextResponse.json({ error: 'Error al crear sector' }, { status: 500 });
     }
   });

@@ -11,7 +11,6 @@ export async function POST(req: Request) {
   try {
     const { month } = await req.json(); // Format: YYYY-MM
     if (!month || !/^\d{4}-\d{2}$/.test(month)) {
-      await revalidateTag('maintenance', 'default');
     return NextResponse.json({ error: 'Formato de mes inválido (YYYY-MM)' }, { status: 400 });
     }
 
@@ -25,7 +24,7 @@ export async function POST(req: Request) {
     });
 
     if (activeDispensers.length === 0) {
-      await revalidateTag('maintenance', 'default');
+      revalidateTag('maintenance', 'default');
     return NextResponse.json({ message: 'No hay dispensers activos para generar mantenimiento' });
     }
 
@@ -57,7 +56,7 @@ export async function POST(req: Request) {
       }
     }
 
-    await revalidateTag('maintenance', 'default');
+    revalidateTag('maintenance', 'default');
     return NextResponse.json({ 
       success: true, 
       message: `Mantenimiento generado: ${results.created} creados, ${results.skipped} ya existían.`,
@@ -66,7 +65,6 @@ export async function POST(req: Request) {
 
   } catch (error) {
     console.error('[API] POST /api/maintenance/generate error:', error);
-    await revalidateTag('maintenance', 'default');
     return NextResponse.json({ error: 'Error al generar cronograma' }, { status: 500 });
   }
 }

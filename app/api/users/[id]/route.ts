@@ -22,7 +22,6 @@ export async function PATCH(
     // Prevent self-deactivation
     if (id === auth.id) {
       if (active === false) {
-        revalidateTag('users', 'default');
         return NextResponse.json({ error: 'No puedes desactivar tu propia cuenta' }, { status: 400 });
       }
     }
@@ -33,7 +32,6 @@ export async function PATCH(
     });
 
     if (!existingUser) {
-      revalidateTag('users', 'default');
       return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 });
     }
 
@@ -121,7 +119,6 @@ export async function PATCH(
     console.error('Error updating user:', error?.message || error);
     console.error('Error stack:', error?.stack);
     console.error('Error code:', error?.code);
-    revalidateTag('users', 'default');
     return NextResponse.json({ error: 'Error al actualizar usuario' }, { status: 500 });
   }
 }
@@ -138,7 +135,6 @@ export async function DELETE(
 
     // Prevent self-deletion
     if (id === auth.id) {
-      revalidateTag('users', 'default');
     return NextResponse.json({ error: 'No puedes eliminar tu propia cuenta' }, { status: 400 });
     }
 
@@ -170,7 +166,6 @@ export async function DELETE(
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error deleting user:', error);
-    revalidateTag('users', 'default');
     return NextResponse.json({ error: 'Error al eliminar usuario' }, { status: 500 });
   }
 }

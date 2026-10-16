@@ -1,19 +1,22 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { createClient } from '@/utils/supabase/client';
+import { createClient, isSupabaseConfigured } from '@/utils/supabase/client';
 import { useRouter } from 'next/navigation';
-import { Droplet, Lock, Mail, Loader2 } from 'lucide-react';
+import { Droplet, Lock, Mail, Loader2, AlertTriangle } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function LoginScreen() {
   const router = useRouter();
   const supabase = createClient();
+  const isConfigured = isSupabaseConfigured();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
+    if (!isConfigured) return;
+
     async function checkSession() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
@@ -31,10 +34,14 @@ export default function LoginScreen() {
       }
     }
     checkSession();
-  }, [supabase, router]);
+  }, [supabase, router, isConfigured]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isConfigured) {
+      toast.error('Configura las variables de Supabase en tu archivo .env.local para continuar.');
+      return;
+    }
     setIsLoading(true);
 
     try {
@@ -87,6 +94,22 @@ export default function LoginScreen() {
             Gestión Inteligente de Dispensers
           </p>
         </div>
+
+        {!isConfigured && (
+          <div className="p-4 mb-6 rounded-2xl bg-amber-500/10 border border-amber-500/25 text-amber-600 dark:text-amber-400 text-xs flex items-start gap-3 shadow-sm animate-fade-in">
+            <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5 text-amber-500" />
+            <div className="space-y-1">
+              <p className="font-semibold text-sm">Configuración de Supabase requerida</p>
+              <p className="text-muted-foreground text-xs leading-relaxed">
+                Para iniciar sesión, crea un archivo <code className="bg-amber-500/20 px-1 py-0.5 rounded font-mono font-medium">.env.local</code> con tus credenciales de Supabase:
+              </p>
+              <div className="bg-background/80 dark:bg-background/40 p-2 rounded-lg font-mono text-[11px] text-foreground border border-border mt-1">
+                NEXT_PUBLIC_SUPABASE_URL="https://[id].supabase.co"<br />
+                NEXT_PUBLIC_SUPABASE_ANON_KEY="[tu-clave-anon]"
+              </div>
+            </div>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <div className="space-y-1">

@@ -38,11 +38,9 @@ export async function GET(req: Request) {
       orderBy: { nombre: 'asc' },
     });
 
-    await revalidateTag('plants', 'default');
     return NextResponse.json(plants);
   } catch (error) {
     console.error('[API] GET /api/plants error:', error);
-    await revalidateTag('plants', 'default');
     return NextResponse.json({ error: 'Error al obtener plantas' }, { status: 500 });
   }
 }
@@ -58,7 +56,6 @@ export async function POST(req: Request) {
       const { clientId, nombre, direccion, lat, lng } = body;
 
       if (!clientId || !nombre?.trim()) {
-        await revalidateTag('plants', 'default');
     return NextResponse.json({ error: 'clientId y nombre son requeridos' }, { status: 400 });
       }
 
@@ -78,11 +75,10 @@ export async function POST(req: Request) {
         newValue: plant,
       });
 
-      await revalidateTag('plants', 'default');
+      revalidateTag('plants', 'default');
     return NextResponse.json(plant, { status: 201 });
     } catch (error) {
       console.error('[API] POST /api/plants error:', error);
-      await revalidateTag('plants', 'default');
     return NextResponse.json({ error: 'Error al crear planta' }, { status: 500 });
     }
   });

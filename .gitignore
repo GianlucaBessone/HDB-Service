@@ -18,9 +18,11 @@ build/
 *.pem
 
 # Debug
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+scratch/
 
 # Local env files
 .env

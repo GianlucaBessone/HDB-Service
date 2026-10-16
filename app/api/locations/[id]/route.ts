@@ -37,11 +37,10 @@ export async function PUT(req: Request, props: { params: Promise<{ id: string }>
       oldValue: existing, newValue: updated,
     });
 
-    await revalidateTag('locations', 'default');
+    revalidateTag('locations', 'default');
     return NextResponse.json(updated);
   } catch (error) {
     console.error('[API] PUT /api/locations/[id] error:', error);
-    await revalidateTag('locations', 'default');
     return NextResponse.json({ error: 'Error al actualizar ubicación' }, { status: 500 });
   }
 }
@@ -64,11 +63,10 @@ export async function DELETE(req: Request, props: { params: Promise<{ id: string
       action: 'DELETE', entity: 'LOCATION', entityId: id,
     });
 
-    await revalidateTag('locations', 'default');
+    revalidateTag('locations', 'default');
     return NextResponse.json(updated);
   } catch (error) {
     console.error('[API] DELETE /api/locations/[id] error:', error);
-    await revalidateTag('locations', 'default');
     return NextResponse.json({ error: 'Error al eliminar ubicación' }, { status: 500 });
   }
 }

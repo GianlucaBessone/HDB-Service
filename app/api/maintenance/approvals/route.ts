@@ -13,7 +13,6 @@ export async function POST(req: Request) {
     const { scheduleIds } = await req.json();
 
     if (!Array.isArray(scheduleIds) || scheduleIds.length === 0) {
-      await revalidateTag('maintenance', 'default');
     return NextResponse.json({ error: 'Se requieren IDs de mantenimientos completados' }, { status: 400 });
     }
 
@@ -23,7 +22,6 @@ export async function POST(req: Request) {
     });
 
     if (schedules.some(s => s.status !== 'COMPLETED')) {
-      await revalidateTag('maintenance', 'default');
     return NextResponse.json({ error: 'Todos los mantenimientos seleccionados deben estar completados' }, { status: 400 });
     }
 
@@ -37,11 +35,10 @@ export async function POST(req: Request) {
       }
     });
 
-    await revalidateTag('maintenance', 'default');
+    revalidateTag('maintenance', 'default');
     return NextResponse.json({ id: approval.id });
   } catch (error) {
     console.error('[API] POST /api/maintenance/approvals error:', error);
-    await revalidateTag('maintenance', 'default');
     return NextResponse.json({ error: 'Error al crear la aprobación' }, { status: 500 });
   }
 }
@@ -113,11 +110,9 @@ export async function GET(req: Request) {
       orderBy: { createdAt: 'desc' }
     });
 
-    await revalidateTag('maintenance', 'default');
     return NextResponse.json(approvals);
   } catch (error) {
     console.error('[API] GET /api/maintenance/approvals error:', error);
-    await revalidateTag('maintenance', 'default');
     return NextResponse.json({ error: 'Error al obtener aprobaciones' }, { status: 500 });
   }
 }

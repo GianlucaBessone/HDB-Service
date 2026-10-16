@@ -131,7 +131,6 @@ export async function POST(req: Request) {
       const { dispenserId, locationId, reason, description, priority, wantsPushNotifications, wantsEmailNotifications } = body;
 
       if (!reason?.trim()) {
-        await revalidateTag('tickets', 'default');
         return NextResponse.json({ error: 'El motivo es requerido' }, { status: 400 });
       }
 
@@ -275,11 +274,10 @@ export async function POST(req: Request) {
         newValue: { priority: ticketPriority, reason },
       });
 
-      await revalidateTag('tickets', 'default');
+      revalidateTag('tickets', 'default');
     return NextResponse.json(ticket, { status: 201 });
     } catch (error) {
       console.error('[API] POST /api/tickets error:', error);
-      await revalidateTag('tickets', 'default');
     return NextResponse.json({ error: 'Error al crear ticket' }, { status: 500 });
     }
   });

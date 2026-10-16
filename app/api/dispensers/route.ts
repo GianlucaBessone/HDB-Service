@@ -133,7 +133,6 @@ export async function POST(req: Request) {
       } = body;
 
       if (!id?.trim() || !marca?.trim() || !modelo?.trim()) {
-        await revalidateTag('dispensers', 'default');
         return NextResponse.json(
           { error: 'ID, marca y modelo son requeridos' },
           { status: 400 }
@@ -151,7 +150,6 @@ export async function POST(req: Request) {
       // Check ID uniqueness
       const existing = await prisma.dispenser.findUnique({ where: { id: id.trim() } });
       if (existing) {
-        await revalidateTag('dispensers', 'default');
         return NextResponse.json(
           { error: `Ya existe un equipo con ID "${id}"` },
           { status: 409 }
@@ -195,11 +193,10 @@ export async function POST(req: Request) {
         newValue: dispenser,
       });
 
-      await revalidateTag('dispensers', 'default');
+      revalidateTag('dispensers', 'default');
     return NextResponse.json(dispenser, { status: 201 });
     } catch (error) {
       console.error('[API] POST /api/dispensers error:', error);
-      await revalidateTag('dispensers', 'default');
     return NextResponse.json({ error: 'Error al crear dispenser' }, { status: 500 });
     }
   });
