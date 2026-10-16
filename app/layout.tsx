@@ -17,8 +17,8 @@ import AuthGuard from '@/components/AuthGuard';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'HDB-Service | Water Dispenser Management',
-  description: 'Gestión de mantenimiento y servicio de dispensers de agua',
+  title: 'HDB-Service | Gestión Integral de Servicios y Activos',
+  description: 'Gestión de mantenimiento técnico, climatización, refrigeración y equipamiento industrial',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,

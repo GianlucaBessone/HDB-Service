@@ -178,7 +178,7 @@ export const NAV_ITEMS: NavItem[] = [
   { 
     key: '/dispensers', 
     label: 'Equipos y Activos', 
-    icon: 'GlassWater', 
+    icon: 'Layers', 
     roles: ['ADMIN', 'SUPERVISOR', 'TECHNICIAN', 'CLIENT_RESPONSIBLE', 'CLIENT_REQUESTER'],
     description: 'Catálogo de equipos y maquinaria instalada, historial de reparaciones y fichas técnicas.',
     colorClass: 'text-emerald-500 border-t-emerald-500',

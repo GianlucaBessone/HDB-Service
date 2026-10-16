@@ -119,7 +119,7 @@ export default function MaintenanceReportsPage() {
 
     const dataToExport = reportData.map(row => {
       const baseRow: any = {
-        'Dispenser ID': row.id,
+        'ID Equipo / Activo': row.id,
         'Cliente': row.client,
         'Planta': row.plant,
         'Sector': row.sector,
@@ -223,7 +223,7 @@ export default function MaintenanceReportsPage() {
             <table className="w-full text-sm text-left border-collapse">
               <thead>
                 <tr className="bg-muted/50 text-muted-foreground uppercase text-[10px] font-bold tracking-widest border-b border-border">
-                  <th className="px-6 py-4 sticky left-0 bg-muted/50 z-10">Dispenser</th>
+                  <th className="px-6 py-4 sticky left-0 bg-muted/50 z-10">Equipo / Activo</th>
                   <th className="px-6 py-4">Ubicación</th>
                   {matrixMonths.map(m => (
                     <th key={m} className="px-4 py-4 text-center border-l border-border min-w-[120px]">{m}</th>

@@ -12,6 +12,7 @@ import toast from 'react-hot-toast';
 import { t, getStatusColor } from '@/lib/translations';
 import RepairModal from '@/components/RepairModal';
 import ConfirmModal from '@/components/ConfirmModal';
+import { getEquipmentTypeLabel, getEquipmentTypeIcon } from '@/lib/equipment';
 
 interface TicketDetailPanelProps {
   ticketId: string;
@@ -236,15 +237,23 @@ export default function TicketDetailPanel({ ticketId, onClose, onUpdate }: Ticke
             {/* Equipment Info */}
             <div className="flex gap-3 mt-2">
               <div className="p-2 bg-primary/10 rounded-lg h-min shrink-0">
-                <GlassWater className="w-5 h-5 text-primary" />
+                {(() => {
+                  const Icon = getEquipmentTypeIcon(ticket.dispenser?.equipmentType);
+                  return <Icon className="w-5 h-5 text-primary" />;
+                })()}
               </div>
               <div>
                 <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Equipo Afectado</p>
                 {ticket.dispenser ? (
                   <>
-                    <Link href={`/dispensers/${ticket.dispenser.id}`} className="font-semibold text-primary hover:underline block mt-0.5">
-                      {ticket.dispenser.id}
-                    </Link>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <Link href={`/dispensers/${ticket.dispenser.id}`} className="font-semibold text-primary hover:underline block">
+                        {ticket.dispenser.id}
+                      </Link>
+                      <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded font-bold">
+                        {getEquipmentTypeLabel(ticket.dispenser.equipmentType)}
+                      </span>
+                    </div>
                     <p className="text-sm mt-0.5">{ticket.dispenser.marca} {ticket.dispenser.modelo}</p>
                   </>
                 ) : (

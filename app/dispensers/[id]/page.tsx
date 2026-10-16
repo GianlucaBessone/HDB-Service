@@ -81,8 +81,10 @@ export default function DispenserDetailPage() {
     );
   }
 
+  const EquipmentIcon = getEquipmentIcon(dispenser.equipmentType);
+
   const tabs: { key: Tab; label: string; icon: React.ElementType }[] = [
-    { key: 'info', label: 'Información', icon: GlassWater },
+    { key: 'info', label: 'Información', icon: EquipmentIcon },
     { key: 'location', label: 'Ubicaciones', icon: MapPin },
     { key: 'repairs', label: 'Reparaciones', icon: Wrench },
     { key: 'consumables', label: 'Consumibles', icon: Package },
@@ -94,7 +96,7 @@ export default function DispenserDetailPage() {
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <Link href="/dispensers" className="hover:text-foreground transition-colors flex items-center gap-1">
           <ArrowLeft className="w-4 h-4" />
-          Dispensers
+          Equipos y Activos
         </Link>
         <ChevronRight className="w-4 h-4" />
         <span className="text-foreground font-medium">{dispenser.id}</span>

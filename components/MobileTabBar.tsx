@@ -11,7 +11,7 @@ import {
   Ticket, 
   ScanLine, 
   Wrench, 
-  GlassWater, 
+  Layers, 
   Package, 
   Menu 
 } from 'lucide-react';
@@ -111,7 +111,7 @@ export default function MobileTabBar({ userRole }: { userRole: UserRole }) {
     fourthSlot = {
       key: '/dispensers',
       label: 'Equipos',
-      icon: GlassWater
+      icon: Layers
     };
   }
 

@@ -5,11 +5,11 @@ import Link from 'next/link';
 import { NAV_ITEMS, isNavVisible } from '@/lib/rbac';
 import { UserRole } from '@prisma/client';
 import { useUIStore } from '@/lib/store/useUIStore';
-import { Home, BarChart3, Ticket, GlassWater, Wrench, Package, Building2, MapPin, ScanLine, Users, FileText, Droplet, Settings, FileSignature, X } from 'lucide-react';
+import { Home, BarChart3, Ticket, GlassWater, Layers, Wrench, Package, Building2, MapPin, ScanLine, Users, FileText, Settings, FileSignature, X } from 'lucide-react';
 import clsx from 'clsx';
 
 const iconMap: Record<string, React.ElementType> = {
-  Home, BarChart3, Ticket, GlassWater, Wrench, Package, Building2, MapPin, ScanLine, Users, FileText, Settings, FileSignature
+  Home, BarChart3, Ticket, GlassWater, Layers, Wrench, Package, Building2, MapPin, ScanLine, Users, FileText, Settings, FileSignature
 };
 
 export default function Sidebar({ userRole }: { userRole: UserRole }) {
@@ -35,7 +35,7 @@ export default function Sidebar({ userRole }: { userRole: UserRole }) {
         <div className="h-16 flex items-center justify-between px-6 border-b border-border">
           <div className="flex items-center gap-3">
             <div className="bg-primary/10 p-2 rounded-lg">
-              <Droplet className="w-6 h-6 text-primary" />
+              <Layers className="w-6 h-6 text-primary" />
             </div>
             <span className="font-bold text-lg tracking-tight">HDB Service</span>
           </div>

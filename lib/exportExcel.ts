@@ -1,12 +1,15 @@
 import * as XLSX from 'xlsx';
 import { t } from './translations';
+import { getEquipmentTypeLabel, getCriticalityLabel } from './equipment';
 
-export function exportDispenserToExcel(dispenser: any) {
+export function exportEquipmentToExcel(dispenser: any) {
   const wb = XLSX.utils.book_new();
 
   // 1. Info General
   const infoData = [
-    ['ID Dispenser', dispenser.id],
+    ['ID Equipo / Activo', dispenser.id],
+    ['Tipo de Equipo', getEquipmentTypeLabel(dispenser.equipmentType)],
+    ['Criticidad', getCriticalityLabel(dispenser.criticality)],
     ['Marca', dispenser.marca],
     ['Modelo', dispenser.modelo],
     ['N° Serie', dispenser.numeroSerie || ''],
@@ -58,5 +61,8 @@ export function exportDispenserToExcel(dispenser: any) {
     XLSX.utils.book_append_sheet(wb, consWs, 'Consumibles');
   }
 
-  XLSX.writeFile(wb, `Dispenser_${dispenser.id}.xlsx`);
+  XLSX.writeFile(wb, `Equipo_${dispenser.id}.xlsx`);
 }
+
+// Backward-compatible alias
+export const exportDispenserToExcel = exportEquipmentToExcel;

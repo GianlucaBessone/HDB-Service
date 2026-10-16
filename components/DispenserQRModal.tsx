@@ -41,7 +41,7 @@ export default function DispenserQRModal({ dispenserId, onClose }: DispenserQRMo
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="bg-card rounded-2xl shadow-2xl border border-border w-full max-w-sm overflow-hidden flex flex-col">
         <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-muted/30">
-          <h2 className="text-lg font-bold">Código QR del Dispenser</h2>
+          <h2 className="text-lg font-bold">Código QR del Equipo</h2>
           <button onClick={onClose} className="p-2 hover:bg-accent rounded-full transition-colors text-muted-foreground">
             <X className="w-5 h-5" />
           </button>

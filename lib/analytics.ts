@@ -1,12 +1,12 @@
 import { ConditionRating, DispenserStatus } from '@prisma/client';
 
 /**
- * Calculates the health score of a dispenser (0-100).
+ * Calculates the health / reliability score of an equipment or asset (0-100).
  * BUENO: > 80
  * MEDIO: 50-80
  * MALO: < 50
  */
-export function calculateDispenserHealth({
+export function calculateEquipmentHealth({
   mtbfMonths, // Average months between failures
   mttrHours,  // Average hours to repair
   recurrenceCount, // Failures in last 6 months
@@ -36,6 +36,9 @@ export function calculateDispenserHealth({
 
   return Math.round(mtbfScore + mttrScore + conditionScore + recurrenceScore + lifespanScore);
 }
+
+// Backward-compatible alias
+export const calculateDispenserHealth = calculateEquipmentHealth;
 
 /**
  * Maps a ConditionRating enum to a numeric value (0-100)

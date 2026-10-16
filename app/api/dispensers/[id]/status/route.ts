@@ -82,6 +82,7 @@ export async function PUT(req: Request, props: { params: Promise<{ id: string }>
               to: resp.email,
               templateType: 'DISPENSER_BLOCKED',
               variables: {
+                id_equipo: dispenser.id,
                 id_dispenser: dispenser.id,
                 marca: dispenser.marca,
                 modelo: dispenser.modelo,
@@ -115,6 +116,7 @@ export async function PUT(req: Request, props: { params: Promise<{ id: string }>
               to: req.email,
               templateType: 'DISPENSER_BLOCKED_REQUESTER',
               variables: {
+                id_equipo: dispenser.id,
                 id_dispenser: dispenser.id,
                 marca: dispenser.marca,
                 modelo: dispenser.modelo,

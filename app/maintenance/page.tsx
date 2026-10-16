@@ -14,11 +14,6 @@ import ChecklistModal from '@/components/ChecklistModal';
 import { getEquipmentTypeLabel, getEquipmentTypeIcon } from '@/lib/equipment';
 import { EquipmentType } from '@prisma/client';
 
-const COMMON_FAILURES = [
-  'Pérdida de agua', 'Filtro saturado', 'Canilla rota/goteando', 
-  'No enfría', 'No calienta', 'Ruido excesivo del motor', 'Cable dañado'
-];
-
 export default function MaintenancePage() {
   const [isGenerating, setIsGenerating] = useState(false);
   

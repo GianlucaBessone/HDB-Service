@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { createClient, isSupabaseConfigured } from '@/utils/supabase/client';
 import { useRouter } from 'next/navigation';
-import { Droplet, Lock, Mail, Loader2, AlertTriangle } from 'lucide-react';
+import { Layers, Lock, Mail, Loader2, AlertTriangle } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function LoginScreen() {
@@ -87,11 +87,11 @@ export default function LoginScreen() {
       <div className="w-full max-w-md p-8 glass-card z-10 relative border-t border-l border-white/20 dark:border-white/5">
         <div className="flex flex-col items-center mb-8">
           <div className="w-16 h-16 bg-gradient-to-br from-primary to-cyan-400 rounded-2xl flex items-center justify-center shadow-lg mb-6 rotate-3 hover:rotate-0 transition-transform">
-            <Droplet className="w-8 h-8 text-white fill-white/20" />
+            <Layers className="w-8 h-8 text-white fill-white/20" />
           </div>
           <h1 className="text-3xl font-bold tracking-tight text-foreground">HDB Service</h1>
           <p className="text-muted-foreground mt-2 text-center text-sm">
-            Gestión Inteligente de Dispensers
+            Gestión Integral de Servicios y Activos
           </p>
         </div>
 

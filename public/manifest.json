@@ -1,7 +1,7 @@
 {
   "name": "HDB Service",
   "short_name": "HDB Service",
-  "description": "Gestión de mantenimiento y servicio de dispensers de agua",
+  "description": "Gestión de mantenimiento técnico, climatización, refrigeración y equipamiento industrial",
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait",

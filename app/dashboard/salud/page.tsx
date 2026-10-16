@@ -60,12 +60,12 @@ function SaludContent() {
 
   const handleDeleteDispenser = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!confirm('¿Está seguro de eliminar permanentemente este dispenser?')) return;
+    if (!confirm('¿Está seguro de eliminar permanentemente este equipo?')) return;
 
     try {
       const res = await fetch(`/api/dispensers/${id}`, { method: 'DELETE' });
       if (res.ok) {
-        toast.success('Dispenser eliminado exitosamente');
+        toast.success('Equipo eliminado exitosamente');
         fetchAnalytics();
       } else {
         const err = await res.json();
@@ -276,7 +276,7 @@ function SaludContent() {
 
           <div className="glass-card overflow-hidden">
             <div className="p-4 border-b border-border bg-muted/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <h3 className="font-bold">Ranking de Dispensers (Peor a Mejor)</h3>
+              <h3 className="font-bold">Ranking de Salud de Equipos (Peor a Mejor)</h3>
               <div className="relative w-full sm:w-auto min-w-[250px]">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <input
