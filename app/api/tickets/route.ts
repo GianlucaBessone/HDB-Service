@@ -169,7 +169,7 @@ export async function POST(req: Request) {
             plantId: targetPlantId,
             user: { role: 'TECHNICIAN', active: true }
           },
-          select: { user: { select: { id: true, email: true, nombre: true } } }
+          select: { user: { select: { id: true, email: true, nombre: true, equipmentTypes: true } } }
         });
         plantTechs = accesses
           .map((a: any) => a.user)

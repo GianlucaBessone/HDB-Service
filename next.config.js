@@ -51,6 +51,13 @@ const nextConfig = {
   reactStrictMode: true,
   serverExternalPackages: ['@react-pdf/renderer'],
   turbopack: {},
+  async rewrites() {
+    return [
+      { source: '/equipos', destination: '/dispensers' },
+      { source: '/equipos/:path*', destination: '/dispensers/:path*' },
+      { source: '/api/equipment/:path*', destination: '/api/dispensers/:path*' },
+    ];
+  },
 };
 
 module.exports = withPWA(nextConfig);

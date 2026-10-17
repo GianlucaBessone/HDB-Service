@@ -81,7 +81,7 @@ model UserPlantAccess {
 }
 
 // ═══════════════════════════════════════════════════════
-// BUSINESS HIERARCHY: Client → Plant → Sector → Location → Dispenser
+// BUSINESS HIERARCHY: Client → Plant → Sector → Location → Equipment (Dispenser)
 // ═══════════════════════════════════════════════════════
 
 model Client {
@@ -180,7 +180,10 @@ model Location {
 }
 
 // ═══════════════════════════════════════════════════════
-// DISPENSER — Core Entity
+// EQUIPMENT / ASSET — Core Entity
+// Nota Arquitectónica (Fase 3): Se conserva el nombre físico de tabla "Dispenser"
+// para garantizar 100% de integridad de datos sin migraciones destructivas.
+// En la capa de dominio (lib/equipment.ts y lib/prisma.ts) se expone como Equipment / Asset.
 // ═══════════════════════════════════════════════════════
 
 enum EquipmentType {
@@ -267,7 +270,7 @@ model Dispenser {
 }
 
 // ═══════════════════════════════════════════════════════
-// DISPENSER HISTORY TABLES
+// EQUIPMENT / ASSET HISTORY TABLES (Physical Tables: Dispenser*History)
 // ═══════════════════════════════════════════════════════
 
 model DispenserLocationHistory {

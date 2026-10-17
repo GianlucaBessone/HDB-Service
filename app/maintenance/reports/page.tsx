@@ -91,6 +91,7 @@ export default function MaintenanceReportsPage() {
         if (!dispenserMap.has(dId)) {
           dispenserMap.set(dId, {
             id: dId,
+            equipmentType: s.dispenser.equipmentType || 'DISPENSER',
             client: s.dispenser.location?.plant?.client?.nombre || '-',
             plant: s.dispenser.location?.plant?.nombre || '-',
             sector: s.dispenser.location?.sector?.nombre || '-',
@@ -120,11 +121,16 @@ export default function MaintenanceReportsPage() {
     const dataToExport = reportData.map(row => {
       const baseRow: any = {
         'ID Equipo / Activo': row.id,
+        'Tipo de Equipo': row.equipmentType === 'AIR_CONDITIONER' ? 'Aire Acondicionado' :
+                          row.equipmentType === 'COLD_ROOM' ? 'Cámara Frigorífica' :
+                          row.equipmentType === 'DISPENSER' ? 'Dispenser de Agua' :
+                          row.equipmentType === 'REFRIGERATOR' ? 'Heladera Comercial' :
+                          row.equipmentType === 'VENTILATION' ? 'Ventilación / Extracción' : 'Otro Equipo',
         'Cliente': row.client,
         'Planta': row.plant,
         'Sector': row.sector,
         'Ubicación': row.location,
-        'Estado Máquina': t(row.status),
+        'Estado Equipo': t(row.status),
       };
 
       matrixMonths.forEach(m => {

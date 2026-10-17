@@ -454,7 +454,7 @@ export default function DispensersPage() {
           onCreated={(newAsset) => {
             setShowCreateModal(false);
             fetchDispensers();
-            if (newAsset?.equipmentType === 'DISPENSER') {
+            if (newAsset) {
               setDispenserToInit(newAsset);
             }
           }}
@@ -841,23 +841,21 @@ function CreateAssetModal({ onClose, onCreated }: { onClose: () => void; onCreat
               </section>
             )}
 
-            {/* Consumables (only if dispenser) */}
-            {form.equipmentType === 'DISPENSER' && (
-              <section className="space-y-4 border-t pt-4">
-                <div className="flex items-center gap-3 p-4 bg-primary/5 rounded-xl border border-primary/20">
-                  <input
-                    type="checkbox"
-                    id="initConsumables"
-                    className="w-5 h-5 rounded text-primary focus:ring-primary"
-                    checked={initConsumablesNow}
-                    onChange={e => setInitConsumablesNow(e.target.checked)}
-                  />
-                  <label htmlFor="initConsumables" className="text-sm font-bold cursor-pointer select-none">
-                    ¿Desea inicializar filtros/consumibles ahora?
-                  </label>
-                </div>
-              </section>
-            )}
+            {/* Consumables / Initial Supplies */}
+            <section className="space-y-4 border-t pt-4">
+              <div className="flex items-center gap-3 p-4 bg-primary/5 rounded-xl border border-primary/20">
+                <input
+                  type="checkbox"
+                  id="initConsumables"
+                  className="w-5 h-5 rounded text-primary focus:ring-primary"
+                  checked={initConsumablesNow}
+                  onChange={e => setInitConsumablesNow(e.target.checked)}
+                />
+                <label htmlFor="initConsumables" className="text-sm font-bold cursor-pointer select-none">
+                  ¿Desea inicializar insumos / consumibles instalados ahora?
+                </label>
+              </div>
+            </section>
 
             {/* Other Info */}
             <section className="space-y-4 border-t pt-4">

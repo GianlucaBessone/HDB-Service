@@ -101,11 +101,11 @@ export async function GET(req: Request) {
 
     const duration = Date.now() - startTime;
     logToFile(`GET /api/dispensers: SUCCESS, found ${dispensers.length} dispensers in ${duration}ms`);
-    return NextResponse.json({ dispensers, total });
+    return NextResponse.json({ dispensers, equipments: dispensers, assets: dispensers, total });
   } catch (error: any) {
     logToFile(`GET /api/dispensers: ERROR: ${error.message}`);
     console.error('[API] GET /api/dispensers error:', error);
-    return NextResponse.json({ error: 'Error al obtener dispensers' }, { status: 500 });
+    return NextResponse.json({ error: 'Error al obtener equipos' }, { status: 500 });
   }
 }
 
@@ -197,7 +197,7 @@ export async function POST(req: Request) {
     return NextResponse.json(dispenser, { status: 201 });
     } catch (error) {
       console.error('[API] POST /api/dispensers error:', error);
-    return NextResponse.json({ error: 'Error al crear dispenser' }, { status: 500 });
+    return NextResponse.json({ error: 'Error al crear equipo' }, { status: 500 });
     }
   });
 }

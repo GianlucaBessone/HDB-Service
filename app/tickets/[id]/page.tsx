@@ -4,12 +4,13 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
-  ArrowLeft, Ticket, GlassWater, MapPin, MessageSquare, Clock,
+  ArrowLeft, Ticket, MapPin, MessageSquare, Clock,
   CheckCircle2, Archive, Send, Loader2, RefreshCw
 } from 'lucide-react';
 import clsx from 'clsx';
 import toast from 'react-hot-toast';
 import { t, getStatusColor } from '@/lib/translations';
+import { getEquipmentTypeIcon, getEquipmentTypeLabel } from '@/lib/equipment';
 import RepairModal from '@/components/RepairModal';
 import ConfirmModal from '@/components/ConfirmModal';
 
@@ -29,7 +30,7 @@ export default function TicketDetailPage() {
   const [showConfirmRepairModal, setShowConfirmRepairModal] = useState(false);
 
   const handleRegisterRepair = async () => {
-    if (!ticket.dispenser) return toast.error('No hay dispenser asociado');
+    if (!ticket.dispenser) return toast.error('No hay equipo asociado');
 
     if (ticket.dispenser.status !== 'UNDER_REPAIR') {
       setShowConfirmRepairModal(true);
@@ -43,11 +44,11 @@ export default function TicketDetailPage() {
     try {
       const res = await fetch(`/api/dispensers/${ticket.dispenser.id}/set-repair`, { method: 'POST' });
       if (!res.ok) throw new Error();
-      toast.success('Dispenser movido a Reparación');
+      toast.success('Equipo movido a Reparación');
       await fetchTicket();
       setShowRepairModal(true);
     } catch {
-      toast.error('Error al actualizar dispenser');
+      toast.error('Error al actualizar equipo');
     } finally {
       setIsSettingRepair(false);
       setShowConfirmRepairModal(false);
@@ -158,15 +159,25 @@ export default function TicketDetailPage() {
           {/* Equipment Info */}
           <div className="flex gap-3">
             <div className="p-2 bg-primary/10 rounded-lg h-min shrink-0">
-              <GlassWater className="w-5 h-5 text-primary" />
+              {(() => {
+                const EqIcon = getEquipmentTypeIcon(ticket.dispenser?.equipmentType);
+                return <EqIcon className="w-5 h-5 text-primary" />;
+              })()}
             </div>
             <div>
               <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Equipo Afectado</p>
               {ticket.dispenser ? (
                 <>
-                  <Link href={`/dispensers/${ticket.dispenser.id}`} className="font-semibold text-primary hover:underline block mt-0.5">
-                    {ticket.dispenser.id}
-                  </Link>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <Link href={`/dispensers/${ticket.dispenser.id}`} className="font-semibold text-primary hover:underline">
+                      {ticket.dispenser.id}
+                    </Link>
+                    {ticket.dispenser.equipmentType && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-semibold">
+                        {getEquipmentTypeLabel(ticket.dispenser.equipmentType)}
+                      </span>
+                    )}
+                  </div>
                   <p className="text-sm mt-0.5">{ticket.dispenser.marca} {ticket.dispenser.modelo}</p>
                 </>
               ) : (
@@ -320,7 +331,7 @@ export default function TicketDetailPage() {
       {showConfirmRepairModal && (
         <ConfirmModal
           title="Pasar a Reparación"
-          description='El dispenser no está en estado "En Reparación". ¿Desea pasarlo a Reparación ahora? (Esto lo sacará de su ubicación actual)'
+          description='El equipo no está en estado "En Reparación". ¿Desea pasarlo a Reparación ahora? (Esto lo sacará de su ubicación actual)'
           confirmLabel="Sí, pasar a reparación"
           cancelLabel="Cancelar"
           onConfirm={confirmAndSetRepair}

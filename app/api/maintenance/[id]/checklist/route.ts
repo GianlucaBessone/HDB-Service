@@ -47,7 +47,7 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
       // 1. Process Consumables/Spare Parts
       if (consumablesUsed && Array.isArray(consumablesUsed) && consumablesUsed.length > 0) {
         if (!plantId) {
-          throw new Error('No se puede usar stock porque el dispenser no está asignado a una planta válida.');
+          throw new Error('No se puede usar stock porque el equipo no está asignado a una planta válida.');
         }
 
         for (const item of consumablesUsed) {

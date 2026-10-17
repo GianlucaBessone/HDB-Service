@@ -81,7 +81,7 @@ export async function GET(req: Request, props: { params: Promise<{ id: string }>
     });
 
     if (!dispenser) {
-      return NextResponse.json({ error: 'Dispenser no encontrado' }, { status: 404 });
+      return NextResponse.json({ error: 'Equipo no encontrado' }, { status: 404 });
     }
 
     // Calculate lifecycle expiration
@@ -115,7 +115,7 @@ export async function GET(req: Request, props: { params: Promise<{ id: string }>
     });
   } catch (error) {
     console.error('[API] GET /api/dispensers/[id] error:', error);
-    return NextResponse.json({ error: 'Error al obtener dispenser' }, { status: 500 });
+    return NextResponse.json({ error: 'Error al obtener equipo' }, { status: 500 });
   }
 }
 
@@ -192,7 +192,7 @@ export async function PUT(req: Request, props: { params: Promise<{ id: string }>
     return NextResponse.json(updated);
   } catch (error) {
     console.error('[API] PUT /api/dispensers/[id] error:', error);
-    return NextResponse.json({ error: 'Error al actualizar dispenser' }, { status: 500 });
+    return NextResponse.json({ error: 'Error al actualizar equipo' }, { status: 500 });
   }
 }
 
@@ -212,7 +212,7 @@ export async function DELETE(req: Request, props: { params: Promise<{ id: string
   try {
     const existing = await prisma.dispenser.findUnique({ where: { id: id } });
     if (!existing) {
-    return NextResponse.json({ error: 'Dispenser no encontrado' }, { status: 404 });
+    return NextResponse.json({ error: 'Equipo no encontrado' }, { status: 404 });
     }
 
     await prisma.dispenser.delete({
@@ -232,6 +232,6 @@ export async function DELETE(req: Request, props: { params: Promise<{ id: string
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('[API] DELETE /api/dispensers/[id] error:', error);
-    return NextResponse.json({ error: 'Error al eliminar dispenser' }, { status: 500 });
+    return NextResponse.json({ error: 'Error al eliminar equipo' }, { status: 500 });
   }
 }

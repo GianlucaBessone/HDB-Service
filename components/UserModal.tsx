@@ -157,7 +157,9 @@ export default function UserModal({ user, onClose, onSuccess }: UserModalProps) 
     role: user?.role || 'TECHNICIAN',
     clientId: user?.clientId || '',
     plantIds: user?.plantAccess?.map((pa: any) => pa.plantId) || [],
-    equipmentTypes: user?.equipmentTypes || ['DISPENSER'],
+    equipmentTypes: user?.equipmentTypes?.length
+      ? user.equipmentTypes
+      : ['DISPENSER', 'AIR_CONDITIONER', 'COLD_ROOM', 'REFRIGERATOR', 'VENTILATION', 'OTHER'],
     password: '',
     active: user?.active !== undefined ? user.active : true,
   });

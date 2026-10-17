@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { UserRole } from '@prisma/client';
+import { UserRole, EquipmentType } from '@prisma/client';
 import { hasPermission, Permission } from './rbac';
 import { createClient } from '@/utils/supabase/server';
 import { prisma } from './prisma';
@@ -16,6 +16,7 @@ export type SessionUser = {
   role: UserRole;
   clientId: string | null;
   plantIds: string[];
+  equipmentTypes: EquipmentType[];
   mustChangePassword: boolean;
 };
 
@@ -81,6 +82,7 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
       role: user.role,
       clientId: user.clientId,
       plantIds: user.plantAccess.map(pa => pa.plantId),
+      equipmentTypes: user.equipmentTypes || ['DISPENSER'],
       mustChangePassword: user.mustChangePassword,
     };
   } catch (err: any) {

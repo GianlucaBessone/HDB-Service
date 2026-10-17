@@ -1,4 +1,12 @@
 import { Wind, Snowflake, GlassWater, Refrigerator, Fan, Cpu, LucideIcon } from 'lucide-react';
+import type {
+  Dispenser as PrismaDispenser,
+  DispenserStatus as PrismaDispenserStatus,
+  DispenserLocationHistory as PrismaDispenserLocationHistory,
+  DispenserRepairHistory as PrismaDispenserRepairHistory,
+  DispenserConsumableHistory as PrismaDispenserConsumableHistory,
+  DispenserSparePartHistory as PrismaDispenserSparePartHistory,
+} from '@prisma/client';
 
 export type EquipmentType = 
   | 'DISPENSER' 
@@ -8,7 +16,29 @@ export type EquipmentType =
   | 'VENTILATION' 
   | 'OTHER';
 
+export const ALL_EQUIPMENT_TYPES: EquipmentType[] = [
+  'AIR_CONDITIONER',
+  'COLD_ROOM',
+  'DISPENSER',
+  'REFRIGERATOR',
+  'VENTILATION',
+  'OTHER',
+];
+
 export type AssetCriticality = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+
+/**
+ * Standardized Domain Aliases (Fase 3 Non-Destructive DB Abstraction)
+ * Allows application code to reference Equipment/Asset types while preserving
+ * the physical PostgreSQL "Dispenser" tables intact.
+ */
+export type Equipment = PrismaDispenser;
+export type Asset = PrismaDispenser;
+export type EquipmentStatus = PrismaDispenserStatus;
+export type EquipmentLocationHistory = PrismaDispenserLocationHistory;
+export type EquipmentRepairHistory = PrismaDispenserRepairHistory;
+export type EquipmentConsumableHistory = PrismaDispenserConsumableHistory;
+export type EquipmentSparePartHistory = PrismaDispenserSparePartHistory;
 
 export interface EquipmentItem {
   id: string;

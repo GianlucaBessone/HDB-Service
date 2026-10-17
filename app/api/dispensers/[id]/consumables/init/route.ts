@@ -27,7 +27,7 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
     });
 
     if (!dispenser) {
-      return NextResponse.json({ error: 'Dispenser no encontrado' }, { status: 404 });
+      return NextResponse.json({ error: 'Equipo no encontrado' }, { status: 404 });
     }
 
     const plantId = dispenser.plantId;

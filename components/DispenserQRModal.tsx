@@ -56,7 +56,7 @@ export default function DispenserQRModal({ dispenserId, onClose }: DispenserQRMo
           ) : (
             <div className="flex flex-col items-center space-y-6">
               <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
-                <img src={qrDataUrl} alt={`QR Code para Dispenser ${dispenserId}`} className="w-48 h-48" />
+                <img src={qrDataUrl} alt={`Código QR para Equipo ${dispenserId}`} className="w-48 h-48" />
               </div>
               <p className="text-sm font-mono text-muted-foreground font-medium">{dispenserId}</p>
 
@@ -79,3 +79,6 @@ export default function DispenserQRModal({ dispenserId, onClose }: DispenserQRMo
     </div>
   );
 }
+
+export { DispenserQRModal as EquipmentQRModal };
+

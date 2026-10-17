@@ -37,7 +37,7 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
     ]);
 
     if (!dispenser) {
-    return NextResponse.json({ error: 'Dispenser no encontrado' }, { status: 404 });
+    return NextResponse.json({ error: 'Equipo no encontrado' }, { status: 404 });
     }
     if (!location) {
     return NextResponse.json({ error: 'Ubicación no encontrada' }, { status: 404 });
@@ -46,7 +46,7 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
     // Check: only 1 active dispenser per location
     if (location.dispensers.length > 0 && location.dispensers[0].id !== params.id) {
     return NextResponse.json(
-        { error: `La ubicación ya tiene un dispenser activo: ${location.dispensers[0].id}` },
+        { error: `La ubicación ya tiene un equipo activo: ${location.dispensers[0].id}` },
         { status: 409 }
       );
     }
@@ -55,7 +55,7 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
     if (dispenser.locationId && dispenser.locationId !== locationId) {
       if (!force) {
     return NextResponse.json(
-          { error: 'El dispenser ya está asignado a otra ubicación. Use force=true para reasignar.' },
+          { error: 'El equipo ya está asignado a otra ubicación. Use force=true para reasignar.' },
           { status: 409 }
         );
       }
@@ -123,6 +123,6 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
     return NextResponse.json(updated);
   } catch (error) {
     console.error('[API] POST /api/dispensers/[id]/assign error:', error);
-    return NextResponse.json({ error: 'Error al asignar dispenser' }, { status: 500 });
+    return NextResponse.json({ error: 'Error al asignar equipo' }, { status: 500 });
   }
 }

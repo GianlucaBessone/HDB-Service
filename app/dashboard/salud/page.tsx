@@ -317,6 +317,15 @@ function SaludContent() {
                         <td className="text-left">
                           <div className="flex items-center gap-2">
                             <div className="font-bold">{h.id}</div>
+                            {h.equipmentType && (
+                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-semibold">
+                                {h.equipmentType === 'AIR_CONDITIONER' ? 'Aire Acond.' :
+                                 h.equipmentType === 'COLD_ROOM' ? 'Cámara Frig.' :
+                                 h.equipmentType === 'DISPENSER' ? 'Dispenser' :
+                                 h.equipmentType === 'REFRIGERATOR' ? 'Heladera' :
+                                 h.equipmentType === 'VENTILATION' ? 'Ventilación' : 'Equipo'}
+                              </span>
+                            )}
                             {h.details.ownerPlantId && h.details.currentPlantId && h.details.ownerPlantId !== h.details.currentPlantId && (
                               <span className={clsx(
                                 "text-[8px] px-1.5 py-0.5 rounded-full font-bold border",
@@ -355,7 +364,7 @@ function SaludContent() {
                             {role === 'ADMIN' && (
                               <button
                                 onClick={(e) => handleDeleteDispenser(h.id, e)}
-                                title="Eliminar Dispenser"
+                                title="Eliminar Equipo"
                                 className="btn-ghost btn-sm text-red-500 hover:bg-red-500/10 p-2"
                               >
                                 <Trash2 className="w-4 h-4" />

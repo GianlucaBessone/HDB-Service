@@ -26,15 +26,17 @@ function getEncryptionKey(): Buffer {
  * Dispenser IDs are sorted alphabetically for deterministic output.
  */
 export function buildSignaturePayload(data: {
-  dispenserIds: string[];
+  dispenserIds?: string[];
+  equipmentIds?: string[];
   timestamp: string;
   deviceInfo: string;
   technicianId: string;
   customerName: string;
   customerIdentity: string;
 }): string {
+  const ids = data.equipmentIds || data.dispenserIds || [];
   return [
-    data.dispenserIds.sort().join(','),
+    ids.sort().join(','),
     data.timestamp,
     data.deviceInfo,
     data.technicianId,

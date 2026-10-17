@@ -151,7 +151,7 @@ export default function RepairModal({ ticket, onClose, onSuccess }: RepairModalP
             ) : !plantId ? (
               <div className="p-3 bg-amber-50 text-amber-700 border border-amber-200 rounded-lg text-xs flex items-center gap-2">
                 <AlertTriangle className="w-4 h-4" />
-                El dispenser no tiene una ubicación asignada. No se puede descontar stock automáticamente.
+                El equipo no tiene una ubicación asignada. No se puede descontar stock automáticamente.
               </div>
             ) : consumablesOptions.length > 0 ? (
               <>

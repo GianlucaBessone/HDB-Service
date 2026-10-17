@@ -85,7 +85,7 @@ const ReportPDF = ({ type, filters, data }: { type: string; filters: any; data: 
 
       {type === 'salud' && data?.ranking && (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Ranking de Dispensers</Text>
+          <Text style={styles.sectionTitle}>Ranking de Salud de Equipos</Text>
           {data.ranking.slice(0, 10).map((h: any, i: number) => (
             <View key={h.id} style={[styles.row, { borderBottom: '1px solid #e2e8f0', paddingVertical: 5, marginBottom: 5 }]}>
               <View style={{ width: '10%' }}><Text style={styles.text}>{i + 1}</Text></View>

@@ -28,7 +28,7 @@ export async function GET(req: Request) {
         sector: { select: { id: true, nombre: true } },
         dispensers: {
           where: { status: 'IN_SERVICE' },
-          select: { id: true, marca: true, modelo: true, status: true },
+          select: { id: true, marca: true, modelo: true, status: true, equipmentType: true },
         },
       },
     });

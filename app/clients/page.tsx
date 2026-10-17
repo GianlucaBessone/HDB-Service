@@ -10,6 +10,7 @@ import clsx from 'clsx';
 import toast from 'react-hot-toast';
 import * as XLSX from 'xlsx';
 import { useConfigStore } from '@/lib/store/useConfigStore';
+import { getEquipmentTypeIcon } from '@/lib/equipment';
 import ConfirmModal from '@/components/ConfirmModal';
 
 type Client = { id: string; nombre: string; email: string | null; telefono: string | null; active: boolean };
@@ -19,7 +20,7 @@ type Location = {
   id: string; nombre: string; piso: string | null;
   plant: { id: string; nombre: string; client: { nombre: string } };
   sector: { id: string; nombre: string } | null;
-  dispensers: { id: string; marca: string; modelo: string; status: string }[];
+  dispensers: { id: string; marca: string; modelo: string; status: string; equipmentType?: string }[];
 };
 
 type ActiveSection = 'clients' | 'plants' | 'sectors' | 'locations' | 'catalog' | 'emails' | 'smtp';
@@ -701,7 +702,10 @@ function PlantsSection() {
                             <div className="flex items-center gap-2">
                               {loc.dispensers?.length > 0 ? (
                                 <span className="badge-success text-xs gap-1">
-                                  <GlassWater className="w-3 h-3" />
+                                  {(() => {
+                                    const EqIcon = getEquipmentTypeIcon(loc.dispensers[0].equipmentType);
+                                    return <EqIcon className="w-3 h-3" />;
+                                  })()}
                                   {loc.dispensers[0].id}
                                 </span>
                               ) : (
@@ -927,7 +931,7 @@ function LocationsSection() {
       Nombre: loc.nombre,
       Planta: loc.plant?.nombre,
       Sector: loc.sector?.nombre || 'N/A',
-      Dispenser: loc.dispensers?.[0]?.id || 'Vacía'
+      'Equipo Instalado': loc.dispensers?.[0]?.id || 'Vacía'
     }));
 
     const ws = XLSX.utils.json_to_sheet(data);
@@ -986,7 +990,7 @@ function LocationsSection() {
                 <th className="text-center">Nombre</th>
                 <th className="text-center">Planta</th>
                 <th className="text-center">Sector</th>
-                <th className="text-center">Dispenser</th>
+                <th className="text-center">Equipo Instalado</th>
                 <th className="text-center">Acciones</th>
               </tr>
             </thead>
@@ -1001,7 +1005,10 @@ function LocationsSection() {
                     <div className="flex justify-center">
                       {loc.dispensers?.length > 0 ? (
                         <span className="badge-success text-xs gap-1">
-                          <GlassWater className="w-3 h-3" />
+                          {(() => {
+                            const EqIcon = getEquipmentTypeIcon(loc.dispensers[0].equipmentType);
+                            return <EqIcon className="w-3 h-3" />;
+                          })()}
                           {loc.dispensers[0].id}
                         </span>
                       ) : (
@@ -1345,7 +1352,7 @@ function CreateMaterialModal({ clients, editItem, onClose, onSaved }: { clients:
             </div>
             <div>
               <label className="label">Nombre *</label>
-              <input value={form.nombre} onChange={e => setForm({...form, nombre: e.target.value})} className="input mt-1" placeholder="Ej: Filtro de agua" required />
+              <input value={form.nombre} onChange={e => setForm({...form, nombre: e.target.value})} className="input mt-1" placeholder="Ej: Capacitor 45uF, Gas R410A, Filtro..." required />
             </div>
             <div>
               <label className="label">Tipo *</label>

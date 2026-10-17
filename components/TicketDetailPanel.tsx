@@ -385,7 +385,7 @@ export default function TicketDetailPanel({ ticketId, onClose, onUpdate }: Ticke
       {showConfirmRepairModal && (
         <ConfirmModal
           title="Pasar a Reparación"
-          description='El dispenser no está en estado "En Reparación". ¿Desea pasarlo a Reparación ahora? (Esto lo sacará de su ubicación actual)'
+          description='El equipo no está en estado "En Reparación". ¿Desea pasarlo a Reparación ahora? (Esto lo sacará de su ubicación actual)'
           confirmLabel="Sí, pasar a reparación"
           cancelLabel="Cancelar"
           onConfirm={confirmAndSetRepair}

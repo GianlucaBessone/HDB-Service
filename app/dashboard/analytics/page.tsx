@@ -98,7 +98,7 @@ export default function AnalyticsDashboard() {
             Análisis de Performance & KPIs
           </h1>
           <p className="text-muted-foreground mt-1">
-            Métricas operacionales y salud del parque de dispensers.
+            Métricas operacionales y salud del parque de equipos y activos.
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -297,7 +297,7 @@ export default function AnalyticsDashboard() {
               <table className="table">
                 <thead>
                   <tr>
-                    <th>Dispenser</th>
+                    <th>Equipo / Activo</th>
                     <th className="text-center">Score Salud</th>
                     <th className="text-center">Estado</th>
                     <th className="text-center">KPI Alerta</th>

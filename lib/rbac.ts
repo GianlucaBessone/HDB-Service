@@ -230,7 +230,7 @@ export const NAV_ITEMS: NavItem[] = [
     label: 'Escanear QR', 
     icon: 'ScanLine', 
     roles: ['ADMIN', 'SUPERVISOR', 'TECHNICIAN', 'CLIENT_RESPONSIBLE', 'CLIENT_REQUESTER'],
-    description: 'Lector rápido de códigos QR para escaneo de dispensers e inicio rápido de reportes.',
+    description: 'Lector rápido de códigos QR para escaneo de equipos e inicio rápido de reportes.',
     colorClass: 'text-rose-500 border-t-rose-500',
     bgClass: 'bg-rose-500/10 text-rose-500',
     borderLeftClass: 'border-l-rose-500'

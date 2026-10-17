@@ -28,7 +28,7 @@ export async function GET(req: Request, props: { params: Promise<{ id: string }>
       include: {
         dispenser: {
           select: { 
-            id: true, marca: true, modelo: true, status: true, locationId: true,
+            id: true, marca: true, modelo: true, status: true, locationId: true, equipmentType: true, criticality: true,
             location: {
               include: {
                 plant: { include: { client: { select: { id: true, nombre: true } } } },
@@ -82,7 +82,7 @@ export async function PUT(req: Request, props: { params: Promise<{ id: string }>
       include: { 
         reportedBy: { select: { id: true, onesignalPlayerId: true, nombre: true } },
         location: { include: { plant: true } },
-        dispenser: { select: { id: true, status: true } },
+        dispenser: { select: { id: true, status: true, equipmentType: true } },
       }
     });
     if (!ticket) {

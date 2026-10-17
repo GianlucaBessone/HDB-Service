@@ -11,6 +11,7 @@ import toast from 'react-hot-toast';
 import { t, getStatusColor } from '@/lib/translations';
 import CreateTicketModal from '@/components/CreateTicketModal';
 import TicketDetailPanel from '@/components/TicketDetailPanel';
+import { getEquipmentTypeLabel } from '@/lib/equipment';
 
 export default function TicketsPage() {
   const [search, setSearch] = useState('');
@@ -198,7 +199,14 @@ export default function TicketsPage() {
                   <div className="mt-auto pt-3 flex flex-col gap-1.5 text-xs text-muted-foreground border-t border-border/50">
                     {ticket.dispenser ? (
                       <div className="flex justify-between gap-2">
-                        <span className="font-medium text-foreground truncate">{ticket.dispenser.id}</span>
+                        <div className="flex items-center gap-1.5 truncate">
+                          <span className="font-medium text-foreground truncate">{ticket.dispenser.id}</span>
+                          {ticket.dispenser.equipmentType && (
+                            <span className="text-[9px] px-1 py-0 rounded bg-muted font-bold text-muted-foreground">
+                              {getEquipmentTypeLabel(ticket.dispenser.equipmentType)}
+                            </span>
+                          )}
+                        </div>
                         <span className="truncate flex-1 text-right">{ticket.location?.plant?.nombre || 'Planta no asig.'}</span>
                       </div>
                     ) : (

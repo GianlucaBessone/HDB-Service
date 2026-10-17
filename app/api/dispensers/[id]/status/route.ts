@@ -47,7 +47,7 @@ export async function PUT(req: Request, props: { params: Promise<{ id: string }>
       }
     });
     if (!dispenser) {
-      return NextResponse.json({ error: 'Dispenser no encontrado' }, { status: 404 });
+      return NextResponse.json({ error: 'Equipo no encontrado' }, { status: 404 });
     }
 
     // Special permission check: releasing BLOCKED requires dispensers:release_block

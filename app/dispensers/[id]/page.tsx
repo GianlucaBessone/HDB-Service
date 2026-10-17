@@ -622,7 +622,7 @@ function ConsumablesTab({ consumables, onInitConsumables }: { consumables: any[]
       <div className="flex flex-col items-center justify-center p-12 text-center border-2 border-dashed border-border rounded-xl">
         <Package className="w-12 h-12 text-muted-foreground/30 mb-4" />
         <h3 className="text-lg font-bold mb-2">Sin historial de consumibles</h3>
-        <p className="text-sm text-muted-foreground mb-6 max-w-sm">Este dispenser no tiene consumibles inicializados. Por favor, ingresá los consumibles actuales para comenzar a trackearlos.</p>
+        <p className="text-sm text-muted-foreground mb-6 max-w-sm">Este equipo no tiene consumibles o insumos inicializados. Por favor, ingresá los insumos actuales para comenzar a trackearlos.</p>
         <button onClick={onInitConsumables} className="btn-primary">
           Ingresar Consumibles Iniciales
         </button>

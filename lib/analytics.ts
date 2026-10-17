@@ -12,24 +12,30 @@ export function calculateEquipmentHealth({
   recurrenceCount, // Failures in last 6 months
   avgConditionRating, // 0-100 based on ConditionRating enum
   lifespanProgress, // 0-1 (consumed / total)
+  equipmentType,
+  criticality,
 }: {
   mtbfMonths: number;
   mttrHours: number;
   recurrenceCount: number;
   avgConditionRating: number;
   lifespanProgress: number;
+  equipmentType?: string;
+  criticality?: string;
 }) {
   // 1. MTBF Score (30%) - Target: 6 months or more
   const mtbfScore = Math.min(100, (mtbfMonths / 6) * 100) * 0.30;
 
-  // 2. MTTR Score (20%) - Target: 24 hours or less
-  const mttrScore = Math.max(0, 100 - (mttrHours / 48) * 100) * 0.20;
+  // 2. MTTR Score (20%) - Target depends on criticality/type (Critical/Cold Room = 24h, others = 48h)
+  const maxMttrBenchmark = criticality === 'CRITICAL' || equipmentType === 'COLD_ROOM' ? 24 : 48;
+  const mttrScore = Math.max(0, 100 - (mttrHours / maxMttrBenchmark) * 100) * 0.20;
 
   // 3. Visual/Maintenance State (20%)
   const conditionScore = avgConditionRating * 0.20;
 
-  // 4. Recurrences Penalty (15%) - Penalty after 2 failures
-  const recurrenceScore = Math.max(0, 100 - (recurrenceCount * 20)) * 0.15;
+  // 4. Recurrences Penalty (15%) - Penalty higher for high/critical assets
+  const penaltyPerRecurrence = criticality === 'CRITICAL' ? 30 : criticality === 'HIGH' ? 25 : 20;
+  const recurrenceScore = Math.max(0, 100 - (recurrenceCount * penaltyPerRecurrence)) * 0.15;
 
   // 5. Lifespan Score (15%)
   const lifespanScore = (1 - lifespanProgress) * 100 * 0.15;

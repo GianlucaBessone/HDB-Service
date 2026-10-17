@@ -18,7 +18,7 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
     });
 
     if (!dispenser) {
-    return NextResponse.json({ error: 'Dispenser no encontrado' }, { status: 404 });
+    return NextResponse.json({ error: 'Equipo no encontrado' }, { status: 404 });
     }
 
     const oldLocationId = dispenser.locationId;
@@ -59,6 +59,6 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
     return NextResponse.json({ success: true });
   } catch (error: any) {
     console.error('[API] POST /api/dispensers/set-repair error:', error);
-    return NextResponse.json({ error: 'Error al actualizar dispenser' }, { status: 500 });
+    return NextResponse.json({ error: 'Error al actualizar equipo' }, { status: 500 });
   }
 }

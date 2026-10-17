@@ -257,38 +257,95 @@ async function main() {
   console.log(`  ✓ ${locCreated} ubicaciones creadas`);
 
   // ──────────────────────────────────────────
-  // 7. DISPENSERS (4 PSA de prueba)
+  // 7. EQUIPOS Y ACTIVOS MULTITECNOLOGÍA (Dispensers, AA, Cámaras, Ventilación)
   // ──────────────────────────────────────────
-  const dispenserData = [
-    { id: 'DISP-A066', marca: 'PSA', modelo: '02P-B-F/C' },
-    { id: 'DISP-A069', marca: 'PSA', modelo: '02P-B-F/C' },
-    { id: 'DISP-A058', marca: 'PSA', modelo: '02P-B-F/C' },
-    { id: 'DISP-A059', marca: 'PSA', modelo: '02P-B-F/C' },
+  const equipmentSeedData: any[] = [
+    { 
+      id: 'DISP-A066', 
+      equipmentType: 'DISPENSER', 
+      criticality: 'MEDIUM', 
+      marca: 'PSA', 
+      modelo: '02P-B-F/C',
+      technicalSpecs: { supplyType: 'Red Directa de Agua', coldSystem: 'Motocompresor', filterCount: 2 } 
+    },
+    { 
+      id: 'DISP-A069', 
+      equipmentType: 'DISPENSER', 
+      criticality: 'MEDIUM', 
+      marca: 'PSA', 
+      modelo: '02P-B-F/C',
+      technicalSpecs: { supplyType: 'Red Directa de Agua', coldSystem: 'Motocompresor', filterCount: 2 } 
+    },
+    { 
+      id: 'DISP-A058', 
+      equipmentType: 'DISPENSER', 
+      criticality: 'LOW', 
+      marca: 'PSA', 
+      modelo: '02P-B-F/C',
+      technicalSpecs: { supplyType: 'Botellón (12L / 20L)', coldSystem: 'Motocompresor', filterCount: 1 } 
+    },
+    { 
+      id: 'DISP-A059', 
+      equipmentType: 'DISPENSER', 
+      criticality: 'LOW', 
+      marca: 'PSA', 
+      modelo: '02P-B-F/C',
+      technicalSpecs: { supplyType: 'Red Directa de Agua', coldSystem: 'Motocompresor', filterCount: 2 } 
+    },
+    { 
+      id: 'AA-SPLIT-01', 
+      equipmentType: 'AIR_CONDITIONER', 
+      criticality: 'HIGH', 
+      marca: 'BGH', 
+      modelo: 'Silent Air Inverter 4500',
+      technicalSpecs: { acType: 'Split Muro', coolingCapacity: '4500 Frig / 18000 BTU', refrigerantType: 'R410A', gasChargeKg: 1.25, voltage: '220V Monofásico', inverter: 'Sí' } 
+    },
+    { 
+      id: 'CF-CONG-01', 
+      equipmentType: 'COLD_ROOM', 
+      criticality: 'CRITICAL', 
+      marca: 'Bitzer / Bohn', 
+      modelo: 'Industrial -20C',
+      technicalSpecs: { roomType: 'Congelados (-18°C a -25°C)', temperatureSetpoint: '-20°C', volumeM3: 60, refrigerantType: 'R404A', compressorHp: '5 HP', voltage: '380V Trifásico', defrostType: 'Resistencias Eléctricas' } 
+    },
+    { 
+      id: 'VENT-EXT-01', 
+      equipmentType: 'VENTILATION', 
+      criticality: 'MEDIUM', 
+      marca: 'Soler & Palau', 
+      modelo: 'TD-3500 Silent',
+      technicalSpecs: { airFlowM3h: 3500, ductDiameterMm: 315, motorHp: '1.5 HP', voltage: '380V Trifásico' } 
+    },
   ];
 
-  // Assign first 3 dispensers to Chicle/Comedor (LOC-016, LOC-017, LOC-018)
+  // Assign first equipment to locations
   const locationAssignments: Record<string, string> = {
     'DISP-A066': 'LOC-016',
     'DISP-A069': 'LOC-017',
     'DISP-A058': 'LOC-018',
-    // DISP-A059 stays in BACKUP (no location)
+    'AA-SPLIT-01': 'LOC-001',
+    'CF-CONG-01': 'LOC-002',
+    'VENT-EXT-01': 'LOC-003',
   };
 
-  for (const d of dispenserData) {
+  for (const d of equipmentSeedData) {
     const locationId = locationAssignments[d.id] || null;
     await prisma.dispenser.upsert({
       where: { id: d.id },
       update: {},
       create: {
         id: d.id,
+        equipmentType: d.equipmentType,
+        criticality: d.criticality,
         marca: d.marca,
         modelo: d.modelo,
         numeroSerie: d.id,
         status: locationId ? 'IN_SERVICE' : 'BACKUP',
         locationId,
-        plantId: 'plant-chicle', // Assing all to Chicle by default
+        plantId: 'plant-chicle', // Assign to Chicle by default
         lifecycleMonths: 60,
         lifecycleStartDate: locationId ? new Date('2024-06-01') : null,
+        technicalSpecs: d.technicalSpecs,
       },
     });
 
@@ -309,7 +366,7 @@ async function main() {
       }
     }
   }
-  console.log(`  ✓ ${dispenserData.length} dispensers creados`);
+  console.log(`  ✓ ${equipmentSeedData.length} equipos/dispensers creados`);
 
   // ──────────────────────────────────────────
   // 8. SAMPLE STOCK ENTRIES

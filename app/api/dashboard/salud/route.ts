@@ -131,10 +131,14 @@ export async function GET(req: Request) {
         recurrenceCount: recentRecurrences,
         avgConditionRating: avgCondition,
         lifespanProgress: progress,
+        equipmentType: d.equipmentType,
+        criticality: d.criticality,
       });
 
       return {
         id: d.id,
+        equipmentType: d.equipmentType,
+        criticality: d.criticality,
         marca: d.marca,
         modelo: d.modelo,
         serial: d.numeroSerie || 'S/N',
