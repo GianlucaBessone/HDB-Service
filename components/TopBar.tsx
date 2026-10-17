@@ -222,28 +222,41 @@ export default function TopBar({ user }: { user: { nombre: string; email: string
   }
 
   return (
-    <header className="h-16 bg-card border-b border-border flex items-center justify-between px-4 md:px-6 sticky top-0 z-40">
+    <header className="h-16 bg-card border-b border-border flex items-center justify-between px-3 md:px-6 sticky top-0 z-40 max-w-full">
       
-      {/* Command Palette Trigger */}
-      <div className="flex-1 max-w-sm md:max-w-md">
+      {/* Left side: Command Palette Trigger */}
+      <div className="flex items-center flex-1 min-w-0 mr-2 md:mr-4">
+        {/* Mobile Search Icon Button */}
         <button
           onClick={() => setIsCommandPaletteOpen(true)}
-          className="w-full flex items-center justify-between px-3.5 py-1.5 text-xs md:text-sm text-muted-foreground bg-muted/50 hover:bg-muted/90 border border-border/80 rounded-xl transition-all shadow-xs group"
+          className="md:hidden p-2 text-muted-foreground hover:bg-accent hover:text-foreground rounded-full transition-colors flex items-center justify-center w-9 h-9 shrink-0"
           title="Buscar activos, tickets, clientes (Ctrl + K)"
+          aria-label="Buscar"
         >
-          <div className="flex items-center gap-2 truncate">
-            <Search className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
-            <span className="truncate">Buscar activos, tickets, clientes...</span>
-          </div>
-          <kbd className="hidden sm:inline-flex items-center gap-0.5 px-2 py-0.5 text-[10px] font-mono font-medium text-muted-foreground bg-card rounded border border-border shadow-xs shrink-0">
-            <span>Ctrl</span>
-            <span>K</span>
-          </kbd>
+          <Search className="w-5 h-5" />
         </button>
+
+        {/* Desktop Command Palette Input Pill */}
+        <div className="hidden md:flex flex-1 max-w-xs lg:max-w-md">
+          <button
+            onClick={() => setIsCommandPaletteOpen(true)}
+            className="w-full flex items-center justify-between px-3.5 py-1.5 text-xs md:text-sm text-muted-foreground bg-muted/50 hover:bg-muted/90 border border-border/80 rounded-xl transition-all shadow-xs group"
+            title="Buscar activos, tickets, clientes (Ctrl + K)"
+          >
+            <div className="flex items-center gap-2 truncate">
+              <Search className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
+              <span className="truncate">Buscar activos, tickets, clientes...</span>
+            </div>
+            <kbd className="hidden sm:inline-flex items-center gap-0.5 px-2 py-0.5 text-[10px] font-mono font-medium text-muted-foreground bg-card rounded border border-border shadow-xs shrink-0">
+              <span>Ctrl</span>
+              <span>K</span>
+            </kbd>
+          </button>
+        </div>
       </div>
 
       {/* Right side actions */}
-      <div className="flex items-center gap-3 md:gap-5">
+      <div className="flex items-center gap-1.5 sm:gap-3 md:gap-4 shrink-0">
         
         {/* Theme Toggle */}
         <button 
@@ -380,11 +393,11 @@ export default function TopBar({ user }: { user: { nombre: string; email: string
           )}
         </div>
 
-        <div className="w-px h-6 bg-border mx-1" />
+        <div className="w-px h-6 bg-border mx-0.5 sm:mx-1 shrink-0" />
 
         {/* User Dropdown Toggle (Visual) */}
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
+        <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
+          <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs sm:text-sm shrink-0">
             {user.nombre.charAt(0).toUpperCase()}
           </div>
           <div className="hidden md:flex flex-col items-start">
@@ -399,10 +412,10 @@ export default function TopBar({ user }: { user: { nombre: string; email: string
           </div>
           <button 
             onClick={handleSignOut}
-            className="p-2 text-muted-foreground hover:bg-red-500/10 hover:text-red-500 rounded-full transition-colors ml-1"
+            className="p-1.5 sm:p-2 text-muted-foreground hover:bg-red-500/10 hover:text-red-500 rounded-full transition-colors shrink-0"
             title="Cerrar sesión"
           >
-            <LogOut className="w-5 h-5" />
+            <LogOut className="w-4 h-4 sm:w-5 sm:h-5" />
           </button>
         </div>
 
