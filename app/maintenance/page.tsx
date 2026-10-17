@@ -1,10 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import Link from 'next/link';
 import {
   Wrench, Calendar, Settings2, Clock, 
-  CheckCircle2, AlertTriangle, Loader2, ChevronRight, MapPin, ShieldCheck, QrCode, X, Building2
+  CheckCircle2, AlertTriangle, Loader2, ChevronRight, MapPin, ShieldCheck, QrCode, X, Building2,
+  LayoutList, CalendarDays, FileSignature, FileText
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import clsx from 'clsx';
@@ -16,6 +18,7 @@ import { EquipmentType } from '@prisma/client';
 
 export default function MaintenancePage() {
   const [isGenerating, setIsGenerating] = useState(false);
+  const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
   
   const currentMonthStr = new Date().toISOString().slice(0, 7); // YYYY-MM
   const [month, setMonth] = useState(currentMonthStr);
@@ -120,6 +123,31 @@ export default function MaintenancePage() {
     );
   };
 
+  const daysInMonth = useMemo(() => {
+    const [yearStr, monthStr] = month.split('-');
+    const year = parseInt(yearStr || '2026', 10);
+    const m = parseInt(monthStr || '10', 10);
+    const totalDays = new Date(year, m, 0).getDate();
+    const rawFirst = new Date(year, m - 1, 1).getDay();
+    const firstDayIndex = (rawFirst + 6) % 7; // Monday = 0
+    return { year, month: m, totalDays, firstDayIndex };
+  }, [month]);
+
+  const schedulesByDay = useMemo(() => {
+    const map: Record<number, any[]> = {};
+    schedules.forEach((s: any, idx: number) => {
+      let day = 1;
+      if (s.scheduledDate) {
+        day = new Date(s.scheduledDate).getDate();
+      } else {
+        day = (idx % daysInMonth.totalDays) + 1;
+      }
+      if (!map[day]) map[day] = [];
+      map[day].push(s);
+    });
+    return map;
+  }, [schedules, daysInMonth]);
+
   const kpis = {
     total: schedules.length,
     pending: schedules.filter(s => s.status === 'PENDING').length,
@@ -130,26 +158,63 @@ export default function MaintenancePage() {
 
   return (
     <div className="space-y-6 animate-fade-in">
+      {/* Subnavigation Bar */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border pb-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="px-3 py-1.5 rounded-xl bg-primary/10 text-primary font-bold text-xs flex items-center gap-1.5 border border-primary/20">
+            <Wrench className="w-3.5 h-3.5" /> Planificación Operativa
+          </span>
+          <Link href="/maintenance/approvals" className="text-xs text-muted-foreground hover:text-foreground font-medium flex items-center gap-1.5 px-3 py-1.5 rounded-xl hover:bg-muted transition-colors">
+            <FileSignature className="w-3.5 h-3.5 text-blue-500" /> Aprobaciones & Firmas
+          </Link>
+          <Link href="/maintenance/reports" className="text-xs text-muted-foreground hover:text-foreground font-medium flex items-center gap-1.5 px-3 py-1.5 rounded-xl hover:bg-muted transition-colors">
+            <FileText className="w-3.5 h-3.5 text-emerald-500" /> Reportes & Cierres
+          </Link>
+        </div>
+
+        {/* View Toggle */}
+        <div className="flex items-center bg-muted/60 p-1 rounded-xl border border-border shrink-0 self-start sm:self-auto">
+          <button
+            onClick={() => setViewMode('list')}
+            className={clsx(
+              "px-3 py-1 text-xs font-semibold rounded-lg transition-all flex items-center gap-1.5",
+              viewMode === 'list' ? "bg-card text-foreground shadow-xs font-bold" : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <LayoutList className="w-3.5 h-3.5" /> Lista
+          </button>
+          <button
+            onClick={() => setViewMode('calendar')}
+            className={clsx(
+              "px-3 py-1 text-xs font-semibold rounded-lg transition-all flex items-center gap-1.5",
+              viewMode === 'calendar' ? "bg-card text-foreground shadow-xs font-bold" : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <CalendarDays className="w-3.5 h-3.5" /> Calendario
+          </button>
+        </div>
+      </div>
+
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3">
-            <div className="p-2 bg-primary/10 rounded-lg">
-              <Wrench className="w-7 h-7 text-primary" />
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight flex items-center gap-3">
+            <div className="p-2 bg-primary/10 rounded-xl">
+              <Wrench className="w-6 h-6 text-primary" />
             </div>
-            Rutas de Mantenimiento
+            Rutas de Mantenimiento Preventivo
           </h1>
-          <p className="text-muted-foreground mt-1">Planificación y checklists preventivos</p>
+          <p className="text-xs md:text-sm text-muted-foreground mt-1">Planificación y checklists preventivos multiactivo</p>
         </div>
         {(role === 'ADMIN' || role === 'SUPERVISOR' || role === 'TECHNICIAN') && (
-          <button onClick={handleGenerate} disabled={isGenerating} className="btn-primary btn-lg gap-2 shrink-0">
-            {isGenerating ? <Loader2 className="w-5 h-5 animate-spin" /> : <Settings2 className="w-5 h-5" />}
+          <button onClick={handleGenerate} disabled={isGenerating} className="btn-primary py-2 px-4 gap-2 shrink-0 rounded-xl text-sm">
+            {isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Settings2 className="w-4 h-4" />}
             Generar Tareas del Mes
           </button>
         )}
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3.5">
         <KpiCard label="Total del Mes" value={kpis.total} color="primary" />
         <KpiCard label="Completados" value={kpis.completed} color="emerald" />
         <KpiCard label="Firmados" value={kpis.signed} color="blue" />
@@ -208,8 +273,106 @@ export default function MaintenancePage() {
         </select>
       </div>
 
-      {/* Table / List */}
-      {isLoading ? (
+      {/* Calendar or List View */}
+      {viewMode === 'calendar' ? (
+        <div className="glass-card p-4 md:p-6 space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border pb-3">
+            <div>
+              <h3 className="font-bold text-base text-foreground capitalize">
+                Calendario Operativo — {new Date(daysInMonth.year, daysInMonth.month - 1).toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })}
+              </h3>
+              <p className="text-xs text-muted-foreground">Planificación mensual de tareas preventivas e intervenciones técnicas</p>
+            </div>
+            <div className="flex flex-wrap items-center gap-3 text-xs">
+              <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-emerald-500"></span> Completado</span>
+              <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-blue-500"></span> Firmado</span>
+              <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-amber-500"></span> Pendiente</span>
+              <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-red-500"></span> Vencido</span>
+            </div>
+          </div>
+
+          {/* Days of week header */}
+          <div className="grid grid-cols-7 gap-1.5 md:gap-2 text-center text-xs font-bold text-muted-foreground uppercase tracking-wider py-1 border-b border-border/50">
+            <div>Lun</div>
+            <div>Mar</div>
+            <div>Mié</div>
+            <div>Jue</div>
+            <div>Vie</div>
+            <div>Sáb</div>
+            <div>Dom</div>
+          </div>
+
+          {/* Calendar Day Cells */}
+          <div className="grid grid-cols-7 gap-1.5 md:gap-2">
+            {/* Empty offset padding */}
+            {Array.from({ length: daysInMonth.firstDayIndex }).map((_, i) => (
+              <div key={`empty-${i}`} className="min-h-[90px] rounded-xl bg-muted/15 border border-border/20 opacity-40 hidden sm:block" />
+            ))}
+
+            {/* Days in Month */}
+            {Array.from({ length: daysInMonth.totalDays }).map((_, i) => {
+              const dayNum = i + 1;
+              const daySchedules = schedulesByDay[dayNum] || [];
+              const isToday = new Date().getDate() === dayNum && (new Date().getMonth() + 1) === daysInMonth.month && new Date().getFullYear() === daysInMonth.year;
+
+              return (
+                <div 
+                  key={`day-${dayNum}`}
+                  className={clsx(
+                    "min-h-[90px] p-1.5 md:p-2 rounded-xl border flex flex-col justify-between transition-colors",
+                    isToday ? "border-primary bg-primary/5" : "border-border bg-card/60 hover:bg-muted/30"
+                  )}
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <span className={clsx(
+                      "text-[11px] md:text-xs font-extrabold w-5 h-5 md:w-6 md:h-6 rounded-full flex items-center justify-center",
+                      isToday ? "bg-primary text-white" : "text-muted-foreground"
+                    )}>
+                      {dayNum}
+                    </span>
+                    {daySchedules.length > 0 && (
+                      <span className="text-[10px] font-bold text-primary bg-primary/10 px-1.5 py-0.2 rounded-full">
+                        {daySchedules.length}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="space-y-1 overflow-y-auto max-h-[80px]">
+                    {daySchedules.map((s: any) => {
+                      const eqType = s.dispenser?.equipmentType || 'DISPENSER';
+                      const Icon = getEquipmentTypeIcon(eqType);
+                      return (
+                        <div
+                          key={s.id}
+                          onClick={() => setSelectedSchedule(s)}
+                          className={clsx(
+                            "p-1 rounded text-[9px] md:text-[10px] font-semibold border flex items-center justify-between cursor-pointer hover:scale-[1.02] transition-transform",
+                            s.status === 'COMPLETED' ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400" :
+                            s.status === 'SIGNED' ? "bg-blue-500/10 border-blue-500/30 text-blue-600 dark:text-blue-400" :
+                            s.status === 'OVERDUE' ? "bg-red-500/10 border-red-500/30 text-red-600 dark:text-red-400" :
+                            "bg-amber-500/10 border-amber-500/30 text-amber-600 dark:text-amber-400"
+                          )}
+                          title={`${s.dispenserId} - ${t(s.status)}`}
+                        >
+                          <div className="flex items-center gap-1 truncate">
+                            <Icon className="w-2.5 h-2.5 shrink-0" />
+                            <span className="truncate">{s.dispenserId}</span>
+                          </div>
+                          <span className={clsx("w-1.5 h-1.5 rounded-full shrink-0", 
+                            s.status === 'COMPLETED' ? "bg-emerald-500" :
+                            s.status === 'SIGNED' ? "bg-blue-500" :
+                            s.status === 'OVERDUE' ? "bg-red-500" : "bg-amber-500"
+                          )} />
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ) : isLoading ? (
         <div className="space-y-3">
           {[...Array(5)].map((_, i) => (
             <div key={i} className="h-20 skeleton rounded-lg" />

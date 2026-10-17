@@ -6,6 +6,7 @@ interface FilterState {
   clientId: string;
   plantId: string;
   failureName: string;
+  equipmentType: string;
 }
 
 interface FilterContextType {
@@ -18,6 +19,7 @@ const defaultState: FilterState = {
   clientId: '',
   plantId: '',
   failureName: '',
+  equipmentType: '',
 };
 
 const FilterContext = createContext<FilterContextType | undefined>(undefined);

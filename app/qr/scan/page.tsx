@@ -93,7 +93,7 @@ export default function QRScanPage() {
       localStorage.setItem('recent_scans', JSON.stringify(updated));
 
       setTimeout(() => {
-        router.push(`/dispensers/${dispenserId}`);
+        router.push(`/qr/${dispenserId}`);
       }, 300);
     } else {
       toast.error('Código no reconocido');

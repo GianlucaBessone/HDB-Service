@@ -20,13 +20,15 @@ import {
   ArrowRight,
   Clock,
   Sun,
-  Moon
+  Moon,
+  Search
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { UserRole } from '@prisma/client';
 import { t } from '@/lib/translations';
 import { useNotificationStore } from '@/lib/store/useNotificationStore';
 import { useUIStore } from '@/lib/store/useUIStore';
+import CommandPalette from '@/components/CommandPalette';
 
 interface Notification {
   id: string;
@@ -50,6 +52,7 @@ export default function TopBar({ user }: { user: { nombre: string; email: string
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
 
   const [mounted, setMounted] = useState(false);
 
@@ -221,8 +224,23 @@ export default function TopBar({ user }: { user: { nombre: string; email: string
   return (
     <header className="h-16 bg-card border-b border-border flex items-center justify-between px-4 md:px-6 sticky top-0 z-40">
       
-      {/* Spacer */}
-      <div className="flex-1" />
+      {/* Command Palette Trigger */}
+      <div className="flex-1 max-w-sm md:max-w-md">
+        <button
+          onClick={() => setIsCommandPaletteOpen(true)}
+          className="w-full flex items-center justify-between px-3.5 py-1.5 text-xs md:text-sm text-muted-foreground bg-muted/50 hover:bg-muted/90 border border-border/80 rounded-xl transition-all shadow-xs group"
+          title="Buscar activos, tickets, clientes (Ctrl + K)"
+        >
+          <div className="flex items-center gap-2 truncate">
+            <Search className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
+            <span className="truncate">Buscar activos, tickets, clientes...</span>
+          </div>
+          <kbd className="hidden sm:inline-flex items-center gap-0.5 px-2 py-0.5 text-[10px] font-mono font-medium text-muted-foreground bg-card rounded border border-border shadow-xs shrink-0">
+            <span>Ctrl</span>
+            <span>K</span>
+          </kbd>
+        </button>
+      </div>
 
       {/* Right side actions */}
       <div className="flex items-center gap-3 md:gap-5">
@@ -507,6 +525,12 @@ export default function TopBar({ user }: { user: { nombre: string; email: string
           </div>
         </div>
       )}
+
+      {/* Universal Command Palette */}
+      <CommandPalette 
+        isOpen={isCommandPaletteOpen} 
+        onClose={() => setIsCommandPaletteOpen(false)} 
+      />
     </header>
   );
 }

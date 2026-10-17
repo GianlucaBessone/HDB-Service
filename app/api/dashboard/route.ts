@@ -12,6 +12,7 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const plantId = searchParams.get('plantId');
     const clientId = searchParams.get('clientId');
+    const equipmentType = searchParams.get('equipmentType');
 
     // Security check: restrict non-admins/supervisors from querying unassigned plants
     if (user.role !== 'ADMIN' && user.role !== 'SUPERVISOR' && plantId) {
@@ -58,6 +59,10 @@ export async function GET(req: Request) {
       whereStock.plantId = plantId;
     }
 
+    if (equipmentType) {
+      whereDispensers.equipmentType = equipmentType;
+    }
+
     if (user.role === 'CLIENT_REQUESTER') {
       // Requesters also see their own reported tickets regardless of plant
       whereTickets.OR = [
@@ -76,7 +81,8 @@ export async function GET(req: Request) {
       repairDispensers,
       blockedDispensers,
       allStock,
-      maintenanceStats
+      maintenanceStats,
+      equipmentTypeGroups
     ] = await Promise.all([
       prisma.ticket.findMany({
         where: whereTickets,
@@ -90,6 +96,11 @@ export async function GET(req: Request) {
       prisma.maintenanceSchedule.groupBy({
         by: ['status'],
         where: { dispenser: whereDispensers },
+        _count: true,
+      }),
+      prisma.dispenser.groupBy({
+        by: ['equipmentType'],
+        where: { active: true },
         _count: true,
       })
     ]);
@@ -107,6 +118,10 @@ export async function GET(req: Request) {
       user: { nombre: user.nombre, role: user.role },
       tickets: { open: openTickets, total: tickets.length, slaCompliance },
       dispensers: { total: totalDispensers, inService: inServiceDispensers, repair: repairDispensers, blocked: blockedDispensers },
+      equipmentBreakdown: equipmentTypeGroups.map(g => ({
+        type: g.equipmentType || 'DISPENSER',
+        count: g._count,
+      })),
       stock: { lowAlerts: realLowStockCount },
       maintenance: { pending: maintPending, overdue: maintOverdue }
     });
