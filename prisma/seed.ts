@@ -53,33 +53,16 @@ async function main() {
       nombre: 'Gianluca',
       apellido: 'Bessone',
       role: 'ADMIN',
+      active: true,
     },
   });
 
-  const supervisor = await prisma.user.upsert({
-    where: { email: 'supervisor@hdb.com' },
-    update: {},
-    create: {
-      email: 'supervisor@hdb.com',
-      passwordHash: pwd,
-      nombre: 'Super',
-      apellido: 'Visor',
-      role: 'SUPERVISOR',
-    },
+  // Desactivar cualquier otro usuario para asegurar usuario único activo
+  await prisma.user.updateMany({
+    where: { email: { not: 'gbessone.hdb@gmail.com' } },
+    data: { active: false }
   });
-
-  const tech1 = await prisma.user.upsert({
-    where: { email: 'tech1@hdb.com' },
-    update: {},
-    create: {
-      email: 'tech1@hdb.com',
-      passwordHash: pwd,
-      nombre: 'Técnico',
-      apellido: 'Juan',
-      role: 'TECHNICIAN',
-    },
-  });
-  console.log('  ✓ Usuarios creados');
+  console.log('  ✓ Usuario único activo verificado: gbessone.hdb@gmail.com');
 
   // ──────────────────────────────────────────
   // 3. PLANTS (11 plantas de Arcor)
