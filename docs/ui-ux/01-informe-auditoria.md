@@ -51,7 +51,9 @@ La aplicación es funcionalmente completa, pero su capa visual transmite "planti
 - Dropdown de notificaciones posicionado con `top` fijo.
 
 ### 2.4 Integridad de datos (crítico)
-El resumen del dashboard mostraba `94%`, `18.4h` y `42` como valores por defecto cuando la API no devolvía datos. Un usuario podía tomar decisiones sobre cifras inventadas. **Corregido:** ahora se muestra "—".
+El resumen del dashboard mostraba `94%`, `18.4h` y `42` como valores por defecto. Además, leía campos que **las APIs no devuelven** (`overallHealthScore`, `avgResolutionHours`, `completedTicketsThisMonth`…), por lo que **siempre** se veían esas cifras inventadas. **Corregido:** el dashboard ahora calcula los indicadores desde los campos reales (`ranking`, `distribution`, `kpis.sla/mttr/mtbf`) y muestra "—" cuando no hay dato.
+
+**Pendiente (backend):** `/api/dashboard/salud` genera la serie histórica del score con una función seno sobre el valor actual (no es histórico real). En la UI se rotuló como "Serie estimada a partir del score actual"; se recomienda persistir snapshots mensuales.
 
 ### 2.5 Funcionalidad rota o engañosa
 - `Ctrl/⌘ + K` sólo cerraba la paleta de comandos; nunca la abría.
@@ -60,6 +62,10 @@ El resumen del dashboard mostraba `94%`, `18.4h` y `42` como valores por defecto
 - `select` con `appearance-none` sin flecha → no se reconocían como desplegables.
 - `getStatusColor` sin variantes oscuras → badges pastel brillantes en modo oscuro.
 - Cerrar sesión era un ícono suelto, sin menú de usuario.
+- El enlace "Ver todos" de tickets en la ficha de activo (`/tickets?search=`) no filtraba.
+- Acciones de editar/eliminar visibles sólo con *hover* (inaccesibles en pantallas táctiles).
+- Barra de selección para firma en Mantenimiento quedaba tapada por la barra inferior móvil.
+- Calendario de Mantenimiento ilegible en móvil (chips de 10 px); ahora muestra el detalle del día al tocarlo.
 
 ### 2.6 Navegación y arquitectura de información
 - 11 ítems planos en la barra lateral, sin agrupación.
@@ -81,7 +87,21 @@ El resumen del dashboard mostraba `94%`, `18.4h` y `42` como valores por defecto
 5. **Migración de todas las pantallas** a los componentes y tokens, quitando decoración, corrigiendo textos y adaptando a móvil (modales tipo *bottom sheet*, tablas con vista de tarjetas, objetivos táctiles ≥ 40 px).
 6. **Correcciones funcionales** listadas en 2.4 y 2.5.
 
-## 4. Pendientes recomendados (fuera de alcance)
+## 4. Resultado
+
+| Antes | Después |
+|---|---|
+| Inter + gradientes cian + glassmorphism | IBM Plex Sans/Mono, petróleo sobrio, superficies opacas con borde |
+| 4 estilos de encabezado, 3 de KPI | `PageHeader` y `StatCard` únicos en todas las pantallas |
+| 11 ítems planos en el menú | 5 grupos: General, Operación, Activos y stock, Gestión, Administración |
+| Modales centrados cortados en móvil | Hojas inferiores con encabezado y pie fijos y *safe area* |
+| Tablas que desbordaban | Columnas prioritarias + vista de tarjetas en móvil |
+| Textos de 9–10 px | Mínimo 11 px; campos a 16 px en móvil |
+| Zoom bloqueado | Zoom habilitado |
+| Datos ficticios en dashboard | Datos reales o "—" |
+
+## 5. Pendientes recomendados (fuera de alcance)
 - Pruebas de usabilidad con 3–5 técnicos en campo (escaneo QR + checklist).
 - Auditoría de contraste automática (axe) en CI.
-- Generar íconos PWA definitivos a partir del nuevo isotipo con un diseñador.
+- Validar el isotipo con un diseñador (los íconos PWA ya se regeneraron con el monograma provisorio).
+- Reemplazar la serie sintética de `/api/dashboard/salud` por histórico real.

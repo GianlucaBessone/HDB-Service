@@ -7,25 +7,25 @@ export const TRANSLATIONS: Record<string, string> = {
   ADMIN: 'Administrador',
   SUPERVISOR: 'Supervisor',
   TECHNICIAN: 'Técnico',
-  CLIENT_RESPONSIBLE: 'Responsable Cliente',
-  CLIENT_REQUESTER: 'Referente Cliente',
+  CLIENT_RESPONSIBLE: 'Responsable cliente',
+  CLIENT_REQUESTER: 'Referente cliente',
 
   // Estados de Dispenser / Activo
-  IN_SERVICE: 'En Servicio',
-  UNDER_REPAIR: 'En Reparación',
-  OUT_OF_SERVICE: 'Fuera de Servicio',
+  IN_SERVICE: 'En servicio',
+  UNDER_REPAIR: 'En reparación',
+  OUT_OF_SERVICE: 'Fuera de servicio',
   BLOCKED: 'Bloqueado',
-  BACKUP: 'Backup / Reserva',
-  IN_TECHNICAL_SERVICE: 'En Servicio Técnico',
+  BACKUP: 'Backup / reserva',
+  IN_TECHNICAL_SERVICE: 'En servicio técnico',
   BLOCKED_WAITING_OC: 'Bloqueado (Esperando OC)',
 
   // Tipos de Activos / Equipos
-  DISPENSER: 'Dispenser / Bebedero',
-  AIR_CONDITIONER: 'Aire Acondicionado',
-  COLD_ROOM: 'Cámara Frigorífica',
-  REFRIGERATOR: 'Heladera / Freezer',
-  VENTILATION: 'Ventilación / Extracción',
-  OTHER: 'Otro Equipo',
+  DISPENSER: 'Dispenser / bebedero',
+  AIR_CONDITIONER: 'Aire acondicionado',
+  COLD_ROOM: 'Cámara frigorífica',
+  REFRIGERATOR: 'Heladera / freezer',
+  VENTILATION: 'Ventilación / extracción',
+  OTHER: 'Otro equipo',
 
   // Criticidad
   CRITICALITY_LOW: 'Baja',
@@ -35,7 +35,7 @@ export const TRANSLATIONS: Record<string, string> = {
 
   // Estados de Ticket
   OPEN: 'Abierto',
-  IN_PROGRESS: 'En Proceso',
+  IN_PROGRESS: 'En proceso',
   RESOLVED: 'Resuelto',
   CLOSED: 'Cerrado',
 
