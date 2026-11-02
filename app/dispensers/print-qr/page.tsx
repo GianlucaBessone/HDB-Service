@@ -8,7 +8,7 @@ import QRCode from 'qrcode';
 // Dynamic import to avoid SSR issues with PDFViewer
 const PDFViewer = dynamic(
   () => import('@react-pdf/renderer').then(mod => mod.PDFViewer),
-  { ssr: false, loading: () => <div className="p-8 text-center animate-pulse">Cargando visor de PDF...</div> }
+  { ssr: false, loading: () => <div className="p-8 text-center text-sm text-muted-foreground">Cargando visor de PDF…</div> }
 );
 
 import { DispenserQRPDF } from '@/components/DispenserQRPDF';
@@ -57,11 +57,11 @@ function PrintQRContent() {
   }
 
   return (
-    <div className="h-screen w-full flex flex-col">
-      <div className="p-4 bg-muted/30 border-b flex justify-between items-center">
-        <div>
-          <h1 className="font-bold text-lg">Impresión de QR ({qrs.length})</h1>
-          <p className="text-sm text-muted-foreground">Utiliza el botón de impresión dentro del visor PDF.</p>
+    <div className="flex h-[calc(100dvh-9rem)] w-full flex-col overflow-hidden rounded-lg border border-border bg-card">
+      <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
+        <div className="min-w-0">
+          <h1 className="text-base font-semibold">Impresión de QR <span className="font-normal text-muted-foreground tabular">({qrs.length})</span></h1>
+          <p className="text-xs text-muted-foreground">Usá el botón de impresión del visor PDF.</p>
         </div>
         <button onClick={() => window.close()} className="btn-outline">Cerrar</button>
       </div>
@@ -76,7 +76,7 @@ function PrintQRContent() {
 
 export default function PrintQRPage() {
   return (
-    <Suspense fallback={<div className="p-8 text-center">Cargando...</div>}>
+    <Suspense fallback={<div className="p-8 text-center text-sm text-muted-foreground">Cargando…</div>}>
       <PrintQRContent />
     </Suspense>
   );

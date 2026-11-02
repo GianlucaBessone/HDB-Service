@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   Ticket, Search, Plus,
@@ -24,6 +24,12 @@ export default function TicketsPage() {
   const [clientIdFilter, setClientIdFilter] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
+
+  // Permite enlazar con un filtro precargado: /tickets?search=AA-01
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search).get('search');
+    if (q) setSearch(q);
+  }, []);
 
   const { data: clients = [] } = useQuery<any[]>({
     queryKey: ['clients'],

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { Loader2, CheckCircle2, MapPin, AlertTriangle, ShieldCheck, Lock, Gauge, ClipboardCheck } from 'lucide-react';
+import PublicShell from '@/components/PublicShell';
 import toast from 'react-hot-toast';
 import { getEquipmentTypeLabel, getEquipmentTypeIcon } from '@/lib/equipment';
 
@@ -81,78 +82,66 @@ export default function PublicApprovalPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-background">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      <div className="flex min-h-dvh items-center justify-center gap-3 bg-background text-sm text-muted-foreground">
+        <Loader2 className="h-5 w-5 animate-spin" />
+        Cargando…
       </div>
     );
   }
 
   if (!approval) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-background text-center p-6">
-        <div>
-          <AlertTriangle className="w-12 h-12 text-danger mx-auto mb-4" />
-          <h1 className="text-xl font-bold">Enlace no válido o expirado</h1>
-          <p className="text-muted-foreground mt-2">No se encontró la aprobación solicitada.</p>
+      <PublicShell>
+        <div className="glass-card mx-auto max-w-md p-6 text-center">
+          <AlertTriangle className="mx-auto mb-3 h-6 w-6 text-destructive" />
+          <h1 className="text-base font-semibold">Enlace no válido o vencido</h1>
+          <p className="mt-1 text-sm text-muted-foreground">No se encontró la aprobación solicitada.</p>
         </div>
-      </div>
+      </PublicShell>
     );
   }
 
   const clientName = approval.schedules[0]?.dispenser?.location?.plant?.client?.nombre || 'Cliente';
 
   return (
-    <div className="min-h-screen bg-muted/20 py-8 px-4">
-      <div className="max-w-2xl mx-auto space-y-6">
-        
-        {/* Header */}
-        <div className="bg-card p-6 rounded-2xl shadow-sm border border-border text-center">
-          <div className="w-16 h-16 bg-primary/10 text-primary rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <ShieldCheck className="w-8 h-8" />
-          </div>
-          <h1 className="text-2xl font-bold tracking-tight">Validación de mantenimiento</h1>
-          <p className="text-muted-foreground mt-2">
-            Por favor revise los servicios realizados y firme en conformidad.
-          </p>
-          <div className="mt-4 inline-block bg-muted px-4 py-2 rounded-lg text-sm font-medium">
-            Técnico: {approval.technician.nombre}
-          </div>
+    <PublicShell>
+      <div className="space-y-6">
+        <div className="space-y-1">
+          <p className="eyebrow">{clientName}</p>
+          <h1 className="text-xl font-semibold sm:text-2xl">Conformidad de mantenimiento</h1>
+          <p className="text-sm text-muted-foreground">Revisá los servicios realizados y firmá en conformidad.</p>
+          <p className="pt-1 text-[13px]"><span className="text-muted-foreground">Técnico:</span> <span className="font-medium">{approval.technician.nombre}</span></p>
         </div>
 
-        {/* List of Maintenances */}
-        <div className="space-y-4">
-          <h2 className="text-lg font-semibold px-1">Equipos Mantenidos ({approval.schedules.length})</h2>
+        <div className="space-y-3">
+          <h2 className="text-sm font-semibold">Activos intervenidos <span className="font-normal text-muted-foreground tabular">({approval.schedules.length})</span></h2>
           {approval.schedules.map((schedule: any) => (
-            <div key={schedule.id} className="bg-card p-5 rounded-2xl shadow-sm border border-border">
+            <div key={schedule.id} className="glass-card p-4 sm:p-5">
               <div className="flex justify-between items-start mb-3">
                 <div className="flex items-center gap-3">
                   {(() => {
                     const eqType = schedule.dispenser.equipmentType || 'DISPENSER';
                     const Icon = getEquipmentTypeIcon(eqType);
-                    return (
-                      <div className="p-2.5 bg-primary/10 rounded-xl text-primary shrink-0">
-                        <Icon className="w-5 h-5" />
-                      </div>
-                    );
+                    return <Icon className="h-5 w-5 shrink-0 text-muted-foreground" />;
                   })()}
                   <div>
                     <div className="flex items-center gap-2">
-                      <h3 className="font-bold text-lg">{schedule.dispenser.id}</h3>
-                      <span className="badge badge-outline text-2xs">
+                      <h3 className="font-mono text-[15px] font-semibold">{schedule.dispenser.id}</h3>
+                      <span className="badge-neutral">
                         {getEquipmentTypeLabel(schedule.dispenser.equipmentType || 'DISPENSER')}
                       </span>
                     </div>
                     <p className="text-sm text-muted-foreground">{schedule.dispenser.marca} {schedule.dispenser.modelo}</p>
                   </div>
                 </div>
-                <span className="badge badge-success text-xs">Completado</span>
+                <span className="badge-success">Completado</span>
               </div>
-              <div className="flex items-start gap-2 text-sm text-muted-foreground bg-muted/30 p-3 rounded-lg mb-4">
+              <div className="mb-4 flex items-start gap-2 rounded-md border border-border bg-muted/40 p-3 text-sm text-muted-foreground">
                 <MapPin className="w-4 h-4 mt-0.5 shrink-0" />
                 <div>
                   <span className="font-medium text-foreground">{schedule.dispenser.location?.plant?.nombre}</span>
                   <br />
-                  {schedule.dispenser.location?.sector?.nombre ? `${schedule.dispenser.location.sector.nombre} — ` : ''}
+                  {schedule.dispenser.location?.sector?.nombre ? `${schedule.dispenser.location.sector.nombre} · ` : ''}
                   {schedule.dispenser.location?.nombre}
                 </div>
               </div>
@@ -173,11 +162,8 @@ export default function PublicApprovalPage() {
 
                   {/* Mediciones Técnicas */}
                   {schedule.checklist.measurements && Object.keys(schedule.checklist.measurements).length > 0 && (
-                    <div className="p-3 bg-muted/20 border border-border rounded-xl space-y-2">
-                      <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
-                        <Gauge className="w-3.5 h-3.5 text-primary" />
-                        <span>Mediciones técnicas de servicio</span>
-                      </div>
+                    <div className="space-y-2 rounded-md border border-border p-3">
+                      <p className="eyebrow">Mediciones</p>
                       <div className="grid grid-cols-2 gap-2 text-xs">
                         {Object.entries(schedule.checklist.measurements).map(([k, val]: [string, any]) => {
                           if (val === undefined || val === null || val === '') return null;
@@ -197,7 +183,7 @@ export default function PublicApprovalPage() {
                             caudalM3h: 'Caudal: ' + val + ' m³/h',
                           };
                           return (
-                            <span key={k} className="p-1.5 bg-card rounded border font-mono text-2xs">
+                            <span key={k} className="rounded border border-border bg-muted/40 p-1.5 text-2xs tabular">
                               {labels[k] || `${k}: ${val}`}
                             </span>
                           );
@@ -227,7 +213,7 @@ export default function PublicApprovalPage() {
                       <span className="text-muted-foreground block mb-1">Fallas detectadas:</span>
                       <div className="flex flex-wrap gap-1">
                         {schedule.checklist.fallas.map((f: string, i: number) => (
-                          <span key={i} className="bg-danger/10 text-danger px-2 py-0.5 rounded text-xs">
+                          <span key={i} className="badge-danger">
                             {f}
                           </span>
                         ))}
@@ -240,43 +226,41 @@ export default function PublicApprovalPage() {
           ))}
         </div>
 
-        {/* Signature Area */}
-        <div className="bg-card p-6 rounded-2xl shadow-sm border border-border">
+        {/* Firma */}
+        <div className="glass-card p-4 sm:p-6">
           {isSuccess ? (
             <div className="text-center space-y-4 py-4">
-              <div className="w-16 h-16 bg-success/10 text-success rounded-full flex items-center justify-center mx-auto">
-                <CheckCircle2 className="w-8 h-8" />
-              </div>
-              <h2 className="text-xl font-bold">¡Aprobación registrada!</h2>
+              <CheckCircle2 className="mx-auto h-8 w-8 text-success" />
+              <h2 className="text-lg font-semibold">Conformidad registrada</h2>
               <p className="text-muted-foreground">Gracias por confirmar el servicio de mantenimiento.</p>
               
               <div className="mt-6 text-left border-t border-border pt-6 space-y-4">
                 <div>
-                  <label className="text-xs text-muted-foreground uppercase font-medium">Firmado por</label>
-                  <p className="font-semibold text-lg">{approval.customerName}</p>
+                  <p className="eyebrow">Firmado por</p>
+                  <p className="text-base font-semibold">{approval.customerName}</p>
                   {approval.customerIdentity && <p className="text-sm text-muted-foreground">DNI/ID: {approval.customerIdentity}</p>}
                 </div>
                 {approval.signatureData && (
                   <div>
-                    <label className="text-xs text-muted-foreground uppercase font-medium mb-2 block">Firma</label>
-                    <img src={approval.signatureData} alt="Firma del cliente" className="border border-border rounded-xl max-h-32 object-contain bg-white" />
+                    <p className="eyebrow mb-2">Firma</p>
+                    <img src={approval.signatureData} alt="Firma del cliente" className="max-h-32 rounded-md border border-border bg-white object-contain" />
                   </div>
                 )}
                 {approval.signatureHash && (
-                  <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 mt-4">
-                    <div className="flex items-center gap-2 mb-2 text-primary">
-                      <ShieldCheck className="w-5 h-5" />
-                      <h3 className="font-bold text-sm">Certificado digital SHA-512</h3>
+                  <div className="mt-4 rounded-md border border-border bg-muted/40 p-4">
+                    <div className="mb-2 flex items-center gap-2">
+                      <ShieldCheck className="h-4 w-4 text-success" />
+                      <h3 className="text-sm font-semibold">Certificado digital SHA-512</h3>
                     </div>
                     <div className="space-y-2 text-xs">
                       <div>
                         <span className="text-muted-foreground font-medium block">Hash:</span>
-                        <code className="bg-background px-2 py-1 rounded block break-all mt-1">{approval.signatureHash}</code>
+                        <code className="mt-1 block break-all rounded border border-border bg-card px-2 py-1">{approval.signatureHash}</code>
                       </div>
                       <div className="grid grid-cols-2 gap-2 mt-2">
                          <div>
                            <span className="text-muted-foreground font-medium block">Fecha:</span>
-                           <span className="font-medium">{new Date(approval.signedAt || new Date()).toLocaleString()}</span>
+                           <span className="font-medium">{new Date(approval.signedAt || new Date()).toLocaleString('es-AR')}</span>
                          </div>
                          <div>
                            <span className="text-muted-foreground font-medium block">IP:</span>
@@ -290,7 +274,7 @@ export default function PublicApprovalPage() {
             </div>
           ) : (
             <div className="space-y-5">
-              <h2 className="text-xl font-bold mb-4">Conformidad del cliente</h2>
+              <h2 className="text-base font-semibold">Firma de conformidad</h2>
               
               <div>
                 <label className="label">Nombre completo *</label>
@@ -308,26 +292,26 @@ export default function PublicApprovalPage() {
                 <input 
                   type="text" 
                   className="input mt-1" 
-                  placeholder="Nro de documento"
+                  placeholder="N.º de documento"
                   value={customerIdentity}
                   onChange={e => setCustomerIdentity(e.target.value)}
                 />
               </div>
 
               <div>
-                <p className="text-xs text-muted-foreground mt-2 border-t pt-4">
-                  Al confirmar, usted genera un certificado digital firmado y aprueba que los trabajos detallados han sido realizados a su entera satisfacción.
+                <p className="border-t border-border pt-4 text-xs text-muted-foreground">
+                  Al confirmar se genera un certificado digital y se deja constancia de que los trabajos detallados fueron realizados a satisfacción.
                 </p>
               </div>
 
               <button 
                 onClick={handleSubmit}
                 disabled={isSubmitting}
-                className="btn-primary w-full py-3 text-lg mt-6 gap-2"
+                className="btn-primary btn-lg w-full"
               >
-                {isSubmitting ? <Loader2 className="w-6 h-6 animate-spin mx-auto" /> : (
+                {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : (
                   <>
-                    <ShieldCheck className="w-5 h-5" />
+                    <ShieldCheck className="h-4 w-4" />
                     Confirmar y firmar digitalmente
                   </>
                 )}
@@ -338,42 +322,30 @@ export default function PublicApprovalPage() {
 
       </div>
 
-      {/* Security Modal */}
+      {/* Modal de seguridad */}
       {showSecurityModal && (
         <div className="modal-overlay">
-          <div className="modal-content max-w-md p-6 relative">
-            <div className="w-12 h-12 bg-primary/10 text-primary rounded-full flex items-center justify-center mb-4">
-              <Lock className="w-6 h-6" />
+          <div className="modal-content max-w-md">
+            <div className="modal-header">
+              <h2>Firma digital aplicada</h2>
             </div>
-            <h2 className="text-xl font-bold mb-2">Firma digital segura aplicada</h2>
-            <div className="space-y-4 text-sm text-muted-foreground mb-6">
-              <p>
-                Su conformidad ha sido registrada exitosamente utilizando tecnología de <strong>Firma digital segura</strong>.
-              </p>
-              <div className="bg-muted/30 p-3 rounded-lg">
-                <strong className="text-foreground flex items-center gap-1.5 mb-1">
-                  <ShieldCheck className="w-4 h-4 text-primary" />
-                  ¿Qué significa esto?
-                </strong>
-                Hemos generado un <em>Hash SHA-512</em>, que funciona como una huella dactilar digital única e irrepetible de este documento. Si alguien intentara modificar siquiera una letra de la información en el futuro, la huella cambiaría por completo, alertando automáticamente sobre la manipulación.
+            <div className="modal-body space-y-3 text-sm text-muted-foreground">
+              <p>Tu conformidad quedó registrada con firma digital.</p>
+              <div className="rounded-md border border-border bg-muted/40 p-3">
+                <p className="mb-1 font-medium text-foreground">Huella del documento (SHA-512)</p>
+                Se generó un hash único del documento. Cualquier modificación posterior de la información produciría un hash distinto y quedaría en evidencia.
               </div>
-              <div className="bg-muted/30 p-3 rounded-lg">
-                <strong className="text-foreground flex items-center gap-1.5 mb-1">
-                  <Lock className="w-4 h-4 text-primary" />
-                  Seguridad de grado militar
-                </strong>
-                Para proteger esta huella digital, aplicamos cifrado <strong>AES-256-GCM</strong>. Este es el mismo estándar avanzado de encriptación utilizado a nivel mundial por bancos, gobiernos y agencias de inteligencia para proteger información de máximo secreto, garantizando que su firma sea inviolable y 100% auténtica.
+              <div className="rounded-md border border-border bg-muted/40 p-3">
+                <p className="mb-1 font-medium text-foreground">Cifrado AES-256-GCM</p>
+                La huella se protege con cifrado AES-256-GCM, un estándar ampliamente utilizado para proteger información sensible.
               </div>
             </div>
-            <button 
-              onClick={() => setShowSecurityModal(false)}
-              className="btn-primary w-full py-3 font-semibold text-base"
-            >
-              Entendido
-            </button>
+            <div className="modal-footer">
+              <button onClick={() => setShowSecurityModal(false)} className="btn-primary">Entendido</button>
+            </div>
           </div>
         </div>
       )}
-    </div>
+    </PublicShell>
   );
 }

@@ -3,6 +3,8 @@
 import { useEffect, useState, use } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import PageHeader from '@/components/ui/PageHeader';
+import { ChevronRight as ChevronRightIcon } from 'lucide-react';
 import { 
   ArrowLeft, 
   Wrench, 
@@ -135,24 +137,22 @@ export default function FieldEquipmentQuickHub({ params }: { params: Promise<{ i
 
   if (loading) {
     return (
-      <div className="min-h-[70vh] flex flex-col items-center justify-center p-6 text-center">
-        <Loader2 className="w-10 h-10 animate-spin text-primary mb-4" />
-        <p className="text-muted-foreground font-medium">Cargando ficha rápida del activo...</p>
+      <div className="flex min-h-[50vh] items-center justify-center gap-3 p-6 text-sm text-muted-foreground">
+        <Loader2 className="h-5 w-5 animate-spin" />
+        <p>Cargando ficha del activo…</p>
       </div>
     );
   }
 
   if (error || !equipment) {
     return (
-      <div className="max-w-md mx-auto my-12 p-6 glass-card text-center space-y-4">
-        <div className="w-12 h-12 rounded-full bg-destructive/10 text-destructive flex items-center justify-center mx-auto">
-          <AlertTriangle className="w-6 h-6" />
-        </div>
-        <h2 className="text-xl font-bold">Activo no encontrado</h2>
+      <div className="glass-card mx-auto my-12 max-w-md space-y-3 p-6 text-center">
+        <AlertTriangle className="mx-auto h-6 w-6 text-destructive" />
+        <h2 className="text-base font-semibold">Activo no encontrado</h2>
         <p className="text-sm text-muted-foreground">{error}</p>
         <button
           onClick={() => router.push('/qr/scan')}
-          className="btn-primary w-full py-2.5 text-sm"
+          className="btn-primary w-full"
         >
           Volver a escanear
         </button>
@@ -167,214 +167,121 @@ export default function FieldEquipmentQuickHub({ params }: { params: Promise<{ i
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'ACTIVO':
-        return <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-success/10 text-success border border-success/20"><span className="w-2 h-2 rounded-full bg-success animate-pulse"></span> En servicio</span>;
+        return <span className="badge-success"><span className="status-dot bg-current" /> En servicio</span>;
       case 'EN_REPARACION':
-        return <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-warning/10 text-warning border border-warning/20"><span className="w-2 h-2 rounded-full bg-warning"></span> En taller / reparación</span>;
+        return <span className="badge-warning"><span className="status-dot bg-current" /> En taller</span>;
       case 'BLOQUEADO':
-        return <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-destructive/10 text-destructive border border-destructive/20"><span className="w-2 h-2 rounded-full bg-destructive"></span> Fuera de servicio / bloqueado</span>;
+        return <span className="badge-danger"><span className="status-dot bg-current" /> Fuera de servicio</span>;
       default:
-        return <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-muted text-muted-foreground">{status}</span>;
+        return <span className="badge-neutral">{status}</span>;
     }
   };
 
+  const actions = [
+    { key: 'mtto', href: `/maintenance?equipmentId=${equipment.id}`, icon: Wrench, title: 'Mantenimiento', desc: 'Completar checklist y protocolo de servicio' },
+    { key: 'ticket', onClick: () => setIsTicketModalOpen(true), icon: AlertTriangle, title: 'Reportar falla', desc: 'Avería, pérdida, alarma o ruido anormal' },
+    { key: 'med', onClick: () => setIsMeasurementModalOpen(true), icon: Gauge, title: 'Registrar mediciones', desc: 'Presiones, temperaturas y corriente' },
+    { key: 'ficha', href: `/dispensers/${equipment.id}`, icon: FileText, title: 'Ficha completa', desc: 'Historial, repuestos y QR en PDF' },
+  ];
+
   return (
-    <div className="max-w-2xl mx-auto space-y-6 pb-20 animate-fade-in px-4">
-      
-      {/* Top Header Navigation */}
-      <div className="flex items-center justify-between pt-2">
-        <button 
-          onClick={() => router.push('/qr/scan')}
-          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground font-medium p-1"
-        >
-          <ArrowLeft className="w-4 h-4" /> Escáner QR
-        </button>
-        <span className="text-xs uppercase font-bold tracking-wider text-primary bg-primary/10 px-2.5 py-1 rounded-full">
-          Ficha rápida en planta
-        </span>
-      </div>
-
-      {/* Main Asset Header Card */}
-      <div className="glass-card p-5 md:p-6 space-y-4 relative overflow-hidden border-primary/20">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex items-center gap-3.5">
-            <div className="w-14 h-14 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shrink-0 shadow-inner">
-              <AssetIcon className="w-7 h-7" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-2xl font-bold tracking-tight">{equipment.id}</h1>
-              </div>
-              <p className="text-sm font-semibold text-foreground/90">
-                {equipment.marca} {equipment.modelo}
-              </p>
-              <p className="text-xs text-muted-foreground font-medium mt-0.5">
-                {typeLabel}
-              </p>
-            </div>
-          </div>
-          <div>
+    <div className="mx-auto max-w-2xl space-y-6 animate-fade-in">
+      <PageHeader
+        backHref="/qr/scan"
+        backLabel="Escáner"
+        eyebrow={typeLabel}
+        title={<span className="font-mono">{equipment.id}</span>}
+        meta={
+          <>
             {getStatusBadge(equipment.status)}
-          </div>
-        </div>
+            <span className="text-[13px] text-muted-foreground">{equipment.marca} {equipment.modelo}</span>
+          </>
+        }
+      />
 
-        {/* Location pills */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-2 text-xs border-t border-border/60">
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <Building2 className="w-4 h-4 text-primary shrink-0" />
-            <span className="truncate">
-              {equipment.location?.plant?.client?.nombre || 'Cliente General'} &bull; {equipment.location?.plant?.nombre || 'Planta'}
-            </span>
-          </div>
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <MapPin className="w-4 h-4 text-success shrink-0" />
-            <span className="truncate font-medium text-foreground">
-              {equipment.location?.nombre || 'Sin ubicación específica'}
-            </span>
-          </div>
+      <div className="glass-card grid grid-cols-1 divide-y divide-border sm:grid-cols-2 sm:divide-x sm:divide-y-0">
+        <div className="flex items-center gap-2.5 p-3.5 text-[13px]">
+          <Building2 className="h-4 w-4 shrink-0 text-muted-foreground" />
+          <span className="truncate">{equipment.location?.plant?.client?.nombre || 'Cliente general'} · {equipment.location?.plant?.nombre || 'Planta'}</span>
+        </div>
+        <div className="flex items-center gap-2.5 p-3.5 text-[13px]">
+          <MapPin className="h-4 w-4 shrink-0 text-muted-foreground" />
+          <span className="truncate font-medium">{equipment.location?.nombre || 'Sin ubicación específica'}</span>
         </div>
       </div>
 
-      {/* Primary Action Buttons (Touch-friendly 1-Tap) */}
-      <div className="space-y-3">
-        <h2 className="eyebrow px-1">
-          Acciones operativas inmediatas
-        </h2>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-          {/* Action 1: Iniciar Mantenimiento */}
-          <Link
-            href={`/maintenance?equipmentId=${equipment.id}`}
-            className="p-4 rounded-2xl bg-card border border-border/80 hover:border-primary hover:shadow-lg transition-all flex items-center gap-4 group"
-          >
-            <div className="w-12 h-12 rounded-xl bg-info/10 text-info flex items-center justify-center shrink-0 transition-transform">
-              <Wrench className="w-6 h-6" />
-            </div>
-            <div>
-              <h3 className="font-bold text-sm text-foreground group-hover:text-primary transition-colors">
-                Mantenimiento técnico
-              </h3>
-              <p className="text-xs text-muted-foreground">
-                Completar checklist y protocolo de servicio
-              </p>
-            </div>
-          </Link>
-
-          {/* Action 2: Reportar Falla */}
-          <button
-            onClick={() => setIsTicketModalOpen(true)}
-            className="p-4 rounded-2xl bg-card border border-border/80 hover:border-warning hover:shadow-lg transition-all flex items-center gap-4 group text-left w-full"
-          >
-            <div className="w-12 h-12 rounded-xl bg-warning/10 text-warning flex items-center justify-center shrink-0 transition-transform">
-              <AlertTriangle className="w-6 h-6" />
-            </div>
-            <div>
-              <h3 className="font-bold text-sm text-foreground group-hover:text-warning transition-colors">
-                Reportar falla / ticket
-              </h3>
-              <p className="text-xs text-muted-foreground">
-                Avería, pérdida, alarma o sonido anormal
-              </p>
-            </div>
-          </button>
-
-          {/* Action 3: Registrar Mediciones */}
-          <button
-            onClick={() => setIsMeasurementModalOpen(true)}
-            className="p-4 rounded-2xl bg-card border border-border/80 hover:border-success hover:shadow-lg transition-all flex items-center gap-4 group text-left w-full"
-          >
-            <div className="w-12 h-12 rounded-xl bg-success/10 text-success flex items-center justify-center shrink-0 transition-transform">
-              <Gauge className="w-6 h-6" />
-            </div>
-            <div>
-              <h3 className="font-bold text-sm text-foreground group-hover:text-success transition-colors">
-                Asentar mediciones
-              </h3>
-              <p className="text-xs text-muted-foreground">
-                Presiones, temperaturas y amperajes
-              </p>
-            </div>
-          </button>
-
-          {/* Action 4: Ficha Completa Desktop */}
-          <Link
-            href={`/dispensers/${equipment.id}`}
-            className="p-4 rounded-2xl bg-card border border-border/80 hover:border-info hover:shadow-lg transition-all flex items-center gap-4 group"
-          >
-            <div className="w-12 h-12 rounded-xl bg-info/10 text-info flex items-center justify-center shrink-0 transition-transform">
-              <FileText className="w-6 h-6" />
-            </div>
-            <div>
-              <h3 className="font-bold text-sm text-foreground group-hover:text-info transition-colors flex items-center gap-1.5">
-                Ficha Completa <ExternalLink className="w-3.5 h-3.5" />
-              </h3>
-              <p className="text-xs text-muted-foreground">
-                Historial de sanitizaciones, repuestos y QR PDF
-              </p>
-            </div>
-          </Link>
+      <section>
+        <h2 className="eyebrow mb-2 px-1">Acciones</h2>
+        <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+          {actions.map(act => {
+            const content = (
+              <>
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-border bg-muted text-foreground">
+                  <act.icon className="h-5 w-5" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-semibold text-foreground">{act.title}</span>
+                  <span className="block text-xs text-muted-foreground">{act.desc}</span>
+                </span>
+                <ChevronRightIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
+              </>
+            );
+            const cls = 'glass-card-hover flex min-h-[64px] w-full items-center gap-3 p-3.5 text-left';
+            return act.href ? (
+              <Link key={act.key} href={act.href} className={cls}>{content}</Link>
+            ) : (
+              <button key={act.key} onClick={act.onClick} className={cls}>{content}</button>
+            );
+          })}
         </div>
-      </div>
+      </section>
 
-      {/* Technical Specifications Glance */}
       {equipment.technicalSpecs && Object.keys(equipment.technicalSpecs).length > 0 && (
-        <div className="glass-card p-4 space-y-3">
-          <h3 className="eyebrow">
-            Especificaciones técnicas del equipo
-          </h3>
-          <div className="grid grid-cols-2 gap-2 text-xs">
+        <section className="glass-card p-4">
+          <h3 className="eyebrow mb-3">Especificaciones técnicas</h3>
+          <dl className="grid grid-cols-1 gap-x-6 sm:grid-cols-2">
             {Object.entries(equipment.technicalSpecs)
               .filter(([k]) => k !== 'lastFieldReadings')
               .map(([key, value]: [string, any]) => (
-                <div key={key} className="p-2.5 rounded-xl bg-muted/40 border border-border/50">
-                  <span className="text-2xs text-muted-foreground capitalize block truncate">
-                    {key.replace(/([A-Z])/g, ' $1')}
-                  </span>
-                  <span className="font-bold text-foreground truncate block">
-                    {typeof value === 'object' ? JSON.stringify(value) : String(value)}
-                  </span>
+                <div key={key} className="flex items-baseline justify-between gap-3 border-b border-border py-2 text-[13px]">
+                  <dt className="truncate capitalize text-muted-foreground">{key.replace(/([A-Z])/g, ' $1')}</dt>
+                  <dd className="truncate text-right font-medium tabular">{typeof value === 'object' ? JSON.stringify(value) : String(value)}</dd>
                 </div>
               ))}
-          </div>
-        </div>
+          </dl>
+        </section>
       )}
 
       {/* QUICK TICKET MODAL */}
       {isTicketModalOpen && (
-        <div className="modal-overlay">
-          <div className="modal-content max-w-md p-6 space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-warning">
-                <AlertTriangle className="w-5 h-5" />
-                <h3 className="font-bold text-lg text-foreground">Reportar Falla en {equipment.id}</h3>
-              </div>
-              <button onClick={() => setIsTicketModalOpen(false)} className="text-muted-foreground hover:text-foreground">
-                <X className="w-5 h-5" />
+        <div className="modal-overlay" onMouseDown={e => e.target === e.currentTarget && setIsTicketModalOpen(false)}>
+          <div className="modal-content max-w-md">
+            <div className="modal-header">
+              <h2>Reportar falla · <span className="font-mono">{equipment.id}</span></h2>
+              <button onClick={() => setIsTicketModalOpen(false)} className="modal-close" aria-label="Cerrar">
+                <X className="h-4 w-4" />
               </button>
             </div>
 
-            <form onSubmit={handleCreateQuickTicket} className="space-y-4">
+            <form onSubmit={handleCreateQuickTicket} className="modal-body space-y-4">
               <div>
-                <label className="text-xs font-bold text-muted-foreground block mb-1">
-                  Problema o síntoma detectado *
-                </label>
+                <label className="label mb-1.5">Problema o síntoma detectado *</label>
                 <input
                   type="text"
                   required
                   placeholder="Ej. No enfría / pérdida de agua / alarma de presión"
                   value={ticketTitle}
                   onChange={e => setTicketTitle(e.target.value)}
-                  className="input w-full text-sm"
+                  className="input"
                 />
               </div>
 
               <div>
-                <label className="text-xs font-bold text-muted-foreground block mb-1">
-                  Severidad / prioridad
-                </label>
+                <label className="label mb-1.5">Severidad / prioridad</label>
                 <select
                   value={ticketPriority}
                   onChange={e => setTicketPriority(e.target.value)}
-                  className="select w-full text-sm"
+                  className="select"
                 >
                   <option value="LOW">Baja (no urgente)</option>
                   <option value="MEDIUM">Media (falla parcial)</option>
@@ -384,33 +291,31 @@ export default function FieldEquipmentQuickHub({ params }: { params: Promise<{ i
               </div>
 
               <div>
-                <label className="text-xs font-bold text-muted-foreground block mb-1">
-                  Detalles Adicionales (Opcional)
-                </label>
+                <label className="label mb-1.5">Detalles adicionales (opcional)</label>
                 <textarea
                   rows={3}
-                  placeholder="Indica códigos de error o circunstancias de la falla..."
+                  placeholder="Códigos de error o circunstancias de la falla…"
                   value={ticketDescription}
                   onChange={e => setTicketDescription(e.target.value)}
-                  className="textarea w-full text-sm"
+                  className="textarea"
                 />
               </div>
 
-              <div className="flex gap-2 pt-2">
+              <div className="flex flex-col-reverse gap-2 pt-2 sm:flex-row sm:justify-end">
                 <button
                   type="button"
                   onClick={() => setIsTicketModalOpen(false)}
-                  className="btn-secondary flex-1 py-2 text-sm"
+                  className="btn-outline"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={submittingTicket}
-                  className="btn-primary flex-1 py-2 text-sm flex items-center justify-center gap-2"
+                  className="btn-primary"
                 >
                   {submittingTicket ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                  Crear Ticket
+                  Crear ticket
                 </button>
               </div>
             </form>
@@ -420,105 +325,92 @@ export default function FieldEquipmentQuickHub({ params }: { params: Promise<{ i
 
       {/* QUICK MEASUREMENTS MODAL */}
       {isMeasurementModalOpen && (
-        <div className="modal-overlay">
-          <div className="modal-content max-w-md p-6 space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-success">
-                <Gauge className="w-5 h-5" />
-                <h3 className="font-bold text-lg text-foreground">Mediciones operativas</h3>
-              </div>
-              <button onClick={() => setIsMeasurementModalOpen(false)} className="text-muted-foreground hover:text-foreground">
-                <X className="w-5 h-5" />
+        <div className="modal-overlay" onMouseDown={e => e.target === e.currentTarget && setIsMeasurementModalOpen(false)}>
+          <div className="modal-content max-w-md">
+            <div className="modal-header">
+              <h2>Registrar mediciones</h2>
+              <button onClick={() => setIsMeasurementModalOpen(false)} className="modal-close" aria-label="Cerrar">
+                <X className="h-4 w-4" />
               </button>
             </div>
 
-            <form onSubmit={handleSaveMeasurements} className="space-y-4">
+            <form onSubmit={handleSaveMeasurements} className="modal-body space-y-4">
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div>
-                  <label className="text-xs font-bold text-muted-foreground block mb-1">
-                    Presión Succión (PSI)
-                  </label>
+                  <label className="label mb-1.5">Presión de succión (PSI)</label>
                   <input
                     type="number"
                     step="0.1"
                     placeholder="Ej. 115"
                     value={measurementData.presionSuccionPsi || ''}
                     onChange={e => setMeasurementData(prev => ({ ...prev, presionSuccionPsi: e.target.value }))}
-                    className="input w-full text-sm"
+                    className="input"
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-bold text-muted-foreground block mb-1">
-                    Presión Alta (PSI)
-                  </label>
+                  <label className="label mb-1.5">Presión de alta (PSI)</label>
                   <input
                     type="number"
                     step="0.1"
                     placeholder="Ej. 320"
                     value={measurementData.presionAltaPsi || ''}
                     onChange={e => setMeasurementData(prev => ({ ...prev, presionAltaPsi: e.target.value }))}
-                    className="input w-full text-sm"
+                    className="input"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div>
-                  <label className="text-xs font-bold text-muted-foreground block mb-1">
-                    Temperatura (°C)
-                  </label>
+                  <label className="label mb-1.5">Temperatura (°C)</label>
                   <input
                     type="number"
                     step="0.1"
                     placeholder="Ej. -18.0 o 12.5"
                     value={measurementData.temperaturaC || ''}
                     onChange={e => setMeasurementData(prev => ({ ...prev, temperaturaC: e.target.value }))}
-                    className="input w-full text-sm"
+                    className="input"
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-bold text-muted-foreground block mb-1">
-                    Consumo (Amperes)
-                  </label>
+                  <label className="label mb-1.5">Consumo (A)</label>
                   <input
                     type="number"
                     step="0.1"
                     placeholder="Ej. 8.2"
                     value={measurementData.corrienteA || ''}
                     onChange={e => setMeasurementData(prev => ({ ...prev, corrienteA: e.target.value }))}
-                    className="input w-full text-sm"
+                    className="input"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="text-xs font-bold text-muted-foreground block mb-1">
-                  Notas de calibración
-                </label>
+                <label className="label mb-1.5">Notas de calibración</label>
                 <input
                   type="text"
                   placeholder="Ej. Manómetro calibrado, carga de gas estable"
                   value={measurementData.notas || ''}
                   onChange={e => setMeasurementData(prev => ({ ...prev, notas: e.target.value }))}
-                  className="input w-full text-sm"
+                  className="input"
                 />
               </div>
 
-              <div className="flex gap-2 pt-2">
+              <div className="flex flex-col-reverse gap-2 pt-2 sm:flex-row sm:justify-end">
                 <button
                   type="button"
                   onClick={() => setIsMeasurementModalOpen(false)}
-                  className="btn-secondary flex-1 py-2 text-sm"
+                  className="btn-outline"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={savingMeasurements}
-                  className="btn-primary flex-1 py-2 text-sm flex items-center justify-center gap-2"
+                  className="btn-primary"
                 >
                   {savingMeasurements ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
-                  Guardar Lecturas
+                  Guardar lecturas
                 </button>
               </div>
             </form>

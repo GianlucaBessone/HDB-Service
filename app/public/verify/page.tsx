@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { ShieldCheck, Search, Loader2, AlertTriangle, Lock, FileSignature, MapPin, User, Calendar, Monitor, Globe } from 'lucide-react';
+import { ShieldCheck, Search, Loader2, AlertTriangle } from 'lucide-react';
+import PublicShell from '@/components/PublicShell';
 
 export default function VerificationPage() {
   const [hash, setHash] = useState('');
@@ -38,131 +39,92 @@ export default function VerificationPage() {
     }
   };
 
-  return (
-    <div className="min-h-screen bg-muted/20 py-12 px-4 flex flex-col items-center">
-      <div className="w-full max-w-2xl space-y-6">
-        {/* Header */}
-        <div className="bg-card p-8 rounded-2xl shadow-sm border border-border text-center">
-          <div className="w-16 h-16 bg-primary/10 text-primary rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <Lock className="w-8 h-8" />
-          </div>
-          <h1 className="text-2xl font-bold tracking-tight">Verificación de firmas digitales</h1>
-          <p className="text-muted-foreground mt-2 max-w-lg mx-auto">
-            Sistema de validación criptográfica (SHA-512 + AES-256-GCM). 
-            Ingrese el hash del certificado para comprobar la autenticidad e integridad de la firma.
-          </p>
+  const Section = ({ title, children, wide }: { title: string; children: React.ReactNode; wide?: boolean }) => (
+    <section className={wide ? 'md:col-span-2' : ''}>
+      <h3 className="eyebrow mb-2 border-b border-border pb-2">{title}</h3>
+      <div className="space-y-3">{children}</div>
+    </section>
+  );
+  const Field = ({ label, value, mono }: { label: string; value: React.ReactNode; mono?: boolean }) => (
+    <div>
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className={`text-sm font-medium break-words ${mono ? 'font-mono' : ''}`}>{value || '—'}</p>
+    </div>
+  );
 
-          <form onSubmit={handleVerify} className="mt-8 relative max-w-lg mx-auto">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-            <input 
-              type="text" 
-              className="input pl-12 pr-24 py-4 text-sm w-full font-mono bg-muted/50 border-primary/20 focus:border-primary"
-              placeholder="Ingrese el hash SHA-512 (ej. 30ffc53f...)"
+  return (
+    <PublicShell>
+      <div className="space-y-6">
+        <div className="space-y-1">
+          <h1 className="text-xl font-semibold sm:text-2xl">Verificación de firmas digitales</h1>
+          <p className="text-sm text-muted-foreground">
+            Ingresá el hash del certificado (SHA-512) para comprobar la autenticidad e integridad de una conformidad firmada.
+          </p>
+        </div>
+
+        <form onSubmit={handleVerify} className="flex flex-col gap-2 sm:flex-row">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <input
+              type="text"
+              className="input pl-9 font-mono"
+              placeholder="Hash SHA-512 (ej. 30ffc53f…)"
+              aria-label="Hash del certificado"
               value={hash}
               onChange={e => setHash(e.target.value)}
             />
-            <button 
-              type="submit" 
-              disabled={isVerifying || !hash.trim()}
-              className="absolute right-2 top-1/2 -translate-y-1/2 btn-primary py-2 px-4"
-            >
-              {isVerifying ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Verificar'}
-            </button>
-          </form>
-        </div>
+          </div>
+          <button type="submit" disabled={isVerifying || !hash.trim()} className="btn-primary">
+            {isVerifying ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Verificar'}
+          </button>
+        </form>
 
-        {/* Error State */}
         {error && (
-          <div className="bg-danger/10 border border-danger/20 rounded-2xl p-6 text-center animate-fade-in">
-            <AlertTriangle className="w-10 h-10 text-danger mx-auto mb-3" />
-            <h2 className="text-lg font-bold text-danger">Verificación fallida</h2>
-            <p className="text-danger/80 mt-1">{error}</p>
+          <div className="flex items-start gap-3 rounded-lg border border-destructive/25 bg-destructive/10 p-4 animate-fade-in">
+            <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-destructive" />
+            <div>
+              <h2 className="text-sm font-semibold text-destructive">Verificación fallida</h2>
+              <p className="mt-0.5 text-sm text-foreground">{error}</p>
+            </div>
           </div>
         )}
 
-        {/* Success State */}
         {result && (
-          <div className="bg-card border border-primary/20 rounded-2xl shadow-lg overflow-hidden animate-fade-in">
-            <div className="bg-primary/5 p-6 border-b border-primary/10 flex items-center gap-4">
-              <div className="w-12 h-12 bg-primary/10 text-primary rounded-full flex items-center justify-center shrink-0">
-                <ShieldCheck className="w-6 h-6" />
-              </div>
+          <div className="glass-card overflow-hidden animate-fade-in">
+            <div className="flex items-start gap-3 border-b border-border bg-success/10 p-4 sm:p-5">
+              <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-success" />
               <div>
-                <h2 className="text-xl font-bold text-primary">Firma auténtica y verificada</h2>
-                <p className="text-sm text-muted-foreground">La integridad criptográfica del documento está intacta.</p>
+                <h2 className="text-base font-semibold text-foreground">Firma auténtica</h2>
+                <p className="text-sm text-muted-foreground">La integridad del documento está verificada.</p>
               </div>
             </div>
 
-            <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-              
-              <div className="space-y-4">
-                <h3 className="font-bold uppercase tracking-wider text-xs text-muted-foreground flex items-center gap-2 border-b border-border pb-2">
-                  <User className="w-4 h-4" /> Datos del Firmante
-                </h3>
-                <div>
-                  <p className="text-sm text-muted-foreground">Nombre</p>
-                  <p className="font-medium">{result.customerName}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">DNI / identificación</p>
-                  <p className="font-medium">{result.customerIdentity}</p>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <h3 className="font-bold uppercase tracking-wider text-xs text-muted-foreground flex items-center gap-2 border-b border-border pb-2">
-                  <FileSignature className="w-4 h-4" /> Detalles de Operación
-                </h3>
-                <div>
-                  <p className="text-sm text-muted-foreground">Fecha y hora exacta</p>
-                  <p className="font-medium flex items-center gap-1.5">
-                    <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
-                    {new Date(result.signedAt).toLocaleString('es-AR')}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Técnico a cargo</p>
-                  <p className="font-medium">{result.technicianName}</p>
-                </div>
-              </div>
-
-              <div className="space-y-4 md:col-span-2">
-                <h3 className="font-bold uppercase tracking-wider text-xs text-muted-foreground flex items-center gap-2 border-b border-border pb-2">
-                  <MapPin className="w-4 h-4" /> Equipos Mantenidos
-                </h3>
-                <div className="flex flex-wrap gap-2">
+            <div className="grid grid-cols-1 gap-6 p-4 sm:p-5 md:grid-cols-2">
+              <Section title="Firmante">
+                <Field label="Nombre" value={result.customerName} />
+                <Field label="DNI / identificación" value={result.customerIdentity} />
+              </Section>
+              <Section title="Operación">
+                <Field label="Fecha y hora" value={new Date(result.signedAt).toLocaleString('es-AR')} />
+                <Field label="Técnico a cargo" value={result.technicianName} />
+              </Section>
+              <Section title="Activos intervenidos" wide>
+                <div className="flex flex-wrap gap-1.5">
                   {result.dispensers.map((d: string) => (
-                    <span key={d} className="bg-muted px-3 py-1.5 rounded-lg text-sm font-medium font-mono">
-                      {d}
-                    </span>
+                    <span key={d} className="badge-neutral font-mono">{d}</span>
                   ))}
                 </div>
-              </div>
-
-              <div className="space-y-4 md:col-span-2">
-                <h3 className="font-bold uppercase tracking-wider text-xs text-muted-foreground flex items-center gap-2 border-b border-border pb-2">
-                  <Monitor className="w-4 h-4" /> Trazabilidad Técnica
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-xs text-muted-foreground flex items-center gap-1">
-                      <Globe className="w-3 h-3" /> Dirección IP
-                    </p>
-                    <p className="text-sm font-mono mt-1">{result.ipAddress}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground flex items-center gap-1">
-                      <Monitor className="w-3 h-3" /> Dispositivo (User Agent)
-                    </p>
-                    <p className="text-sm mt-1 break-words">{result.deviceInfo}</p>
-                  </div>
+              </Section>
+              <Section title="Trazabilidad" wide>
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                  <Field label="Dirección IP" value={result.ipAddress} mono />
+                  <Field label="Dispositivo" value={result.deviceInfo} />
                 </div>
-              </div>
-
+              </Section>
             </div>
           </div>
         )}
       </div>
-    </div>
+    </PublicShell>
   );
 }
