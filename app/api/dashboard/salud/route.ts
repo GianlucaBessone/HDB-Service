@@ -44,35 +44,25 @@ export async function GET(req: Request) {
       })
     };
 
+    // Los filtros de planta/cliente se combinan con AND para no pisar el filtro de acceso por rol.
     if (plantId) {
       whereTickets.location = { ...whereTickets.location, plantId };
-      whereRepairs.dispenser = { 
-        OR: [
-          { plantId },
-          { location: { plantId } }
-        ]
-      };
-      whereDispensers.OR = [
-        { plantId },
-        { location: { plantId } }
-      ];
+      const scope = { OR: [{ plantId }, { location: { plantId } }] };
+      whereRepairs.dispenser = { ...whereRepairs.dispenser, AND: [scope] };
+      whereDispensers.AND = [...(whereDispensers.AND || []), scope];
     } else if (clientId) {
       whereTickets.location = { ...whereTickets.location, plant: { clientId } };
-      whereRepairs.dispenser = { 
-        OR: [
-          { plant: { clientId } },
-          { location: { plant: { clientId } } }
-        ]
-      };
-      whereDispensers.OR = [
-        { plant: { clientId } },
-        { location: { plant: { clientId } } }
-      ];
+      const scope = { OR: [{ plant: { clientId } }, { location: { plant: { clientId } } }] };
+      whereRepairs.dispenser = { ...whereRepairs.dispenser, AND: [scope] };
+      whereDispensers.AND = [...(whereDispensers.AND || []), scope];
     }
+
+    const TIMELINE_MONTHS = 6;
 
     const [tickets, repairs, dispensers] = await Promise.all([
       prisma.ticket.findMany({
-        where: whereTickets,
+        where: { ...whereTickets, resolvedAt: { not: null } },
+        select: { dispenserId: true, createdAt: true, resolvedAt: true },
       }),
       prisma.dispenserRepairHistory.findMany({
         where: whereRepairs,
@@ -85,45 +75,64 @@ export async function GET(req: Request) {
           maintenanceSchedules: {
             include: { checklist: true },
             orderBy: { scheduledMonth: 'desc' },
-            take: 5,
+            // 5 para el promedio de condición + margen para reconstruir los meses del historial
+            take: 5 + TIMELINE_MONTHS,
           },
         },
       }),
     ]);
 
-    const dispenserHealth = dispensers.map(d => {
+    const repairsByDispenser = new Map<string, typeof repairs>();
+    for (const r of repairs) {
+      const list = repairsByDispenser.get(r.dispenserId) || [];
+      list.push(r);
+      repairsByDispenser.set(r.dispenserId, list);
+    }
+    const ticketsByDispenser = new Map<string, typeof tickets>();
+    for (const t of tickets) {
+      if (!t.dispenserId) continue;
+      const list = ticketsByDispenser.get(t.dispenserId) || [];
+      list.push(t);
+      ticketsByDispenser.set(t.dispenserId, list);
+    }
+
+    const monthKey = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+
+    /**
+     * Calcula el score de salud de un activo con la información disponible a una fecha dada.
+     * Sólo considera reparaciones, tickets resueltos y checklists anteriores a `asOf`.
+     */
+    const computeHealth = (d: typeof dispensers[number], asOf: Date) => {
+      const asOfMonth = monthKey(asOf);
       const lastMaintenances = d.maintenanceSchedules
-        .map(s => s.checklist)
-        .filter(Boolean);
-      
-      const avgCondition = lastMaintenances.length > 0 
-        ? lastMaintenances.reduce((acc, curr) => acc + ratingToValue(curr!.condicionGeneral), 0) / lastMaintenances.length
+        .filter(s => s.scheduledMonth <= asOfMonth && s.checklist)
+        .slice(0, 5)
+        .map(s => s.checklist!);
+
+      const avgCondition = lastMaintenances.length > 0
+        ? lastMaintenances.reduce((acc, curr) => acc + ratingToValue(curr.condicionGeneral), 0) / lastMaintenances.length
         : 100;
 
-      const dispenserRepairs = repairs.filter(r => r.dispenserId === d.id);
-      const recentRecurrences = dispenserRepairs.filter(r => getDiffDays(r.startDate, new Date()) < 180).length;
+      const dispenserRepairs = (repairsByDispenser.get(d.id) || []).filter(r => r.startDate <= asOf);
+      const recentRecurrences = dispenserRepairs.filter(r => getDiffDays(r.startDate, asOf) < 180).length;
 
       let mtbfDays = 0;
       let mtbfCount = 0;
       for (let i = 1; i < dispenserRepairs.length; i++) {
-        const prevEnd = dispenserRepairs[i-1].endDate || dispenserRepairs[i-1].startDate;
-        const currentStart = dispenserRepairs[i].startDate;
-        mtbfDays += getDiffDays(prevEnd, currentStart);
+        const prev = dispenserRepairs[i - 1];
+        const prevEnd = prev.endDate && prev.endDate <= asOf ? prev.endDate : prev.startDate;
+        mtbfDays += getDiffDays(prevEnd, dispenserRepairs[i].startDate);
         mtbfCount++;
       }
-      const avgMtbf = mtbfCount > 0 ? mtbfDays / mtbfCount : 180; // default 6 months if no recurrences
+      const avgMtbf = mtbfCount > 0 ? mtbfDays / mtbfCount : 180; // 6 meses por defecto si no hay recurrencias
 
-      let mttrHours = 0;
-      let mttrCount = 0;
-      const dispenserTickets = tickets.filter(t => t.dispenserId === d.id && t.resolvedAt);
-      dispenserTickets.forEach(t => {
-        mttrHours += getDiffHours(t.createdAt, t.resolvedAt!);
-        mttrCount++;
-      });
-      const avgMttr = mttrCount > 0 ? mttrHours / mttrCount : 0;
+      const resolved = (ticketsByDispenser.get(d.id) || []).filter(t => t.resolvedAt! <= asOf);
+      const avgMttr = resolved.length > 0
+        ? resolved.reduce((acc, t) => acc + getDiffHours(t.createdAt, t.resolvedAt!), 0) / resolved.length
+        : 0;
 
-      const ageMonths = getDiffDays(d.createdAt, new Date()) / 30;
-      const progress = Math.min(1, ageMonths / d.lifecycleMonths);
+      const ageMonths = getDiffDays(d.createdAt, asOf) / 30;
+      const progress = Math.min(1, Math.max(0, ageMonths / d.lifecycleMonths));
 
       const score = calculateDispenserHealth({
         mtbfMonths: avgMtbf / 30,
@@ -135,6 +144,13 @@ export async function GET(req: Request) {
         criticality: d.criticality,
       });
 
+      return { score, avgMtbf, avgMttr, recentRecurrences, avgCondition, progress };
+    };
+
+    const now = new Date();
+
+    const dispenserHealth = dispensers.map(d => {
+      const h = computeHealth(d, now);
       return {
         id: d.id,
         equipmentType: d.equipmentType,
@@ -143,33 +159,37 @@ export async function GET(req: Request) {
         modelo: d.modelo,
         serial: d.numeroSerie || 'S/N',
         planta: d.location?.plant?.nombre ? `${d.location.plant.nombre}${d.location.sector ? ` - ${d.location.sector.nombre}` : ''}` : 'Sin Planta',
-        score,
-        status: score > 80 ? 'ÓPTIMO' : score >= 50 ? 'ESTABLE' : 'CRÍTICO',
+        score: h.score,
+        status: h.score > 80 ? 'ÓPTIMO' : h.score >= 50 ? 'ESTABLE' : 'CRÍTICO',
         details: {
           ownerPlantId: d.plantId,
           currentPlantId: d.location?.plantId,
-          mtbfDays: Math.round(avgMtbf),
-          mtbfMonths: Math.round((avgMtbf / 30) * 10) / 10,
-          mttrHours: Math.round(avgMttr * 10) / 10,
-          recurrences: recentRecurrences,
-          condition: Math.round(avgCondition),
-          progress: Math.round(progress * 100)
+          mtbfDays: Math.round(h.avgMtbf),
+          mtbfMonths: Math.round((h.avgMtbf / 30) * 10) / 10,
+          mttrHours: Math.round(h.avgMttr * 10) / 10,
+          recurrences: h.recentRecurrences,
+          condition: Math.round(h.avgCondition),
+          progress: Math.round(h.progress * 100)
         }
       };
     }).sort((a, b) => a.score - b.score);
 
-    const currentGlobalScore = dispenserHealth.length > 0 
-      ? Math.round(dispenserHealth.reduce((acc, curr) => acc + curr.score, 0) / dispenserHealth.length)
-      : 100;
-
-    const timeline = Array.from({ length: 6 }).map((_, i) => {
-      const d = new Date();
-      d.setMonth(d.getMonth() - (5 - i));
-      const month = d.toLocaleString('es-ES', { month: 'short' });
-      const score = Math.max(0, Math.min(100, currentGlobalScore + (Math.sin(i) * 3)));
+    // Evolución real: score promedio de la flota existente al cierre de cada mes
+    // (el mes en curso se calcula a la fecha de hoy). Sin activos dados de alta → sin dato.
+    const timeline = Array.from({ length: TIMELINE_MONTHS }).map((_, i) => {
+      const offset = TIMELINE_MONTHS - 1 - i;
+      const asOf = offset === 0
+        ? now
+        : new Date(now.getFullYear(), now.getMonth() - offset + 1, 0, 23, 59, 59, 999);
+      const fleet = dispensers.filter(d => d.createdAt <= asOf);
+      const score = fleet.length > 0
+        ? Math.round(fleet.reduce((acc, d) => acc + computeHealth(d, asOf).score, 0) / fleet.length)
+        : null;
+      const label = asOf.toLocaleString('es-AR', { month: 'short' }).replace('.', '');
       return {
-        month: month.charAt(0).toUpperCase() + month.slice(1),
-        score: Math.round(score)
+        month: label.charAt(0).toUpperCase() + label.slice(1),
+        score,
+        assets: fleet.length,
       };
     });
 

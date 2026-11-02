@@ -13,6 +13,7 @@ import PageHeader from '@/components/ui/PageHeader';
 import Panel from '@/components/ui/Panel';
 import FilterBar, { FieldIcon } from '@/components/ui/FilterBar';
 import EmptyState from '@/components/ui/EmptyState';
+import ConfirmModal from '@/components/ConfirmModal';
 import { CHART, chartTooltip, chartAxis, areaFill } from '@/lib/chartTheme';
 import ReactECharts from 'echarts-for-react';
 import { useQuery } from '@tanstack/react-query';
@@ -24,6 +25,8 @@ function SaludContent() {
   const [isExporting, setIsExporting] = useState(false);
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [toDelete, setToDelete] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const { role } = useAuthStore();
 
   useEffect(() => {
@@ -63,21 +66,28 @@ function SaludContent() {
     }
   });
 
-  const handleDeleteDispenser = async (id: string, e: React.MouseEvent) => {
+  const handleDeleteDispenser = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!confirm('¿Está seguro de eliminar permanentemente este equipo?')) return;
+    setToDelete(id);
+  };
 
+  const confirmDelete = async () => {
+    if (!toDelete) return;
+    setIsDeleting(true);
     try {
-      const res = await fetch(`/api/dispensers/${id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/dispensers/${toDelete}`, { method: 'DELETE' });
       if (res.ok) {
-        toast.success('Equipo eliminado exitosamente');
+        toast.success('Activo eliminado');
         fetchAnalytics();
       } else {
-        const err = await res.json();
+        const err = await res.json().catch(() => ({}));
         toast.error(err.error || 'Error al eliminar');
       }
-    } catch (error) {
+    } catch {
       toast.error('Error de red al eliminar');
+    } finally {
+      setIsDeleting(false);
+      setToDelete(null);
     }
   };
 
@@ -120,6 +130,8 @@ function SaludContent() {
       default: return 'text-muted-foreground bg-muted-foreground/10';
     }
   };
+
+  const STATUS_LABEL: Record<string, string> = { 'ÓPTIMO': 'Óptimo', 'ESTABLE': 'Estable', 'CRÍTICO': 'Crítico' };
 
   const isStaff = role === 'ADMIN' || role === 'SUPERVISOR' || role === 'TECHNICIAN';
 
@@ -208,15 +220,24 @@ function SaludContent() {
             </Panel>
 
             <Panel
-              title="Score global"
-              description="Serie estimada a partir del score actual."
+              title="Evolución del score global"
+              description="Promedio de la flota al cierre de cada mes (últimos 6 meses)."
               className="lg:col-span-2"
               bodyClassName="h-[200px]"
             >
               <ReactECharts
                 option={{
                   textStyle: { fontFamily: CHART.font },
-                  tooltip: { trigger: 'axis', ...chartTooltip },
+                  tooltip: {
+                    trigger: 'axis',
+                    ...chartTooltip,
+                    formatter: (params: any) => {
+                      const p = Array.isArray(params) ? params[0] : params;
+                      const point = data.timeline[p.dataIndex] || {};
+                      if (point.score === null || point.score === undefined) return `${p.name}<br/>Sin activos registrados`;
+                      return `${p.name}<br/>Score: <b>${point.score}</b><br/>Activos evaluados: ${point.assets ?? '—'}`;
+                    },
+                  },
                   grid: { top: 8, right: 8, left: 4, bottom: 4, containLabel: true },
                   xAxis: { type: 'category', data: data.timeline.map((d: any) => d.month), ...chartAxis, splitLine: { show: false } },
                   yAxis: { type: 'value', min: 0, max: 100, ...chartAxis },
@@ -227,9 +248,17 @@ function SaludContent() {
                       type: 'line',
                       symbol: 'circle',
                       symbolSize: 5,
+                      connectNulls: false,
                       itemStyle: { color: CHART.primary },
                       lineStyle: { width: 2 },
                       areaStyle: { color: areaFill(CHART.primary) },
+                      markLine: {
+                        silent: true,
+                        symbol: 'none',
+                        label: { show: false },
+                        lineStyle: { type: 'dashed', width: 1, color: CHART.axis },
+                        data: [{ yAxis: 80 }, { yAxis: 50 }],
+                      },
                     },
                   ],
                 }}
@@ -319,7 +348,7 @@ function SaludContent() {
                         </td>
                         <td className="hidden text-center sm:table-cell">
                           <span className={`badge ${getStatusColor(h.status)}`}>
-                            {h.status}
+                            {STATUS_LABEL[h.status] || h.status}
                           </span>
                         </td>
                         <td className="text-right">
@@ -430,6 +459,18 @@ function SaludContent() {
         </>
       ) : (
         <EmptyState icon={HeartPulse} title="No se pudieron cargar los datos" description="Intentá nuevamente en unos minutos." />
+      )}
+
+      {toDelete && (
+        <ConfirmModal
+          title="Eliminar activo"
+          description={`¿Eliminar el activo ${toDelete}? Esta acción no se puede deshacer.`}
+          confirmLabel="Eliminar"
+          onConfirm={confirmDelete}
+          onClose={() => setToDelete(null)}
+          isLoading={isDeleting}
+          variant="danger"
+        />
       )}
     </div>
   );

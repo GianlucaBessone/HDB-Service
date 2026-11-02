@@ -53,7 +53,7 @@ La aplicación es funcionalmente completa, pero su capa visual transmite "planti
 ### 2.4 Integridad de datos (crítico)
 El resumen del dashboard mostraba `94%`, `18.4h` y `42` como valores por defecto. Además, leía campos que **las APIs no devuelven** (`overallHealthScore`, `avgResolutionHours`, `completedTicketsThisMonth`…), por lo que **siempre** se veían esas cifras inventadas. **Corregido:** el dashboard ahora calcula los indicadores desde los campos reales (`ranking`, `distribution`, `kpis.sla/mttr/mtbf`) y muestra "—" cuando no hay dato.
 
-**Pendiente (backend):** `/api/dashboard/salud` genera la serie histórica del score con una función seno sobre el valor actual (no es histórico real). En la UI se rotuló como "Serie estimada a partir del score actual"; se recomienda persistir snapshots mensuales.
+Además, `/api/dashboard/salud` generaba la evolución mensual del score con una función seno sobre el valor actual (no era histórico real). **Corregido:** cada mes se reconstruye con los datos disponibles al cierre de ese mes (reparaciones, tickets resueltos, checklists y antigüedad de cada activo); los meses sin activos se muestran sin dato.
 
 ### 2.5 Funcionalidad rota o engañosa
 - `Ctrl/⌘ + K` sólo cerraba la paleta de comandos; nunca la abría.
@@ -104,4 +104,4 @@ El resumen del dashboard mostraba `94%`, `18.4h` y `42` como valores por defecto
 - Pruebas de usabilidad con 3–5 técnicos en campo (escaneo QR + checklist).
 - Auditoría de contraste automática (axe) en CI.
 - Validar el isotipo con un diseñador (los íconos PWA ya se regeneraron con el monograma provisorio).
-- Reemplazar la serie sintética de `/api/dashboard/salud` por histórico real.
+- Si se modifica la fórmula de salud, el historial reconstruido cambiará retroactivamente; si se necesita congelar valores, persistir snapshots mensuales.
