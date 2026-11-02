@@ -1,26 +1,17 @@
-'use client';
-
-import React from 'react';
-import { Loader2 } from 'lucide-react';
-
 export default function Loading() {
   return (
-    <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 w-full animate-fade-in">
-      <div className="relative flex items-center justify-center">
-        {/* Pulsing glow background */}
-        <div className="absolute w-16 h-16 rounded-full bg-primary/20 animate-ping-slow" />
-        <div className="relative p-4 bg-primary/10 rounded-2xl border border-primary/20 backdrop-blur-md">
-          <Loader2 className="w-8 h-8 text-primary animate-spin" />
-        </div>
+    <div className="space-y-6 animate-fade-in" aria-busy="true" aria-live="polite">
+      <span className="sr-only">Cargando…</span>
+      <div className="space-y-2">
+        <div className="skeleton h-7 w-56" />
+        <div className="skeleton h-4 w-80 max-w-full" />
       </div>
-      <div className="flex flex-col items-center gap-1.5 text-center">
-        <h3 className="font-semibold text-lg text-foreground tracking-tight">
-          Cargando sección
-        </h3>
-        <p className="text-sm text-muted-foreground max-w-[280px]">
-          Por favor espere un momento mientras preparamos la información.
-        </p>
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="skeleton h-[104px] rounded-lg" />
+        ))}
       </div>
+      <div className="skeleton h-72 rounded-lg" />
     </div>
   );
 }

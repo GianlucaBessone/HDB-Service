@@ -38,11 +38,11 @@ export default function DispenserQRModal({ dispenserId, onClose }: DispenserQRMo
   }, [dispenserId]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-card rounded-2xl shadow-2xl border border-border w-full max-w-sm overflow-hidden flex flex-col">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-muted/30">
-          <h2 className="text-lg font-bold">Código QR del Equipo</h2>
-          <button onClick={onClose} className="p-2 hover:bg-accent rounded-full transition-colors text-muted-foreground">
+    <div className="modal-overlay">
+      <div className="modal-content max-w-sm flex flex-col overflow-hidden">
+        <div className="modal-header">
+          <h2>Código QR del equipo</h2>
+          <button type="button" onClick={onClose} className="modal-close" aria-label="Cerrar">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -55,7 +55,7 @@ export default function DispenserQRModal({ dispenserId, onClose }: DispenserQRMo
             </div>
           ) : (
             <div className="flex flex-col items-center space-y-6">
-              <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+              <div className="bg-white p-4 rounded-xl shadow-sm border border-border">
                 <img src={qrDataUrl} alt={`Código QR para Equipo ${dispenserId}`} className="w-48 h-48" />
               </div>
               <p className="text-sm font-mono text-muted-foreground font-medium">{dispenserId}</p>

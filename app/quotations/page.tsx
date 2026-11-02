@@ -78,15 +78,15 @@ export default function QuotationsPage() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'APPROVED':
-        return <span className="badge bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 font-bold">Aprobado (OC)</span>;
+        return <span className="badge bg-success/10 text-success border border-success/20 font-bold">Aprobado (OC)</span>;
       case 'SENT':
-        return <span className="badge bg-blue-500/10 text-blue-600 border border-blue-500/20 font-bold">Enviado al Cliente</span>;
+        return <span className="badge bg-info/10 text-info border border-info/20 font-bold">Enviado al cliente</span>;
       case 'REJECTED':
-        return <span className="badge bg-red-500/10 text-red-600 border border-red-500/20 font-bold">Rechazado</span>;
+        return <span className="badge bg-destructive/10 text-destructive border border-destructive/20 font-bold">Rechazado</span>;
       case 'CANCELLED':
         return <span className="badge bg-muted text-muted-foreground font-bold">Cancelado</span>;
       default:
-        return <span className="badge bg-amber-500/10 text-amber-600 border border-amber-500/20 font-bold">Borrador</span>;
+        return <span className="badge bg-warning/10 text-warning border border-warning/20 font-bold">Borrador</span>;
     }
   };
 
@@ -99,7 +99,7 @@ export default function QuotationsPage() {
             <div className="p-2.5 bg-primary/10 rounded-2xl text-primary">
               <FileText className="w-7 h-7" />
             </div>
-            Presupuestos & Órdenes de Compra
+            Presupuestos & órdenes de compra
           </h1>
           <p className="text-muted-foreground mt-1">
             Cotizaciones de reparaciones mayores, mano de obra y aprobación de OC de clientes
@@ -108,7 +108,7 @@ export default function QuotationsPage() {
         {canWrite && (
           <button onClick={() => setIsCreateOpen(true)} className="btn-primary gap-2 shrink-0">
             <Plus className="w-5 h-5" />
-            Nueva Cotización
+            Nueva cotización
           </button>
         )}
       </div>
@@ -120,12 +120,12 @@ export default function QuotationsPage() {
             <FileText className="w-6 h-6" />
           </div>
           <div>
-            <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Total Presupuestos</p>
+            <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Total presupuestos</p>
             <p className="text-2xl font-bold mt-0.5">{kpis.total}</p>
           </div>
         </div>
         <div className="glass-card p-4 flex items-center gap-4">
-          <div className="p-3 bg-emerald-500/10 text-emerald-600 rounded-xl">
+          <div className="p-3 bg-success/10 text-success rounded-xl">
             <CheckCircle2 className="w-6 h-6" />
           </div>
           <div>
@@ -134,7 +134,7 @@ export default function QuotationsPage() {
           </div>
         </div>
         <div className="glass-card p-4 flex items-center gap-4">
-          <div className="p-3 bg-amber-500/10 text-amber-600 rounded-xl">
+          <div className="p-3 bg-warning/10 text-warning rounded-xl">
             <Clock className="w-6 h-6" />
           </div>
           <div>
@@ -143,11 +143,11 @@ export default function QuotationsPage() {
           </div>
         </div>
         <div className="glass-card p-4 flex items-center gap-4">
-          <div className="p-3 bg-emerald-500/10 text-emerald-600 rounded-xl">
+          <div className="p-3 bg-success/10 text-success rounded-xl">
             <DollarSign className="w-6 h-6" />
           </div>
           <div>
-            <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Monto Facturable OC</p>
+            <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Monto facturable OC</p>
             <p className="text-xl font-bold mt-0.5 font-mono">
               $ {kpis.approvedTotal.toLocaleString()}
             </p>
@@ -174,7 +174,7 @@ export default function QuotationsPage() {
             onChange={e => setClientFilter(e.target.value)}
             className="select pl-10 min-w-[180px]"
           >
-            <option value="">Todas las Empresas</option>
+            <option value="">Todas las empresas</option>
             {clients.map((c: any) => (
               <option key={c.id} value={c.id}>{c.nombre}</option>
             ))}
@@ -239,7 +239,7 @@ export default function QuotationsPage() {
 
                     {q.ticket && (
                       <span className="flex items-center gap-1">
-                        <Wrench className="w-3.5 h-3.5 text-amber-500" />
+                        <Wrench className="w-3.5 h-3.5 text-warning" />
                         Ticket: <span className="font-mono">{q.ticket.id.slice(-6)}</span> ({q.ticket.reason})
                       </span>
                     )}
@@ -254,7 +254,7 @@ export default function QuotationsPage() {
 
                 <div className="flex flex-row md:flex-col items-end justify-between md:justify-center gap-3 shrink-0 border-t md:border-t-0 pt-3 md:pt-0 border-border">
                   <div className="text-right">
-                    <p className="text-[10px] uppercase font-bold text-muted-foreground">Total Presupuestado</p>
+                    <p className="text-2xs uppercase font-bold text-muted-foreground">Total presupuestado</p>
                     <p className="text-xl font-bold font-mono text-foreground">
                       {q.moneda} $ {q.total.toLocaleString()}
                     </p>
@@ -265,7 +265,7 @@ export default function QuotationsPage() {
                       onClick={() => setViewingQuote(q)}
                       className="btn-outline btn-sm text-xs"
                     >
-                      Ver Detalle
+                      Ver detalle
                     </button>
                     {canApprove && q.status !== 'APPROVED' && (
                       <button 
@@ -393,24 +393,23 @@ function CreateQuotationModal({ onClose, onSuccess }: { onClose: () => void; onS
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in">
-      <div className="w-full max-w-2xl bg-card border border-border rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 max-h-[90vh] flex flex-col">
+    <div className="modal-overlay">
+      <div className="modal-content max-w-2xl flex flex-col overflow-hidden">
         <div className="p-5 border-b border-border bg-muted/30 flex items-center justify-between">
-          <h2 className="text-lg font-bold flex items-center gap-2">
-            <FileText className="w-5 h-5 text-primary" />
-            Nuevo Presupuesto Técnico
+          <h2 className="text-base font-semibold">
+            Nuevo presupuesto técnico
           </h2>
-          <button onClick={onClose} className="p-2 hover:bg-accent rounded-full transition-colors text-muted-foreground">
+          <button type="button" onClick={onClose} className="modal-close" aria-label="Cerrar">
             <X className="w-5 h-5" />
           </button>
         </div>
 
         <form onSubmit={handleSave} className="p-6 space-y-4 overflow-y-auto flex-1 text-sm">
           <div>
-            <label className="text-xs font-semibold block mb-1">Título del Trabajo / Presupuesto *</label>
+            <label className="text-xs font-semibold block mb-1">Título del trabajo / presupuesto *</label>
             <input
               className="input w-full"
-              placeholder="Ej. Cambio de compresor 4500 Fg y presurización R410A"
+              placeholder="Ej. Cambio de compresor 4500 fg y presurización R410A"
               value={titulo}
               onChange={e => setTitulo(e.target.value)}
               required
@@ -421,7 +420,7 @@ function CreateQuotationModal({ onClose, onSuccess }: { onClose: () => void; onS
             <div>
               <label className="text-xs font-semibold block mb-1 flex items-center gap-1">
                 <Building2 className="w-3.5 h-3.5 text-primary" />
-                Empresa / Cliente *
+                Empresa / cliente *
               </label>
               <select
                 className="select w-full"
@@ -433,14 +432,14 @@ function CreateQuotationModal({ onClose, onSuccess }: { onClose: () => void; onS
                 }}
                 required
               >
-                <option value="">Seleccionar Empresa...</option>
+                <option value="">Seleccionar empresa...</option>
                 {clients.map(c => (
                   <option key={c.id} value={c.id}>{c.nombre}</option>
                 ))}
               </select>
             </div>
             <div>
-              <label className="text-xs font-semibold block mb-1">Equipo / Activo Asociado (Opcional)</label>
+              <label className="text-xs font-semibold block mb-1">Equipo / activo asociado (opcional)</label>
               <select
                 className="select w-full text-xs"
                 value={dispenserId}
@@ -454,7 +453,7 @@ function CreateQuotationModal({ onClose, onSuccess }: { onClose: () => void; onS
                   }
                 }}
               >
-                <option value="">Ninguno / Intervención General</option>
+                <option value="">Ninguno / intervención general</option>
                 {assets
                   .filter(a => {
                     if (!clientId) return true;
@@ -473,13 +472,13 @@ function CreateQuotationModal({ onClose, onSuccess }: { onClose: () => void; onS
           <div>
             <label className="text-xs font-semibold block mb-1">Moneda</label>
             <select className="select w-full" value={moneda} onChange={e => setMoneda(e.target.value)}>
-              <option value="ARS">Pesos Argentinos (ARS)</option>
-              <option value="USD">Dólares Estadounidenses (USD)</option>
+              <option value="ARS">Pesos argentinos (ARS)</option>
+              <option value="USD">Dólares estadounidenses (USD)</option>
             </select>
           </div>
 
           <div>
-            <label className="text-xs font-semibold block mb-1">Descripción y Justificación Técnica</label>
+            <label className="text-xs font-semibold block mb-1">Descripción y justificación técnica</label>
             <textarea
               className="textarea w-full text-xs"
               rows={2}
@@ -492,8 +491,8 @@ function CreateQuotationModal({ onClose, onSuccess }: { onClose: () => void; onS
           {/* Items breakdown */}
           <div className="space-y-3 pt-2">
             <div className="flex items-center justify-between">
-              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                Desglose de Mano de Obra, Repuestos e Insumos
+              <label className="eyebrow">
+                Desglose de mano de obra, repuestos e insumos
               </label>
               <button 
                 type="button" 
@@ -538,7 +537,7 @@ function CreateQuotationModal({ onClose, onSuccess }: { onClose: () => void; onS
                     <button 
                       type="button" 
                       onClick={() => removeItemRow(idx)}
-                      className="p-1.5 hover:bg-red-50 text-red-500 rounded-lg shrink-0"
+                      className="p-1.5 hover:bg-destructive/10 text-destructive rounded-lg shrink-0"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -548,7 +547,7 @@ function CreateQuotationModal({ onClose, onSuccess }: { onClose: () => void; onS
             </div>
 
             <div className="p-3 rounded-xl bg-primary/5 border border-primary/20 flex justify-between items-center text-sm">
-              <span className="font-bold">Total Cotizado Estimado:</span>
+              <span className="font-bold">Total cotizado estimado:</span>
               <span className="text-lg font-bold font-mono text-primary">
                 {moneda} $ {totalCalculated.toLocaleString()}
               </span>
@@ -606,11 +605,11 @@ function ApproveOcModal({ quote, onClose, onSuccess }: { quote: any; onClose: ()
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in">
-      <div className="w-full max-w-md bg-card border border-border rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95">
+    <div className="modal-overlay">
+      <div className="modal-content max-w-md">
         <div className="p-5 border-b border-border bg-muted/30 flex items-center justify-between">
           <h2 className="text-base font-bold flex items-center gap-2">
-            <FileCheck className="w-5 h-5 text-emerald-600" />
+            <FileCheck className="w-5 h-5 text-success" />
             Vincular Orden de Compra (OC)
           </h2>
           <button onClick={onClose} className="p-2 hover:bg-accent rounded-full text-muted-foreground">
@@ -627,7 +626,7 @@ function ApproveOcModal({ quote, onClose, onSuccess }: { quote: any; onClose: ()
           </div>
 
           <div>
-            <label className="text-xs font-semibold block mb-1">N° de Orden de Compra (OC del Cliente) *</label>
+            <label className="text-xs font-semibold block mb-1">N° de orden de compra (OC del cliente) *</label>
             <input
               className="input w-full uppercase font-mono font-bold"
               placeholder="Ej. OC-2026-9844 / PO-450123"
@@ -639,7 +638,7 @@ function ApproveOcModal({ quote, onClose, onSuccess }: { quote: any; onClose: ()
           </div>
 
           <div>
-            <label className="text-xs font-semibold block mb-1">Contacto que Autoriza / Aprueba</label>
+            <label className="text-xs font-semibold block mb-1">Contacto que autoriza / aprueba</label>
             <input
               className="input w-full"
               placeholder="Nombre y cargo de quien aprobó"
@@ -649,7 +648,7 @@ function ApproveOcModal({ quote, onClose, onSuccess }: { quote: any; onClose: ()
           </div>
 
           <div>
-            <label className="text-xs font-semibold block mb-1">Notas de la OC (Opcional)</label>
+            <label className="text-xs font-semibold block mb-1">Notas de la OC (opcional)</label>
             <textarea
               className="textarea w-full text-xs"
               rows={2}
@@ -676,11 +675,11 @@ function ApproveOcModal({ quote, onClose, onSuccess }: { quote: any; onClose: ()
 function ViewQuoteModal({ quote, onClose }: { quote: any; onClose: () => void }) {
   const items = Array.isArray(quote.items) ? quote.items : [];
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in">
-      <div className="w-full max-w-lg bg-card border border-border rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95">
+    <div className="modal-overlay">
+      <div className="modal-content max-w-lg">
         <div className="p-5 border-b border-border bg-muted/30 flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-bold">{quote.titulo}</h2>
+            <h2>{quote.titulo}</h2>
             <p className="text-xs text-muted-foreground mt-0.5">Cliente: {quote.client?.nombre}</p>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-accent rounded-full text-muted-foreground">
@@ -690,10 +689,10 @@ function ViewQuoteModal({ quote, onClose }: { quote: any; onClose: () => void })
 
         <div className="p-6 space-y-4 text-sm max-h-[70vh] overflow-y-auto">
           {quote.orderNumber && (
-            <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-emerald-800 dark:text-emerald-300 text-xs flex items-center justify-between">
+            <div className="p-3 bg-success/10 border border-success/30 rounded-xl text-success text-xs flex items-center justify-between">
               <div>
                 <p className="font-bold">Orden de Compra: {quote.orderNumber}</p>
-                <p className="text-[11px] opacity-80">Aprobado por: {quote.approvedBy || 'Cliente'}</p>
+                <p className="text-2xs opacity-80">Aprobado por: {quote.approvedBy || 'Cliente'}</p>
               </div>
               <CheckCircle2 className="w-5 h-5" />
             </div>
@@ -707,7 +706,7 @@ function ViewQuoteModal({ quote, onClose }: { quote: any; onClose: () => void })
           )}
 
           <div>
-            <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground block mb-2">
+            <span className="eyebrow block mb-2">
               Ítems Presupuestados ({items.length})
             </span>
             <div className="space-y-2">
@@ -715,7 +714,7 @@ function ViewQuoteModal({ quote, onClose }: { quote: any; onClose: () => void })
                 <div key={i} className="flex justify-between items-center p-2.5 rounded-lg border border-border bg-muted/10 text-xs">
                   <div>
                     <p className="font-semibold text-foreground">{it.description}</p>
-                    <p className="text-muted-foreground text-[11px]">Cantidad: {it.quantity} × $ {Number(it.unitPrice).toLocaleString()}</p>
+                    <p className="text-muted-foreground text-2xs">Cantidad: {it.quantity} × $ {Number(it.unitPrice).toLocaleString()}</p>
                   </div>
                   <span className="font-mono font-bold">
                     $ {(Number(it.quantity) * Number(it.unitPrice)).toLocaleString()}

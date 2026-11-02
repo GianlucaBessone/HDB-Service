@@ -145,7 +145,7 @@ export default function FieldEquipmentQuickHub({ params }: { params: Promise<{ i
   if (error || !equipment) {
     return (
       <div className="max-w-md mx-auto my-12 p-6 glass-card text-center space-y-4">
-        <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 text-red-600 flex items-center justify-center mx-auto">
+        <div className="w-12 h-12 rounded-full bg-destructive/10 text-destructive flex items-center justify-center mx-auto">
           <AlertTriangle className="w-6 h-6" />
         </div>
         <h2 className="text-xl font-bold">Activo no encontrado</h2>
@@ -154,7 +154,7 @@ export default function FieldEquipmentQuickHub({ params }: { params: Promise<{ i
           onClick={() => router.push('/qr/scan')}
           className="btn-primary w-full py-2.5 text-sm"
         >
-          Volver a Escanear
+          Volver a escanear
         </button>
       </div>
     );
@@ -167,11 +167,11 @@ export default function FieldEquipmentQuickHub({ params }: { params: Promise<{ i
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'ACTIVO':
-        return <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20"><span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> En Servicio</span>;
+        return <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-success/10 text-success border border-success/20"><span className="w-2 h-2 rounded-full bg-success animate-pulse"></span> En servicio</span>;
       case 'EN_REPARACION':
-        return <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-500/10 text-amber-600 border border-amber-500/20"><span className="w-2 h-2 rounded-full bg-amber-500"></span> En Taller / Reparación</span>;
+        return <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-warning/10 text-warning border border-warning/20"><span className="w-2 h-2 rounded-full bg-warning"></span> En taller / reparación</span>;
       case 'BLOQUEADO':
-        return <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-red-500/10 text-red-600 border border-red-500/20"><span className="w-2 h-2 rounded-full bg-red-500"></span> Fuera de Servicio / Bloqueado</span>;
+        return <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-destructive/10 text-destructive border border-destructive/20"><span className="w-2 h-2 rounded-full bg-destructive"></span> Fuera de servicio / bloqueado</span>;
       default:
         return <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-muted text-muted-foreground">{status}</span>;
     }
@@ -189,7 +189,7 @@ export default function FieldEquipmentQuickHub({ params }: { params: Promise<{ i
           <ArrowLeft className="w-4 h-4" /> Escáner QR
         </button>
         <span className="text-xs uppercase font-bold tracking-wider text-primary bg-primary/10 px-2.5 py-1 rounded-full">
-          Ficha Rápida en Planta
+          Ficha rápida en planta
         </span>
       </div>
 
@@ -202,7 +202,7 @@ export default function FieldEquipmentQuickHub({ params }: { params: Promise<{ i
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-2xl font-black tracking-tight">{equipment.id}</h1>
+                <h1 className="text-2xl font-bold tracking-tight">{equipment.id}</h1>
               </div>
               <p className="text-sm font-semibold text-foreground/90">
                 {equipment.marca} {equipment.modelo}
@@ -226,7 +226,7 @@ export default function FieldEquipmentQuickHub({ params }: { params: Promise<{ i
             </span>
           </div>
           <div className="flex items-center gap-2 text-muted-foreground">
-            <MapPin className="w-4 h-4 text-emerald-500 shrink-0" />
+            <MapPin className="w-4 h-4 text-success shrink-0" />
             <span className="truncate font-medium text-foreground">
               {equipment.location?.nombre || 'Sin ubicación específica'}
             </span>
@@ -236,8 +236,8 @@ export default function FieldEquipmentQuickHub({ params }: { params: Promise<{ i
 
       {/* Primary Action Buttons (Touch-friendly 1-Tap) */}
       <div className="space-y-3">
-        <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground px-1">
-          Acciones Operativas Inmediatas
+        <h2 className="eyebrow px-1">
+          Acciones operativas inmediatas
         </h2>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
@@ -246,12 +246,12 @@ export default function FieldEquipmentQuickHub({ params }: { params: Promise<{ i
             href={`/maintenance?equipmentId=${equipment.id}`}
             className="p-4 rounded-2xl bg-card border border-border/80 hover:border-primary hover:shadow-lg transition-all flex items-center gap-4 group"
           >
-            <div className="w-12 h-12 rounded-xl bg-blue-500/10 text-blue-500 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+            <div className="w-12 h-12 rounded-xl bg-info/10 text-info flex items-center justify-center shrink-0 transition-transform">
               <Wrench className="w-6 h-6" />
             </div>
             <div>
               <h3 className="font-bold text-sm text-foreground group-hover:text-primary transition-colors">
-                Mantenimiento Técnico
+                Mantenimiento técnico
               </h3>
               <p className="text-xs text-muted-foreground">
                 Completar checklist y protocolo de servicio
@@ -262,14 +262,14 @@ export default function FieldEquipmentQuickHub({ params }: { params: Promise<{ i
           {/* Action 2: Reportar Falla */}
           <button
             onClick={() => setIsTicketModalOpen(true)}
-            className="p-4 rounded-2xl bg-card border border-border/80 hover:border-amber-500 hover:shadow-lg transition-all flex items-center gap-4 group text-left w-full"
+            className="p-4 rounded-2xl bg-card border border-border/80 hover:border-warning hover:shadow-lg transition-all flex items-center gap-4 group text-left w-full"
           >
-            <div className="w-12 h-12 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+            <div className="w-12 h-12 rounded-xl bg-warning/10 text-warning flex items-center justify-center shrink-0 transition-transform">
               <AlertTriangle className="w-6 h-6" />
             </div>
             <div>
-              <h3 className="font-bold text-sm text-foreground group-hover:text-amber-500 transition-colors">
-                Reportar Falla / Ticket
+              <h3 className="font-bold text-sm text-foreground group-hover:text-warning transition-colors">
+                Reportar falla / ticket
               </h3>
               <p className="text-xs text-muted-foreground">
                 Avería, pérdida, alarma o sonido anormal
@@ -280,14 +280,14 @@ export default function FieldEquipmentQuickHub({ params }: { params: Promise<{ i
           {/* Action 3: Registrar Mediciones */}
           <button
             onClick={() => setIsMeasurementModalOpen(true)}
-            className="p-4 rounded-2xl bg-card border border-border/80 hover:border-emerald-500 hover:shadow-lg transition-all flex items-center gap-4 group text-left w-full"
+            className="p-4 rounded-2xl bg-card border border-border/80 hover:border-success hover:shadow-lg transition-all flex items-center gap-4 group text-left w-full"
           >
-            <div className="w-12 h-12 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+            <div className="w-12 h-12 rounded-xl bg-success/10 text-success flex items-center justify-center shrink-0 transition-transform">
               <Gauge className="w-6 h-6" />
             </div>
             <div>
-              <h3 className="font-bold text-sm text-foreground group-hover:text-emerald-500 transition-colors">
-                Asentar Mediciones
+              <h3 className="font-bold text-sm text-foreground group-hover:text-success transition-colors">
+                Asentar mediciones
               </h3>
               <p className="text-xs text-muted-foreground">
                 Presiones, temperaturas y amperajes
@@ -298,13 +298,13 @@ export default function FieldEquipmentQuickHub({ params }: { params: Promise<{ i
           {/* Action 4: Ficha Completa Desktop */}
           <Link
             href={`/dispensers/${equipment.id}`}
-            className="p-4 rounded-2xl bg-card border border-border/80 hover:border-purple-500 hover:shadow-lg transition-all flex items-center gap-4 group"
+            className="p-4 rounded-2xl bg-card border border-border/80 hover:border-info hover:shadow-lg transition-all flex items-center gap-4 group"
           >
-            <div className="w-12 h-12 rounded-xl bg-purple-500/10 text-purple-500 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+            <div className="w-12 h-12 rounded-xl bg-info/10 text-info flex items-center justify-center shrink-0 transition-transform">
               <FileText className="w-6 h-6" />
             </div>
             <div>
-              <h3 className="font-bold text-sm text-foreground group-hover:text-purple-500 transition-colors flex items-center gap-1.5">
+              <h3 className="font-bold text-sm text-foreground group-hover:text-info transition-colors flex items-center gap-1.5">
                 Ficha Completa <ExternalLink className="w-3.5 h-3.5" />
               </h3>
               <p className="text-xs text-muted-foreground">
@@ -318,15 +318,15 @@ export default function FieldEquipmentQuickHub({ params }: { params: Promise<{ i
       {/* Technical Specifications Glance */}
       {equipment.technicalSpecs && Object.keys(equipment.technicalSpecs).length > 0 && (
         <div className="glass-card p-4 space-y-3">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-            Especificaciones Técnicas del Equipo
+          <h3 className="eyebrow">
+            Especificaciones técnicas del equipo
           </h3>
           <div className="grid grid-cols-2 gap-2 text-xs">
             {Object.entries(equipment.technicalSpecs)
               .filter(([k]) => k !== 'lastFieldReadings')
               .map(([key, value]: [string, any]) => (
                 <div key={key} className="p-2.5 rounded-xl bg-muted/40 border border-border/50">
-                  <span className="text-[11px] text-muted-foreground capitalize block truncate">
+                  <span className="text-2xs text-muted-foreground capitalize block truncate">
                     {key.replace(/([A-Z])/g, ' $1')}
                   </span>
                   <span className="font-bold text-foreground truncate block">
@@ -340,10 +340,10 @@ export default function FieldEquipmentQuickHub({ params }: { params: Promise<{ i
 
       {/* QUICK TICKET MODAL */}
       {isTicketModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-          <div className="bg-card border border-border rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4">
+        <div className="modal-overlay">
+          <div className="modal-content max-w-md p-6 space-y-4">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-amber-500">
+              <div className="flex items-center gap-2 text-warning">
                 <AlertTriangle className="w-5 h-5" />
                 <h3 className="font-bold text-lg text-foreground">Reportar Falla en {equipment.id}</h3>
               </div>
@@ -355,12 +355,12 @@ export default function FieldEquipmentQuickHub({ params }: { params: Promise<{ i
             <form onSubmit={handleCreateQuickTicket} className="space-y-4">
               <div>
                 <label className="text-xs font-bold text-muted-foreground block mb-1">
-                  Problema o Síntoma Detectado *
+                  Problema o síntoma detectado *
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder="Ej. No enfría / Pérdida de agua / Alarma de presión"
+                  placeholder="Ej. No enfría / pérdida de agua / alarma de presión"
                   value={ticketTitle}
                   onChange={e => setTicketTitle(e.target.value)}
                   className="input w-full text-sm"
@@ -369,17 +369,17 @@ export default function FieldEquipmentQuickHub({ params }: { params: Promise<{ i
 
               <div>
                 <label className="text-xs font-bold text-muted-foreground block mb-1">
-                  Severidad / Prioridad
+                  Severidad / prioridad
                 </label>
                 <select
                   value={ticketPriority}
                   onChange={e => setTicketPriority(e.target.value)}
                   className="select w-full text-sm"
                 >
-                  <option value="LOW">Baja (No urgente)</option>
-                  <option value="MEDIUM">Media (Falla parcial)</option>
-                  <option value="HIGH">Alta (Afecta operatividad)</option>
-                  <option value="CRITICAL">Crítica (Parada de planta / Cadena de frío)</option>
+                  <option value="LOW">Baja (no urgente)</option>
+                  <option value="MEDIUM">Media (falla parcial)</option>
+                  <option value="HIGH">Alta (afecta operatividad)</option>
+                  <option value="CRITICAL">Crítica (parada de planta / cadena de frío)</option>
                 </select>
               </div>
 
@@ -420,12 +420,12 @@ export default function FieldEquipmentQuickHub({ params }: { params: Promise<{ i
 
       {/* QUICK MEASUREMENTS MODAL */}
       {isMeasurementModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-          <div className="bg-card border border-border rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4">
+        <div className="modal-overlay">
+          <div className="modal-content max-w-md p-6 space-y-4">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-emerald-500">
+              <div className="flex items-center gap-2 text-success">
                 <Gauge className="w-5 h-5" />
-                <h3 className="font-bold text-lg text-foreground">Mediciones Operativas</h3>
+                <h3 className="font-bold text-lg text-foreground">Mediciones operativas</h3>
               </div>
               <button onClick={() => setIsMeasurementModalOpen(false)} className="text-muted-foreground hover:text-foreground">
                 <X className="w-5 h-5" />
@@ -433,7 +433,7 @@ export default function FieldEquipmentQuickHub({ params }: { params: Promise<{ i
             </div>
 
             <form onSubmit={handleSaveMeasurements} className="space-y-4">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div>
                   <label className="text-xs font-bold text-muted-foreground block mb-1">
                     Presión Succión (PSI)
@@ -462,7 +462,7 @@ export default function FieldEquipmentQuickHub({ params }: { params: Promise<{ i
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div>
                   <label className="text-xs font-bold text-muted-foreground block mb-1">
                     Temperatura (°C)
@@ -493,7 +493,7 @@ export default function FieldEquipmentQuickHub({ params }: { params: Promise<{ i
 
               <div>
                 <label className="text-xs font-bold text-muted-foreground block mb-1">
-                  Notas de Calibración
+                  Notas de calibración
                 </label>
                 <input
                   type="text"

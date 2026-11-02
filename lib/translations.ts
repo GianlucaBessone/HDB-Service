@@ -75,29 +75,40 @@ export function t(key: string | null | undefined): string {
  * Obtiene el color asociado a un estado (opcional, para centralizar visuales)
  */
 export function getStatusColor(status: string): string {
+  const SUCCESS = 'bg-success/10 text-success border-success/25';
+  const WARNING = 'bg-warning/10 text-warning border-warning/25';
+  const DANGER = 'bg-destructive/10 text-destructive border-destructive/25';
+  const INFO = 'bg-info/10 text-info border-info/25';
+  const NEUTRAL = 'bg-muted text-muted-foreground border-border';
+
   const colors: Record<string, string> = {
-    // Dispensers / Tickets
-    IN_SERVICE: 'bg-emerald-100 text-emerald-700 border-emerald-200',
-    OPEN: 'bg-blue-100 text-blue-700 border-blue-200',
-    IN_PROGRESS: 'bg-amber-100 text-amber-700 border-amber-200',
-    RESOLVED: 'bg-emerald-100 text-emerald-700 border-emerald-200',
-    CLOSED: 'bg-slate-100 text-slate-700 border-slate-200',
-    
+    // Activos / Tickets
+    IN_SERVICE: SUCCESS,
+    OPEN: INFO,
+    IN_PROGRESS: WARNING,
+    RESOLVED: SUCCESS,
+    CLOSED: NEUTRAL,
+
     // Mantenimiento
-    PENDING: 'bg-amber-100 text-amber-700 border-amber-200',
-    COMPLETED: 'bg-emerald-100 text-emerald-700 border-emerald-200',
-    SIGNED: 'bg-blue-100 text-blue-700 border-blue-200',
-    EXPIRED: 'bg-red-100 text-red-700 border-red-200',
-    OVERDUE: 'bg-rose-100 text-rose-700 border-rose-200',
+    PENDING: WARNING,
+    COMPLETED: SUCCESS,
+    SIGNED: INFO,
+    EXPIRED: DANGER,
+    OVERDUE: DANGER,
 
     // Prioridades
-    CRITICAL: 'bg-red-100 text-red-700 border-red-200',
-    HIGH: 'bg-orange-100 text-orange-700 border-orange-200',
-    
+    CRITICAL: DANGER,
+    HIGH: WARNING,
+    MEDIUM: INFO,
+    LOW: NEUTRAL,
+
     // Otros
-    BLOCKED: 'bg-red-100 text-red-700 border-red-200',
-    UNDER_REPAIR: 'bg-indigo-100 text-indigo-700 border-indigo-200',
+    BLOCKED: DANGER,
+    UNDER_REPAIR: WARNING,
+    APPROVED: SUCCESS,
+    REJECTED: DANGER,
+    CANCELLED: NEUTRAL,
   };
-  
-  return colors[status] || 'bg-gray-100 text-gray-700 border-gray-200';
+
+  return colors[status] || NEUTRAL;
 }

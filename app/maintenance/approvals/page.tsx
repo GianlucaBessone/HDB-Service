@@ -69,7 +69,7 @@ export default function MaintenanceApprovalsPage() {
             <div className="p-2 bg-primary/10 rounded-lg">
               <FileSignature className="w-7 h-7 text-primary" />
             </div>
-            Historial de Firmas
+            Historial de firmas
           </h1>
           <p className="text-muted-foreground mt-1">Registro de conformidades de mantenimiento firmadas por clientes</p>
         </div>
@@ -125,14 +125,14 @@ export default function MaintenanceApprovalsPage() {
               <button
                 onClick={() => setViewMode('grid')}
                 className={`p-1.5 rounded-md transition-all ${viewMode === 'grid' ? 'bg-white shadow-sm text-primary' : 'text-muted-foreground hover:text-foreground'}`}
-                title="Vista de Tarjetas"
+                title="Vista de tarjetas"
               >
                 <LayoutGrid className="w-4 h-4" />
               </button>
               <button
                 onClick={() => setViewMode('list')}
                 className={`p-1.5 rounded-md transition-all ${viewMode === 'list' ? 'bg-white shadow-sm text-primary' : 'text-muted-foreground hover:text-foreground'}`}
-                title="Vista de Lista"
+                title="Vista de lista"
               >
                 <List className="w-4 h-4" />
               </button>
@@ -146,10 +146,10 @@ export default function MaintenanceApprovalsPage() {
                   setFilterEnd('');
                   setFilterSearch('');
                 }}
-                className="btn-ghost btn-sm text-red-500 gap-2"
+                className="btn-ghost btn-sm text-destructive gap-2"
               >
                 <X className="w-4 h-4" />
-                Limpiar Filtros
+                Limpiar filtros
               </button>
             )}
           </div>
@@ -206,14 +206,14 @@ export default function MaintenanceApprovalsPage() {
                         </div>
                         <div className="flex flex-col items-end gap-1">
                           {approval.signatureHash ? (
-                            <div className="bg-primary/10 text-primary px-2.5 py-1 rounded-full flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide">
+                            <div className="bg-primary/10 text-primary px-2.5 py-1 rounded-full flex items-center gap-1 text-2xs font-bold uppercase tracking-wide">
                               <Lock className="w-3 h-3" />
-                              Firma Verificada
+                              Firma verificada
                             </div>
                           ) : (
-                            <div className="bg-muted text-muted-foreground px-2.5 py-1 rounded-full flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide">
+                            <div className="bg-muted text-muted-foreground px-2.5 py-1 rounded-full flex items-center gap-1 text-2xs font-bold uppercase tracking-wide">
                               <ShieldAlert className="w-3 h-3" />
-                              Firma Legacy
+                              Firma legacy
                             </div>
                           )}
                         </div>
@@ -225,7 +225,7 @@ export default function MaintenanceApprovalsPage() {
                           <p><span className="text-muted-foreground">DNI / ID:</span> {approval.customerIdentity}</p>
                         )}
                         <p><span className="text-muted-foreground">Técnico:</span> {approval.technician.nombre}</p>
-                        <p><span className="text-muted-foreground">Equipos Validados:</span> {approval.schedules.length}</p>
+                        <p><span className="text-muted-foreground">Equipos validados:</span> {approval.schedules.length}</p>
 
                         <div className="mt-3 bg-muted/30 p-2.5 rounded-lg space-y-1.5 max-h-32 overflow-y-auto">
                           {approval.schedules.map((s: any) => (
@@ -244,7 +244,7 @@ export default function MaintenanceApprovalsPage() {
                       <div className="pt-3 border-t border-border mt-auto">
                         {approval.signatureData && (
                           <>
-                            <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-2 block">Firma Dibujada</span>
+                            <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-2 block">Firma dibujada</span>
                             <div className="bg-white border border-border rounded-lg p-2 h-24 flex items-center justify-center overflow-hidden mb-3">
                               <img 
                                 src={approval.signatureData} 
@@ -260,11 +260,11 @@ export default function MaintenanceApprovalsPage() {
                             <summary className="text-xs font-semibold p-2.5 cursor-pointer hover:bg-muted/50 flex items-center justify-between">
                               <div className="flex items-center gap-1.5 text-primary">
                                 <Lock className="w-3.5 h-3.5" />
-                                Certificado Digital
+                                Certificado digital
                               </div>
-                              <span className="text-[10px] text-muted-foreground group-open:hidden">Ver detalles</span>
+                              <span className="text-2xs text-muted-foreground group-open:hidden">Ver detalles</span>
                             </summary>
-                            <div className="p-3 border-t border-border space-y-2 text-[10px]">
+                            <div className="p-3 border-t border-border space-y-2 text-2xs">
                               <div>
                                 <span className="text-muted-foreground block font-medium">Hash SHA-512:</span>
                                 <code className="bg-background px-1.5 py-0.5 rounded border border-border/50 block break-all mt-0.5">
@@ -273,11 +273,11 @@ export default function MaintenanceApprovalsPage() {
                               </div>
                               <div className="grid grid-cols-2 gap-2">
                                 <div>
-                                  <span className="text-muted-foreground block font-medium">Fecha y Hora:</span>
+                                  <span className="text-muted-foreground block font-medium">Fecha y hora:</span>
                                   <span className="font-medium">{new Date(approval.signedAt || approval.createdAt).toLocaleString('es-AR')}</span>
                                 </div>
                                 <div>
-                                  <span className="text-muted-foreground block font-medium">IP Origen:</span>
+                                  <span className="text-muted-foreground block font-medium">IP origen:</span>
                                   <span className="font-medium">{approval.ipAddress || 'Registrada'}</span>
                                 </div>
                                 <div className="col-span-2">
@@ -292,7 +292,7 @@ export default function MaintenanceApprovalsPage() {
                                 <button
                                   onClick={() => verifySignature(approval.id)}
                                   disabled={verifyingId === approval.id}
-                                  className="btn-primary btn-sm text-[10px] gap-1.5"
+                                  className="btn-primary btn-sm text-2xs gap-1.5"
                                 >
                                   {verifyingId === approval.id ? (
                                     <Loader2 className="w-3 h-3 animate-spin" />
@@ -321,9 +321,9 @@ export default function MaintenanceApprovalsPage() {
                           <h3 className="font-bold text-base flex items-center gap-2">
                             {approval.customerName}
                             {approval.signatureHash ? (
-                              <span title="Firma Verificada"><Lock className="w-3.5 h-3.5 text-primary" /></span>
+                              <span title="Firma verificada"><Lock className="w-3.5 h-3.5 text-primary" /></span>
                             ) : (
-                              <span title="Firma Legacy"><ShieldAlert className="w-3.5 h-3.5 text-muted-foreground" /></span>
+                              <span title="Firma legacy"><ShieldAlert className="w-3.5 h-3.5 text-muted-foreground" /></span>
                             )}
                           </h3>
                           <div className="text-xs text-muted-foreground flex items-center gap-3 mt-1 flex-wrap">

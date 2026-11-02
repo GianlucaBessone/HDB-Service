@@ -118,13 +118,13 @@ export default function UsersPage() {
 
   const getRoleBadge = (role: string) => {
     const classes: Record<string, string> = {
-      ADMIN: 'bg-purple-100 text-purple-700 border-purple-200',
-      SUPERVISOR: 'bg-blue-100 text-blue-700 border-blue-200',
-      TECHNICIAN: 'bg-cyan-100 text-cyan-700 border-cyan-200',
-      CLIENT_RESPONSIBLE: 'bg-amber-100 text-amber-700 border-amber-200',
-      CLIENT_REQUESTER: 'bg-slate-100 text-slate-700 border-slate-200',
+      ADMIN: 'bg-info/10 text-info border-info/25',
+      SUPERVISOR: 'bg-info/10 text-info border-info/25',
+      TECHNICIAN: 'bg-primary/10 text-primary border-primary/25',
+      CLIENT_RESPONSIBLE: 'bg-warning/10 text-warning border-warning/25',
+      CLIENT_REQUESTER: 'bg-muted text-foreground border-border',
     };
-    const className = classes[role] || 'bg-gray-100 text-gray-700 border-gray-200';
+    const className = classes[role] || 'bg-muted text-foreground border-border';
     return <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full border ${className}`}>{t(role)}</span>;
   };
 
@@ -134,7 +134,7 @@ export default function UsersPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
             <Users className="w-8 h-8 text-primary" />
-            Gestión de Usuarios
+            Gestión de usuarios
           </h1>
           <p className="text-muted-foreground mt-1">
             Administra los accesos y roles de todo el equipo y clientes.
@@ -145,7 +145,7 @@ export default function UsersPage() {
           className="btn-primary flex items-center gap-2"
         >
           <UserPlus className="w-4 h-4" />
-          Nuevo Usuario
+          Nuevo usuario
         </button>
       </div>
 
@@ -175,9 +175,9 @@ export default function UsersPage() {
               <tr className="bg-muted/50 text-muted-foreground text-xs uppercase tracking-wider">
                 <th className="px-6 py-4 font-semibold text-left">Usuario</th>
                 <th className="px-6 py-4 font-semibold text-center">Rol</th>
-                <th className="px-6 py-4 font-semibold text-center">Cliente / Empresa</th>
+                <th className="px-6 py-4 font-semibold text-center">Cliente / empresa</th>
                 <th className="px-6 py-4 font-semibold text-center">Estado</th>
-                <th className="px-6 py-4 font-semibold text-center">Fecha Registro</th>
+                <th className="px-6 py-4 font-semibold text-center">Fecha registro</th>
                 <th className="px-6 py-4 font-semibold text-center">Acciones</th>
               </tr>
             </thead>
@@ -232,12 +232,12 @@ export default function UsersPage() {
                     <td className="px-6 py-4 text-center">
                       <div className="flex justify-center">
                         {user.active ? (
-                          <span className="flex items-center gap-1.5 text-emerald-600 text-sm font-medium">
+                          <span className="flex items-center gap-1.5 text-success text-sm font-medium">
                             <UserCheck className="w-4 h-4" />
                             Activo
                           </span>
                         ) : (
-                          <span className="flex items-center gap-1.5 text-red-500 text-sm font-medium">
+                          <span className="flex items-center gap-1.5 text-destructive text-sm font-medium">
                             <Ban className="w-4 h-4" />
                             Bloqueado
                           </span>
@@ -258,14 +258,14 @@ export default function UsersPage() {
                         </button>
                         <button 
                           onClick={() => handleToggleActive(user)}
-                          className={`p-2 rounded-lg transition-colors ${user.active ? 'hover:bg-amber-100 text-amber-600' : 'hover:bg-emerald-100 text-emerald-600'}`}
+                          className={`p-2 rounded-lg transition-colors ${user.active ? 'hover:bg-warning/10 text-warning' : 'hover:bg-success/10 text-success'}`}
                           title={user.active ? 'Bloquear' : 'Activar'}
                         >
                           {user.active ? <Ban className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
                         </button>
                         <button 
                           onClick={() => setConfirmDelete(user.id)}
-                          className="p-2 hover:bg-red-100 rounded-lg transition-colors text-red-600"
+                          className="p-2 hover:bg-destructive/10 rounded-lg transition-colors text-destructive"
                           title="Eliminar"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -292,7 +292,7 @@ export default function UsersPage() {
         <ConfirmModal 
           title="¿Eliminar usuario?"
           description="Esta acción es irreversible. El usuario perderá el acceso al sistema de forma permanente."
-          confirmLabel="Eliminar Usuario"
+          confirmLabel="Eliminar usuario"
           onConfirm={handleDeleteUser}
           onClose={() => setConfirmDelete(null)}
           isLoading={isDeleting}

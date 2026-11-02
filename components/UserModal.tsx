@@ -94,7 +94,7 @@ function CustomSelect({
                 >
                   <div className="min-w-0">
                     <p className="truncate">{opt.label}</p>
-                    {opt.sublabel && <p className="text-[10px] opacity-70 truncate mt-0.5">{opt.sublabel}</p>}
+                    {opt.sublabel && <p className="text-2xs opacity-70 truncate mt-0.5">{opt.sublabel}</p>}
                   </div>
                   {isSelected && <Check className="w-3.5 h-3.5 text-primary shrink-0 stroke-[3]" />}
                 </button>
@@ -258,9 +258,9 @@ export default function UserModal({ user, onClose, onSuccess }: UserModalProps) 
   ];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="w-full max-w-lg bg-card border border-border rounded-xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-        <div className="flex items-center justify-between p-6 border-b border-border bg-muted/30">
+    <div className="modal-overlay">
+      <div className="modal-content max-w-lg">
+        <div className="modal-header">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-primary/10 rounded-lg text-primary">
               <User className="w-5 h-5" />
@@ -284,10 +284,10 @@ export default function UserModal({ user, onClose, onSuccess }: UserModalProps) 
         <form onSubmit={handleSubmit}>
           <div className="p-6 space-y-5 max-h-[70vh] overflow-y-auto custom-scrollbar">
             
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">
                 <label className="text-sm font-semibold flex items-center gap-2">
-                  Nombre <span className="text-red-500">*</span>
+                  Nombre <span className="text-destructive">*</span>
                 </label>
                 <input
                   required
@@ -311,7 +311,7 @@ export default function UserModal({ user, onClose, onSuccess }: UserModalProps) 
             <div className="space-y-1.5">
               <label className="text-sm font-semibold flex items-center gap-2">
                 <Mail className="w-3.5 h-3.5 text-muted-foreground" />
-                Email / Usuario <span className="text-red-500">*</span>
+                Email / Usuario <span className="text-destructive">*</span>
               </label>
               <input
                 required
@@ -322,14 +322,14 @@ export default function UserModal({ user, onClose, onSuccess }: UserModalProps) 
                 value={form.email}
                 onChange={e => setForm({ ...form, email: e.target.value })}
               />
-              {isEditing && <p className="text-[10px] text-muted-foreground italic">El email no puede ser modificado.</p>}
+              {isEditing && <p className="text-2xs text-muted-foreground italic">El email no puede ser modificado.</p>}
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">
                 <label className="text-sm font-semibold flex items-center gap-2">
                   <Shield className="w-3.5 h-3.5 text-muted-foreground" />
-                  Rol de Sistema <span className="text-red-500">*</span>
+                  Rol de Sistema <span className="text-destructive">*</span>
                 </label>
                 <CustomSelect
                   value={form.role}
@@ -342,7 +342,7 @@ export default function UserModal({ user, onClose, onSuccess }: UserModalProps) 
               <div className="space-y-1.5">
                 <label className="text-sm font-semibold flex items-center gap-2">
                   <Building2 className="w-3.5 h-3.5 text-muted-foreground" />
-                  Cliente / Empresa {isClientRole && <span className="text-red-500">*</span>}
+                  Cliente / Empresa {isClientRole && <span className="text-destructive">*</span>}
                 </label>
                 <CustomSelect
                   disabled={!isClientRole && !isTechnician}
@@ -359,7 +359,7 @@ export default function UserModal({ user, onClose, onSuccess }: UserModalProps) 
               <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
                 <label className="text-sm font-semibold flex items-center gap-2">
                   <MapPin className="w-3.5 h-3.5 text-muted-foreground" />
-                  Plantas asignadas / autorizadas {isClientRole && <span className="text-red-500">*</span>}
+                  Plantas asignadas / autorizadas {isClientRole && <span className="text-destructive">*</span>}
                 </label>
                 
                 {isLoadingPlants ? (
@@ -368,7 +368,7 @@ export default function UserModal({ user, onClose, onSuccess }: UserModalProps) 
                     Cargando plantas...
                   </div>
                 ) : availablePlants.length === 0 ? (
-                  <div className="text-xs text-amber-600 p-4 bg-amber-50 rounded-lg border border-amber-100 italic">
+                  <div className="text-xs text-warning p-4 bg-warning/10 rounded-lg border border-warning/25 italic">
                     {form.clientId ? 'Este cliente no tiene plantas registradas aún.' : 'No hay plantas disponibles.'}
                   </div>
                 ) : (
@@ -395,7 +395,7 @@ export default function UserModal({ user, onClose, onSuccess }: UserModalProps) 
                           </div>
                           <div className="min-w-0">
                             <p className="text-xs font-bold truncate leading-tight">{plant.nombre}</p>
-                            {plant.direccion && <p className="text-[10px] opacity-70 truncate mt-0.5">{plant.direccion}</p>}
+                            {plant.direccion && <p className="text-2xs opacity-70 truncate mt-0.5">{plant.direccion}</p>}
                           </div>
                         </button>
                       );
@@ -403,10 +403,10 @@ export default function UserModal({ user, onClose, onSuccess }: UserModalProps) 
                   </div>
                 )}
                 {isClientRole && form.plantIds.length === 0 && availablePlants.length > 0 && (
-                  <p className="text-[10px] text-amber-600 font-medium">Si no selecciona ninguna planta, {isRequester ? 'el referente no tendrá acceso a ningún equipo.' : 'el responsable verá todas las plantas del cliente por defecto.'}</p>
+                  <p className="text-2xs text-warning font-medium">Si no selecciona ninguna planta, {isRequester ? 'el referente no tendrá acceso a ningún equipo.' : 'el responsable verá todas las plantas del cliente por defecto.'}</p>
                 )}
                 {isTechnician && (
-                  <p className="text-[10px] text-muted-foreground italic">
+                  <p className="text-2xs text-muted-foreground italic">
                     * Los tickets de las plantas seleccionadas se enviarán y enrutarán automáticamente a este técnico.
                   </p>
                 )}
@@ -417,16 +417,16 @@ export default function UserModal({ user, onClose, onSuccess }: UserModalProps) 
               <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300 border-t border-border/60 pt-4">
                 <label className="text-sm font-semibold flex items-center gap-2">
                   <Shield className="w-3.5 h-3.5 text-primary" />
-                  Especialidad / Equipos que Atiende <span className="text-red-500">*</span>
+                  Especialidad / Equipos que Atiende <span className="text-destructive">*</span>
                 </label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   {[
-                    { id: 'DISPENSER', label: 'Dispensers / Bebederos' },
-                    { id: 'AIR_CONDITIONER', label: 'Aires Acondicionados' },
-                    { id: 'COLD_ROOM', label: 'Cámaras Frigoríficas' },
-                    { id: 'REFRIGERATOR', label: 'Heladeras / Freezers Comerciales' },
-                    { id: 'VENTILATION', label: 'Ventilación / Extracción' },
-                    { id: 'OTHER', label: 'Otros Equipos' }
+                    { id: 'DISPENSER', label: 'Dispensers / bebederos' },
+                    { id: 'AIR_CONDITIONER', label: 'Aires acondicionados' },
+                    { id: 'COLD_ROOM', label: 'Cámaras frigoríficas' },
+                    { id: 'REFRIGERATOR', label: 'Heladeras / freezers comerciales' },
+                    { id: 'VENTILATION', label: 'Ventilación / extracción' },
+                    { id: 'OTHER', label: 'Otros equipos' }
                   ].map(eq => {
                     const isSelected = (form.equipmentTypes || []).includes(eq.id);
                     return (
@@ -452,7 +452,7 @@ export default function UserModal({ user, onClose, onSuccess }: UserModalProps) 
                     );
                   })}
                 </div>
-                <p className="text-[10px] text-muted-foreground italic">
+                <p className="text-2xs text-muted-foreground italic">
                   * El técnico solo verá y recibirá notificaciones de tickets correspondientes a sus especialidades.
                 </p>
               </div>
@@ -461,7 +461,7 @@ export default function UserModal({ user, onClose, onSuccess }: UserModalProps) 
             <div className="space-y-1.5">
               <label className="text-sm font-semibold flex items-center gap-2">
                 <Lock className="w-3.5 h-3.5 text-muted-foreground" />
-                {isEditing ? 'Nueva Contraseña (opcional)' : 'Contraseña Inicial'} {!isEditing && <span className="text-red-500">*</span>}
+                {isEditing ? 'Nueva Contraseña (opcional)' : 'Contraseña Inicial'} {!isEditing && <span className="text-destructive">*</span>}
               </label>
               <div className="relative">
                 <input
@@ -482,7 +482,7 @@ export default function UserModal({ user, onClose, onSuccess }: UserModalProps) 
                 </button>
               </div>
               {!isEditing && (
-                <p className="text-[10px] text-amber-600 font-medium italic">
+                <p className="text-2xs text-warning font-medium italic">
                   * El usuario será forzado a cambiar esta clave al acceder por primera vez.
                 </p>
               )}
@@ -493,7 +493,7 @@ export default function UserModal({ user, onClose, onSuccess }: UserModalProps) 
                 id="active"
                 checked={form.active}
                 onChange={val => setForm({ ...form, active: val })}
-                label="Usuario Activo (Permitir acceso al sistema)"
+                label="Usuario activo (permitir acceso al sistema)"
               />
             )}
 
@@ -510,7 +510,7 @@ export default function UserModal({ user, onClose, onSuccess }: UserModalProps) 
             </button>
             <button 
               type="submit"
-              className="btn-primary flex items-center gap-2 min-w-[140px] justify-center shadow-lg shadow-primary/20"
+              className="btn-primary flex items-center gap-2 min-w-[140px] justify-center"
               disabled={isLoading}
             >
               {isLoading ? (
@@ -519,7 +519,7 @@ export default function UserModal({ user, onClose, onSuccess }: UserModalProps) 
                 isEditing ? 'Guardar Cambios' : (
                   <>
                     <UserPlus className="w-4 h-4" />
-                    Crear Usuario
+                    Crear usuario
                   </>
                 )
               )}

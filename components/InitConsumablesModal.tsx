@@ -140,14 +140,13 @@ export default function InitConsumablesModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-card rounded-2xl shadow-2xl border border-border w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-muted/30 shrink-0">
-          <h2 className="text-lg font-bold flex items-center gap-2">
-            <Package className="w-5 h-5 text-primary" />
-            Inicializar Consumibles
+    <div className="modal-overlay">
+      <div className="modal-content max-w-2xl flex flex-col overflow-hidden">
+        <div className="modal-header shrink-0">
+          <h2 className="text-base font-semibold">
+            Inicializar consumibles
           </h2>
-          <button onClick={onClose} className="p-2 hover:bg-accent rounded-full transition-colors text-muted-foreground">
+          <button type="button" onClick={onClose} className="modal-close" aria-label="Cerrar">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -159,24 +158,24 @@ export default function InitConsumablesModal({
                 className={clsx("flex-1 py-1.5 text-sm font-semibold rounded-md transition-colors", mode === 'SELECT' ? "bg-background shadow text-foreground" : "text-muted-foreground hover:text-foreground")}
                 onClick={() => setMode('SELECT')}
               >
-                Desde Inventario
+                Desde inventario
               </button>
               <button 
                 className={clsx("flex-1 py-1.5 text-sm font-semibold rounded-md transition-colors", mode === 'CREATE' ? "bg-background shadow text-foreground" : "text-muted-foreground hover:text-foreground")}
                 onClick={() => setMode('CREATE')}
               >
-                Crear Nuevo
+                Crear nuevo
               </button>
             </div>
           )}
 
           <form onSubmit={handleAddItem} className="bg-muted/30 p-4 rounded-xl border border-border">
-            <h3 className="text-sm font-bold mb-3">Agregar Consumible</h3>
+            <h3 className="text-sm font-bold mb-3">Agregar consumible</h3>
             
             {mode === 'SELECT' ? (
               <div className="space-y-3">
                 <div>
-                  <label className="text-xs font-semibold mb-1 block">Seleccionar del Inventario de la Planta</label>
+                  <label className="text-xs font-semibold mb-1 block">Seleccionar del inventario de la planta</label>
                   <select 
                     className="select" 
                     value={selectedStockId} 
@@ -189,9 +188,9 @@ export default function InitConsumablesModal({
                     ))}
                   </select>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <div>
-                    <label className="text-xs font-semibold mb-1 block">N° Serie (Si aplica)</label>
+                    <label className="text-xs font-semibold mb-1 block">N° serie (si aplica)</label>
                     <input className="input" placeholder="Opcional" value={form.uniqueId} onChange={e => setForm({...form, uniqueId: e.target.value})} />
                   </div>
                   <div>
@@ -204,7 +203,7 @@ export default function InitConsumablesModal({
               <div className="space-y-3">
                 {!dispenser.plantId && (
                   <div>
-                    <label className="text-xs font-semibold mb-1 block">Cliente (Para filtrar catálogo) *</label>
+                    <label className="text-xs font-semibold mb-1 block">Cliente (para filtrar catálogo) *</label>
                     <select 
                       className="select"
                       value={selectedClientId}
@@ -220,7 +219,7 @@ export default function InitConsumablesModal({
                   </div>
                 )}
                 <div>
-                  <label className="text-xs font-semibold mb-1 block">Repuesto / Consumible *</label>
+                  <label className="text-xs font-semibold mb-1 block">Repuesto / consumible *</label>
                   <MaterialCombobox 
                     items={catalogItems}
                     value={form.materialCode}
@@ -229,12 +228,12 @@ export default function InitConsumablesModal({
                     autoFocus={!!dispenser.plantId || !!selectedClientId}
                   />
                   {((dispenser.plantId || selectedClientId) && catalogItems.length === 0) && (
-                    <p className="text-xs text-amber-600 mt-1">Este cliente no tiene consumibles en su catálogo.</p>
+                    <p className="text-xs text-warning mt-1">Este cliente no tiene consumibles en su catálogo.</p>
                   )}
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <div>
-                    <label className="text-xs font-semibold mb-1 block">N° Serie (Opcional)</label>
+                    <label className="text-xs font-semibold mb-1 block">N° serie (opcional)</label>
                     <input className="input" placeholder="Ej: SN-123" value={form.uniqueId} onChange={e => setForm({...form, uniqueId: e.target.value})} />
                   </div>
                   <div>
@@ -243,7 +242,7 @@ export default function InitConsumablesModal({
                   </div>
                 </div>
                 {dispenser.plantId && (
-                  <p className="text-[10px] text-amber-600 bg-amber-50 p-2 rounded italic">
+                  <p className="text-2xs text-warning bg-warning/10 p-2 rounded italic">
                     Al crear un ítem nuevo, se registrará en el inventario de la planta e inmediatamente se consumirá.
                   </p>
                 )}
@@ -261,19 +260,19 @@ export default function InitConsumablesModal({
           {/* List to Add */}
           {items.length > 0 && (
             <div>
-              <h3 className="text-sm font-bold mb-2">Ítems a Inicializar</h3>
+              <h3 className="text-sm font-bold mb-2">Ítems a inicializar</h3>
               <div className="space-y-2">
                 {items.map((item, idx) => (
                   <div key={idx} className="flex items-center justify-between p-3 bg-muted/20 border border-border rounded-lg">
                     <div>
                       <p className="text-sm font-bold">{item.nombre} <span className="text-xs font-normal text-muted-foreground ml-1">({item.materialCode})</span></p>
                       <div className="flex gap-2 mt-1">
-                        {item.uniqueId && <span className="badge text-[10px]">S/N: {item.uniqueId}</span>}
-                        {item.isNew && <span className="badge text-[10px] badge-warning">NUEVO</span>}
-                        <span className="badge text-[10px]">Cant: {item.cantidad}</span>
+                        {item.uniqueId && <span className="badge text-2xs">S/N: {item.uniqueId}</span>}
+                        {item.isNew && <span className="badge text-2xs badge-warning">NUEVO</span>}
+                        <span className="badge text-2xs">Cant: {item.cantidad}</span>
                       </div>
                     </div>
-                    <button onClick={() => handleRemoveItem(idx)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg">
+                    <button onClick={() => handleRemoveItem(idx)} className="p-2 text-destructive hover:bg-destructive/10 rounded-lg">
                       <X className="w-4 h-4" />
                     </button>
                   </div>
@@ -283,7 +282,7 @@ export default function InitConsumablesModal({
           )}
         </div>
 
-        <div className="px-6 py-4 border-t border-border bg-muted/30 flex justify-end gap-3 shrink-0">
+        <div className="modal-footer shrink-0">
           <button onClick={onClose} className="btn-outline">Cancelar</button>
           <button onClick={handleSubmit} disabled={items.length === 0 || saving} className="btn-primary gap-2">
             {saving && <Loader2 className="w-4 h-4 animate-spin" />}

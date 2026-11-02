@@ -96,7 +96,7 @@ export default function DispenserDetailPage() {
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <Link href="/dispensers" className="hover:text-foreground transition-colors flex items-center gap-1">
           <ArrowLeft className="w-4 h-4" />
-          Equipos y Activos
+          Equipos y activos
         </Link>
         <ChevronRight className="w-4 h-4" />
         <span className="text-foreground font-medium">{dispenser.id}</span>
@@ -115,13 +115,13 @@ export default function DispenserDetailPage() {
             <h1 className="text-xl font-bold tracking-tight leading-none mb-1">{dispenser.id}</h1>
             <div className="flex flex-wrap items-center gap-2">
               <p className="text-xs text-muted-foreground">{dispenser.marca} {dispenser.modelo}</p>
-              <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">
+              <span className="text-2xs bg-primary/10 text-primary px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">
                 {getEquipmentTypeLabel(dispenser.equipmentType)}
               </span>
-              <span className={clsx('text-[10px] font-bold px-2 py-0.5 rounded-full border', getCriticalityColor(dispenser.criticality))}>
+              <span className={clsx('text-2xs font-bold px-2 py-0.5 rounded-full border', getCriticalityColor(dispenser.criticality))}>
                 {getCriticalityLabel(dispenser.criticality)}
               </span>
-              <span className="text-[10px] bg-muted text-muted-foreground px-2 py-0.5 rounded-full font-medium">
+              <span className="text-2xs bg-muted text-muted-foreground px-2 py-0.5 rounded-full font-medium">
                 {dispenser.plant?.nombre || 'Sin Planta Dueña'}
               </span>
             </div>
@@ -134,18 +134,18 @@ export default function DispenserDetailPage() {
               onClick={() => setShowChecklistModal(true)}
               className={clsx(
                 "btn-sm gap-2 rounded-full px-4",
-                currentSchedule.status === 'PENDING' ? "btn-primary shadow-lg shadow-primary/20" : "btn-outline text-emerald-600 border-emerald-200 bg-emerald-50"
+                currentSchedule.status === 'PENDING' ? "btn-primary shadow-lg" : "btn-outline text-success border-success/25 bg-success/10"
               )}
             >
               {currentSchedule.status === 'PENDING' ? (
                 <>
                   <ShieldCheck className="w-4 h-4" />
-                  Hacer Mtto Mensual
+                  Hacer mtto mensual
                 </>
               ) : (
                 <>
                   <CheckCircle2 className="w-4 h-4" />
-                  Mtto Realizado
+                  Mtto realizado
                 </>
               )}
             </button>
@@ -156,7 +156,7 @@ export default function DispenserDetailPage() {
               title="No hay mantenimiento programado para este mes"
             >
               <CalendarClock className="w-4 h-4" />
-              Sin Mtto Planif.
+              Sin mtto planif.
             </button>
           )}
 
@@ -165,7 +165,7 @@ export default function DispenserDetailPage() {
             className="btn-outline btn-sm gap-2 rounded-full px-4 hover:border-primary/50"
           >
             <PlusCircle className="w-4 h-4 text-primary" />
-            Nuevo Ticket
+            Nuevo ticket
           </button>
         </div>
       </div>
@@ -211,13 +211,13 @@ export default function DispenserDetailPage() {
                   <MapPin className="w-5 h-5 text-primary" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-sm">Ubicación Actual</h3>
+                  <h3 className="font-bold text-sm">Ubicación actual</h3>
                   {dispenser.location ? (
                     <p className="text-sm text-muted-foreground">
                       {dispenser.location.plant?.nombre} · {dispenser.location.sector?.nombre} · {dispenser.location.nombre}
                     </p>
                   ) : (
-                    <p className="text-sm text-red-500 font-medium italic">Sin ubicación asignada</p>
+                    <p className="text-sm text-destructive font-medium italic">Sin ubicación asignada</p>
                   )}
                 </div>
                 <button 
@@ -235,7 +235,7 @@ export default function DispenserDetailPage() {
                 className="btn-primary btn-sm gap-2 rounded-lg"
               >
                 <RefreshCw className="w-4 h-4" />
-                Cambiar Estado del Equipo
+                Cambiar estado del equipo
               </button>
             </div>
           </div>
@@ -273,7 +273,7 @@ export default function DispenserDetailPage() {
           <div className="glass-card p-5">
             <h3 className="text-sm font-bold flex items-center gap-2 mb-4">
               <CalendarClock className="w-4 h-4 text-primary" />
-              Ciclo de Vida del Equipo
+              Ciclo de vida del equipo
             </h3>
             {dispenser.lifecycleStartDate ? (
               <div className="space-y-4">
@@ -288,16 +288,16 @@ export default function DispenserDetailPage() {
                 <div className="lifecycle-bar h-3">
                   <div
                     className={clsx('lifecycle-fill', {
-                      'bg-emerald-500': (dispenser.lifecycleRemainingDays ?? 0) > 365,
-                      'bg-amber-500': (dispenser.lifecycleRemainingDays ?? 0) <= 365 && (dispenser.lifecycleRemainingDays ?? 0) > 90,
-                      'bg-red-500': (dispenser.lifecycleRemainingDays ?? 0) <= 90,
+                      'bg-success': (dispenser.lifecycleRemainingDays ?? 0) > 365,
+                      'bg-warning': (dispenser.lifecycleRemainingDays ?? 0) <= 365 && (dispenser.lifecycleRemainingDays ?? 0) > 90,
+                      'bg-destructive': (dispenser.lifecycleRemainingDays ?? 0) <= 90,
                     })}
                     style={{
                       width: `${Math.min(100, Math.max(5, ((dispenser.lifecycleMonths * 30 - (dispenser.lifecycleRemainingDays ?? 0)) / (dispenser.lifecycleMonths * 30)) * 100))}%`
                     }}
                   />
                 </div>
-                <p className="text-[10px] text-muted-foreground text-center italic">
+                <p className="text-2xs text-muted-foreground text-center italic">
                   Inicio: {new Date(dispenser.lifecycleStartDate).toLocaleDateString('es-AR', { timeZone: 'UTC' })}
                 </p>
               </div>
@@ -310,7 +310,7 @@ export default function DispenserDetailPage() {
           <div className="glass-card p-5">
             <h3 className="text-sm font-bold flex items-center gap-2 mb-4">
               <ShieldCheck className="w-4 h-4 text-primary" />
-              Estado de Insumos
+              Estado de insumos
             </h3>
             <div className="space-y-3">
               {dispenser.consumableHistory?.filter((c: any) => !c.removedAt).length > 0 ? (
@@ -325,18 +325,18 @@ export default function DispenserDetailPage() {
                     return (
                       <div key={c.id} className="p-3 rounded-xl bg-muted/30 border border-transparent flex flex-col gap-1">
                         <div className="flex justify-between items-center">
-                          <p className="text-[11px] font-bold truncate">{c.nombre}</p>
+                          <p className="text-2xs font-bold truncate">{c.nombre}</p>
                           {daysLeft !== null && (
                             <span className={clsx(
-                              "text-[9px] font-bold px-1.5 py-0.5 rounded-full",
-                              isExpired ? "bg-red-100 text-red-700" : daysLeft < 30 ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-700"
+                              "text-2xs font-bold px-1.5 py-0.5 rounded-full",
+                              isExpired ? "bg-destructive/10 text-destructive" : daysLeft < 30 ? "bg-warning/10 text-warning" : "bg-success/10 text-success"
                             )}>
                               {isExpired ? 'VENCIDO' : `${daysLeft}d`}
                             </span>
                           )}
                         </div>
                         {c.expiresAt && (
-                          <div className="flex justify-between items-center text-[10px] text-muted-foreground">
+                          <div className="flex justify-between items-center text-2xs text-muted-foreground">
                             <span>Vence: {new Date(c.expiresAt).toLocaleDateString('es-AR')}</span>
                           </div>
                         )}
@@ -346,7 +346,7 @@ export default function DispenserDetailPage() {
               ) : (
                 <div className="py-6 text-center">
                   <Package className="w-8 h-8 text-muted-foreground/20 mx-auto mb-2" />
-                  <p className="text-[10px] text-muted-foreground italic">No hay insumos vigentes registrados</p>
+                  <p className="text-2xs text-muted-foreground italic">No hay insumos vigentes registrados</p>
                 </div>
               )}
             </div>
@@ -357,9 +357,9 @@ export default function DispenserDetailPage() {
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-sm font-bold flex items-center gap-2">
                 <Ticket className="w-4 h-4 text-primary" />
-                Tickets Recientes
+                Tickets recientes
               </h3>
-              <Link href={`/tickets?search=${dispenser.id}`} className="text-[10px] font-bold text-primary hover:underline uppercase tracking-wider">Ver todos</Link>
+              <Link href={`/tickets?search=${dispenser.id}`} className="text-2xs font-bold text-primary hover:underline uppercase tracking-wider">Ver todos</Link>
             </div>
             
             <div className="space-y-3">
@@ -372,10 +372,10 @@ export default function DispenserDetailPage() {
                   >
                     <p className="text-xs font-bold line-clamp-1 group-hover:text-primary transition-colors">{ticketData.reason}</p>
                     <div className="flex items-center justify-between mt-2">
-                      <span className="text-[10px] text-muted-foreground">
+                      <span className="text-2xs text-muted-foreground">
                         {new Date(ticketData.createdAt).toLocaleDateString('es-AR')}
                       </span>
-                      <span className={clsx('badge text-[8px] px-1.5 py-0 border leading-tight', getStatusColor(ticketData.status))}>
+                      <span className={clsx('badge text-2xs px-1.5 py-0 border leading-tight', getStatusColor(ticketData.status))}>
                         {t(ticketData.status)}
                       </span>
                     </div>
@@ -394,7 +394,7 @@ export default function DispenserDetailPage() {
               className="w-full mt-4 btn-outline btn-sm gap-2 border-dashed"
             >
               <PlusCircle className="w-3.5 h-3.5" />
-              Crear Nuevo Ticket
+              Crear nuevo ticket
             </button>
           </div>
         </div>
@@ -459,17 +459,17 @@ function InfoTab({ dispenser }: { dispenser: any }) {
   const clientName = dispenser.client?.nombre || dispenser.plant?.client?.nombre || dispenser.location?.plant?.client?.nombre || '—';
 
   const fields = [
-    { label: 'ID del Activo', value: dispenser.id, mono: true },
-    { label: 'Tipo de Activo', value: getEquipmentTypeLabel(dispenser.equipmentType) },
-    { label: 'Criticidad Operativa', value: getCriticalityLabel(dispenser.criticality) },
-    { label: 'Empresa / Cliente', value: clientName },
+    { label: 'ID del activo', value: dispenser.id, mono: true },
+    { label: 'Tipo de activo', value: getEquipmentTypeLabel(dispenser.equipmentType) },
+    { label: 'Criticidad operativa', value: getCriticalityLabel(dispenser.criticality) },
+    { label: 'Empresa / cliente', value: clientName },
     { label: 'Marca', value: dispenser.marca },
     { label: 'Modelo', value: dispenser.modelo },
-    { label: 'Planta Dueña', value: dispenser.plant?.nombre || '—', mono: true },
-    { label: 'N° Serie', value: dispenser.numeroSerie || '—', mono: true },
-    { label: 'Vida Útil', value: `${dispenser.lifecycleMonths} meses` },
-    { label: 'Inicio Ciclo', value: dispenser.lifecycleStartDate ? new Date(dispenser.lifecycleStartDate).toLocaleDateString('es-AR', { timeZone: 'UTC' }) : '—' },
-    { label: 'Fecha Compra', value: dispenser.fechaCompra ? new Date(dispenser.fechaCompra).toLocaleDateString('es-AR', { timeZone: 'UTC' }) : '—' },
+    { label: 'Planta dueña', value: dispenser.plant?.nombre || '—', mono: true },
+    { label: 'N° serie', value: dispenser.numeroSerie || '—', mono: true },
+    { label: 'Vida útil', value: `${dispenser.lifecycleMonths} meses` },
+    { label: 'Inicio ciclo', value: dispenser.lifecycleStartDate ? new Date(dispenser.lifecycleStartDate).toLocaleDateString('es-AR', { timeZone: 'UTC' }) : '—' },
+    { label: 'Fecha compra', value: dispenser.fechaCompra ? new Date(dispenser.fechaCompra).toLocaleDateString('es-AR', { timeZone: 'UTC' }) : '—' },
     { label: 'Creado el', value: new Date(dispenser.createdAt).toLocaleDateString('es-AR') },
   ];
 
@@ -494,9 +494,9 @@ function InfoTab({ dispenser }: { dispenser: any }) {
           <div className="flex items-center justify-between border-b pb-2">
             <h4 className="text-xs font-bold text-primary uppercase tracking-widest flex items-center gap-2">
               <SlidersHorizontal className="w-4 h-4" />
-              Ficha Técnica / Especificaciones
+              Ficha técnica / especificaciones
             </h4>
-            <span className="text-[11px] font-semibold text-muted-foreground">
+            <span className="text-2xs font-semibold text-muted-foreground">
               {getEquipmentTypeLabel(dispenser.equipmentType)}
             </span>
           </div>
@@ -519,7 +519,7 @@ function InfoTab({ dispenser }: { dispenser: any }) {
 
       {currentConsumables.length > 0 && (
         <div className="p-4 bg-primary/5 border border-primary/20 rounded-2xl">
-          <h4 className="text-xs font-bold text-primary uppercase tracking-widest mb-4">Consumibles Vigentes</h4>
+          <h4 className="text-xs font-bold text-primary uppercase tracking-widest mb-4">Consumibles vigentes</h4>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {currentConsumables.map((c: any) => {
               const daysLeft = c.expiresAt 
@@ -528,11 +528,11 @@ function InfoTab({ dispenser }: { dispenser: any }) {
               return (
                 <div key={c.id} className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-lg bg-background flex items-center justify-center border shadow-sm">
-                    <ShieldCheck className="w-4 h-4 text-emerald-500" />
+                    <ShieldCheck className="w-4 h-4 text-success" />
                   </div>
                   <div>
                     <p className="text-xs font-bold">{c.nombre}</p>
-                    <p className="text-[10px] text-muted-foreground">
+                    <p className="text-2xs text-muted-foreground">
                       {daysLeft != null ? (daysLeft < 0 ? 'Vencido' : `Quedan ${daysLeft} días`) : 'Sin VTO'}
                     </p>
                   </div>
@@ -561,10 +561,10 @@ function LocationTab({ history }: { history: any[] }) {
     <div className="space-y-4">
       {history.map((h, i) => (
         <div key={h.id} className="flex items-start gap-4 p-4 rounded-xl bg-muted/20 border border-border/50 relative overflow-hidden group">
-          {i === 0 && !h.removedAt && <div className="absolute top-0 right-0 w-2 h-full bg-emerald-500"></div>}
+          {i === 0 && !h.removedAt && <div className="absolute top-0 right-0 w-2 h-full bg-success"></div>}
           <div className={clsx(
-            'w-10 h-10 rounded-full flex items-center justify-center shrink-0 border shadow-sm transition-transform group-hover:scale-110',
-            i === 0 && !h.removedAt ? 'bg-emerald-50 border-emerald-200 text-emerald-600' : 'bg-background border-border text-muted-foreground'
+            'w-10 h-10 rounded-full flex items-center justify-center shrink-0 border shadow-sm transition-transform',
+            i === 0 && !h.removedAt ? 'bg-success/10 border-success/25 text-success' : 'bg-background border-border text-muted-foreground'
           )}>
             <MapPin className="w-5 h-5" />
           </div>
@@ -573,9 +573,9 @@ function LocationTab({ history }: { history: any[] }) {
               <p className="text-sm font-bold">
                 {h.location?.plant?.nombre} — {h.location?.nombre || h.locationId}
               </p>
-              {i === 0 && !h.removedAt && <span className="badge-success text-[8px] px-1.5 py-0">ACTUAL</span>}
+              {i === 0 && !h.removedAt && <span className="badge-success text-2xs px-1.5 py-0">ACTUAL</span>}
             </div>
-            <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-semibold">
+            <p className="text-2xs text-muted-foreground uppercase tracking-widest font-semibold">
               {new Date(h.assignedAt).toLocaleDateString('es-AR')}
               {h.assignedBy && ` · POR ${h.assignedBy.nombre}`}
               {h.removedAt && ` · RETIRADO: ${new Date(h.removedAt).toLocaleDateString('es-AR')}`}
@@ -597,13 +597,13 @@ function RepairsTab({ repairs }: { repairs: any[] }) {
             <div className="flex-1">
               <p className="text-sm font-bold leading-tight mb-1">{r.descripcion}</p>
               {r.diagnostico && <p className="text-xs text-muted-foreground italic mb-2">"{r.diagnostico}"</p>}
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[10px] text-muted-foreground font-bold uppercase tracking-wider">
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-2xs text-muted-foreground font-bold uppercase tracking-wider">
                 <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {new Date(r.startDate).toLocaleDateString('es-AR')}</span>
                 {r.technician && <span>TÉC: {r.technician.nombre}</span>}
                 {r.costo != null && <span className="text-primary">${r.costo}</span>}
               </div>
             </div>
-            <span className={clsx('badge text-[10px] uppercase font-bold px-2 py-0.5', r.endDate ? 'badge-success' : 'badge-warning')}>
+            <span className={clsx('badge text-2xs uppercase font-bold px-2 py-0.5', r.endDate ? 'badge-success' : 'badge-warning')}>
               {r.endDate ? 'Completada' : 'En curso'}
             </span>
           </div>
@@ -624,7 +624,7 @@ function ConsumablesTab({ consumables, onInitConsumables }: { consumables: any[]
         <h3 className="text-lg font-bold mb-2">Sin historial de consumibles</h3>
         <p className="text-sm text-muted-foreground mb-6 max-w-sm">Este equipo no tiene consumibles o insumos inicializados. Por favor, ingresá los insumos actuales para comenzar a trackearlos.</p>
         <button onClick={onInitConsumables} className="btn-primary">
-          Ingresar Consumibles Iniciales
+          Ingresar consumibles iniciales
         </button>
       </div>
     );
@@ -636,7 +636,7 @@ function ConsumablesTab({ consumables, onInitConsumables }: { consumables: any[]
         <section>
           <h4 className="text-xs font-bold text-primary uppercase tracking-widest mb-3 flex items-center gap-2">
             <ShieldCheck className="w-4 h-4" />
-            Instalados Actualmente
+            Instalados actualmente
           </h4>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {currentlyInstalled.map(c => {
@@ -651,30 +651,30 @@ function ConsumablesTab({ consumables, onInitConsumables }: { consumables: any[]
                     <p className="text-sm font-bold truncate pr-2">{c.nombre}</p>
                     {c.expiresAt && (
                       <span className={clsx(
-                        'text-[8px] font-bold px-2 py-0.5 rounded uppercase border',
-                        isExpired ? 'bg-red-50 text-red-700 border-red-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                        'text-2xs font-bold px-2 py-0.5 rounded uppercase border',
+                        isExpired ? 'bg-destructive/10 text-destructive border-destructive/25' : 'bg-success/10 text-success border-success/25'
                       )}>
                         {isExpired ? 'Vencido' : 'Vigente'}
                       </span>
                     )}
                   </div>
                   <div className="space-y-1.5">
-                    <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Cód: {c.materialCode}</p>
-                    <div className="flex justify-between text-[10px] font-bold">
+                    <p className="text-2xs text-muted-foreground font-semibold uppercase tracking-wider">Cód: {c.materialCode}</p>
+                    <div className="flex justify-between text-2xs font-bold">
                       <span className="text-muted-foreground uppercase">Instalado:</span>
                       <span>{new Date(c.installedAt).toLocaleDateString('es-AR')}</span>
                     </div>
                     {c.expiresAt && (
-                      <div className="flex justify-between text-[10px] font-bold">
+                      <div className="flex justify-between text-2xs font-bold">
                         <span className="text-muted-foreground uppercase">Vencimiento:</span>
-                        <span className={isExpired ? 'text-red-600' : 'text-foreground'}>{new Date(c.expiresAt).toLocaleDateString('es-AR')}</span>
+                        <span className={isExpired ? 'text-destructive' : 'text-foreground'}>{new Date(c.expiresAt).toLocaleDateString('es-AR')}</span>
                       </div>
                     )}
                     {daysLeft !== null && (
                       <div className="mt-2 pt-2 border-t border-primary/10">
                         <p className={clsx(
-                          "text-[10px] font-bold uppercase tracking-tighter",
-                          isExpired ? "text-red-500" : daysLeft < 30 ? "text-amber-600" : "text-primary"
+                          "text-2xs font-bold uppercase tracking-tighter",
+                          isExpired ? "text-destructive" : daysLeft < 30 ? "text-warning" : "text-primary"
                         )}>
                           {isExpired ? 'Expiró hace ' + Math.abs(daysLeft) : daysLeft + ' días restantes'}
                         </p>
@@ -690,17 +690,17 @@ function ConsumablesTab({ consumables, onInitConsumables }: { consumables: any[]
 
       {history.length > 0 && (
         <section>
-          <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-3">Historial de Cambios</h4>
+          <h4 className="eyebrow mb-3">Historial de cambios</h4>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 opacity-70">
             {history.map(c => (
               <div key={c.id} className="flex flex-col p-3 rounded-xl bg-muted/20 border border-border/50">
                 <div className="flex justify-between items-start mb-1">
                   <p className="text-xs font-bold truncate pr-2">{c.nombre}</p>
-                  <span className="text-[8px] font-bold px-1.5 py-0.5 rounded uppercase bg-slate-100 text-slate-500 border border-slate-200">Retirado</span>
+                  <span className="text-2xs font-bold px-1.5 py-0.5 rounded uppercase bg-muted text-muted-foreground border border-border">Retirado</span>
                 </div>
                 <div className="space-y-1">
-                  <p className="text-[9px] text-muted-foreground font-semibold uppercase tracking-wider">Cód: {c.materialCode}</p>
-                  <div className="flex justify-between text-[9px] font-bold">
+                  <p className="text-2xs text-muted-foreground font-semibold uppercase tracking-wider">Cód: {c.materialCode}</p>
+                  <div className="flex justify-between text-2xs font-bold">
                     <span className="text-muted-foreground uppercase">Periodo:</span>
                     <span className="text-center">
                       {new Date(c.installedAt).toLocaleDateString('es-AR')} - {new Date(c.removedAt).toLocaleDateString('es-AR')}
@@ -759,18 +759,17 @@ function StatusChangeModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-card rounded-2xl shadow-2xl border border-border w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-muted/30">
-          <h2 className="text-lg font-bold flex items-center gap-2">
-            <RefreshCw className="w-5 h-5 text-primary" />
-            Cambiar Estado del Equipo
+    <div className="modal-overlay">
+      <div className="modal-content max-w-md" onClick={e => e.stopPropagation()}>
+        <div className="modal-header">
+          <h2 className="text-base font-semibold">
+            Cambiar estado del equipo
           </h2>
-          <button onClick={onClose} className="p-2 hover:bg-accent rounded-full transition-colors text-muted-foreground">
+          <button type="button" onClick={onClose} className="modal-close" aria-label="Cerrar">
             <X className="w-5 h-5" />
           </button>
         </div>
-        <div className="px-6 py-4 space-y-4">
+        <div className="modal-body space-y-4">
           <div className="grid grid-cols-1 gap-2 max-h-[300px] overflow-y-auto pr-2 scrollbar-thin">
             {ALL_STATUSES.map(s => (
               <button
@@ -788,7 +787,7 @@ function StatusChangeModal({
                 </div>
                 <div className="flex-1">
                   <span className={clsx("text-sm font-bold block", newStatus === s ? "text-primary" : "text-foreground")}>{t(s)}</span>
-                  {s === currentStatus && <span className="text-[10px] font-bold text-muted-foreground uppercase">Estado Actual</span>}
+                  {s === currentStatus && <span className="text-2xs font-bold text-muted-foreground uppercase">Estado actual</span>}
                 </div>
                 {newStatus === s && <div className="w-2 h-2 rounded-full bg-primary animate-pulse"></div>}
               </button>
@@ -797,7 +796,7 @@ function StatusChangeModal({
           
           {(newStatus === 'BLOCKED' || newStatus === 'OUT_OF_SERVICE' || newStatus === 'BLOCKED_WAITING_OC') && (
             <div className="animate-in slide-in-from-top-2">
-              <label className="text-sm font-semibold mb-1 block">Motivo del Cambio</label>
+              <label className="text-sm font-semibold mb-1 block">Motivo del cambio</label>
               <textarea
                 className="textarea"
                 rows={2}
@@ -808,7 +807,7 @@ function StatusChangeModal({
             </div>
           )}
         </div>
-        <div className="px-6 py-4 border-t border-border bg-muted/30 flex items-center justify-end gap-3">
+        <div className="modal-footer">
           <button onClick={onClose} className="btn-outline">Cancelar</button>
           <button 
             onClick={handleSave} 
@@ -927,22 +926,21 @@ function EditDispenserModal({
   const activeSpecFields = SPEC_FIELDS_BY_TYPE[form.equipmentType] || [];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-card rounded-2xl shadow-2xl border border-border w-full max-w-xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-muted/30 shrink-0">
-          <h2 className="text-lg font-bold flex items-center gap-2">
-            <Pencil className="w-5 h-5 text-primary" />
-            Editar Información del Activo
+    <div className="modal-overlay">
+      <div className="modal-content max-w-xl flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
+        <div className="modal-header shrink-0">
+          <h2 className="text-base font-semibold">
+            Editar información del activo
           </h2>
-          <button onClick={onClose} className="p-2 hover:bg-accent rounded-full transition-colors text-muted-foreground">
+          <button type="button" onClick={onClose} className="modal-close" aria-label="Cerrar">
             <X className="w-5 h-5" />
           </button>
         </div>
-        <div className="px-6 py-4 space-y-4 overflow-y-auto scrollbar-thin flex-1">
+        <div className="modal-body space-y-4 overflow-y-auto flex-1">
           {/* Categoría y Criticidad */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-muted/20 p-3 rounded-xl border border-border/50">
             <div>
-              <label className="text-xs font-semibold mb-1 block">Tipo de Activo</label>
+              <label className="text-xs font-semibold mb-1 block">Tipo de activo</label>
               <select
                 className="select text-xs w-full"
                 value={form.equipmentType}
@@ -985,7 +983,7 @@ function EditDispenserModal({
               />
             </div>
             <div>
-              <label className="text-sm font-semibold mb-1 block">Fecha de Compra</label>
+              <label className="text-sm font-semibold mb-1 block">Fecha de compra</label>
               <input
                 type="date"
                 className="input"
@@ -994,7 +992,7 @@ function EditDispenserModal({
               />
             </div>
             <div>
-              <label className="text-sm font-semibold mb-1 block">N° Serie de Fábrica</label>
+              <label className="text-sm font-semibold mb-1 block">N° serie de fábrica</label>
               <input
                 className="input font-mono"
                 value={form.numeroSerie}
@@ -1004,7 +1002,7 @@ function EditDispenserModal({
             <div>
               <label className="text-sm font-semibold mb-1 block text-primary font-bold flex items-center gap-1">
                 <Building2 className="w-3.5 h-3.5 text-primary" />
-                Empresa / Cliente *
+                Empresa / cliente *
               </label>
               <select
                 className="select font-bold text-primary w-full"
@@ -1019,14 +1017,14 @@ function EditDispenserModal({
                 }}
                 required
               >
-                <option value="">Seleccionar Empresa...</option>
+                <option value="">Seleccionar empresa...</option>
                 {clients.map(c => (
                   <option key={c.id} value={c.id}>{c.nombre}</option>
                 ))}
               </select>
             </div>
             <div>
-              <label className="text-sm font-semibold mb-1 block text-primary font-bold">Planta Dueña (Propiedad) *</label>
+              <label className="text-sm font-semibold mb-1 block text-primary font-bold">Planta dueña (propiedad) *</label>
               <select
                 className="select font-bold text-primary w-full"
                 value={form.plantId}
@@ -1051,7 +1049,7 @@ function EditDispenserModal({
               </select>
             </div>
             <div>
-              <label className="text-sm font-semibold mb-1 block">Vida Útil (meses)</label>
+              <label className="text-sm font-semibold mb-1 block">Vida útil (meses)</label>
               <input 
                 type="number" 
                 className="input" 
@@ -1061,7 +1059,7 @@ function EditDispenserModal({
             </div>
             {role === 'ADMIN' && (
               <div className="sm:col-span-2">
-                <label className="text-sm font-semibold mb-1 block">Inicio Ciclo (Admin)</label>
+                <label className="text-sm font-semibold mb-1 block">Inicio ciclo (admin)</label>
                 <input 
                   type="date" 
                   className="input" 
@@ -1121,27 +1119,27 @@ function EditDispenserModal({
           <div className="p-4 bg-primary/5 border border-primary/20 rounded-xl">
             <label className="text-sm font-bold text-primary mb-2 flex items-center gap-2">
               <MapPin className="w-4 h-4" />
-              Ubicación de Instalación
+              Ubicación de instalación
             </label>
             <select
               className="select"
               value={form.locationId}
               onChange={e => setForm({ ...form, locationId: e.target.value })}
             >
-              <option value="">-- Sin asignar / Retirado --</option>
+              <option value="">-- Sin asignar / retirado --</option>
               {locations.map(loc => (
                 <option key={loc.id} value={loc.id}>
                   {loc.plant.nombre} — {loc.nombre}
                 </option>
               ))}
             </select>
-            <p className="text-[10px] text-muted-foreground mt-2 italic">
+            <p className="text-2xs text-muted-foreground mt-2 italic">
               Al asignar una nueva ubicación, el equipo se marcará como instalado en dicha planta/sector.
             </p>
           </div>
 
           <div>
-            <label className="text-sm font-semibold mb-1 block">Notas Internas</label>
+            <label className="text-sm font-semibold mb-1 block">Notas internas</label>
             <textarea
               className="textarea"
               rows={3}
@@ -1150,7 +1148,7 @@ function EditDispenserModal({
             />
           </div>
         </div>
-        <div className="px-6 py-4 border-t border-border bg-muted/30 flex items-center justify-end gap-3 shrink-0">
+        <div className="modal-footer shrink-0">
           <button onClick={onClose} className="btn-outline">Cancelar</button>
           <button onClick={handleSave} disabled={saving} className="btn-primary px-8 gap-2">
             {saving && <Loader2 className="w-4 h-4 animate-spin" />}

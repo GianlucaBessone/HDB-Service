@@ -71,10 +71,10 @@ export const CRITICALITY_LABELS: Record<AssetCriticality, string> = {
 };
 
 export const CRITICALITY_COLORS: Record<AssetCriticality, string> = {
-  LOW: 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-900/40 dark:text-slate-300 dark:border-slate-800',
-  MEDIUM: 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/40 dark:text-blue-300 dark:border-blue-800',
-  HIGH: 'bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/40 dark:text-amber-300 dark:border-amber-800',
-  CRITICAL: 'bg-red-100 text-red-700 border-red-200 dark:bg-red-900/40 dark:text-red-300 dark:border-red-800',
+  LOW: 'bg-muted text-foreground border-border',
+  MEDIUM: 'bg-info/10 text-info border-info/25',
+  HIGH: 'bg-warning/10 text-warning border-warning/25',
+  CRITICAL: 'bg-destructive/10 text-destructive border-destructive/25',
 };
 
 export interface SpecField {

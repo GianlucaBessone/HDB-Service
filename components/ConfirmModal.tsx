@@ -24,61 +24,40 @@ export default function ConfirmModal({
   variant = 'danger'
 }: ConfirmModalProps) {
   
-  const variantClasses = {
-    danger: 'bg-red-500 text-white hover:bg-red-600 shadow-red-500/20',
-    warning: 'bg-amber-500 text-white hover:bg-amber-600 shadow-amber-500/20',
-    info: 'bg-primary text-white hover:bg-primary/90 shadow-primary/20'
-  };
+  const confirmClass = {
+    danger: 'btn-destructive',
+    warning: 'btn-primary',
+    info: 'btn-primary',
+  }[variant];
 
-  const iconClasses = {
-    danger: 'bg-red-100 text-red-600',
-    warning: 'bg-amber-100 text-amber-600',
-    info: 'bg-primary/10 text-primary'
-  };
+  const iconClass = {
+    danger: 'text-destructive bg-destructive/10 border-destructive/20',
+    warning: 'text-warning bg-warning/10 border-warning/20',
+    info: 'text-info bg-info/10 border-info/20',
+  }[variant];
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="w-full max-w-md bg-card border border-border rounded-xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-        <div className="p-6">
-          <div className="flex items-start gap-4">
-            <div className={`p-3 rounded-full shrink-0 ${iconClasses[variant]}`}>
-              <AlertTriangle className="w-6 h-6" />
-            </div>
-            <div className="flex-1">
-              <h3 className="text-lg font-bold text-foreground leading-none">{title}</h3>
-              <p className="text-sm text-muted-foreground mt-3 leading-relaxed">
-                {description}
-              </p>
-            </div>
-            <button 
-              onClick={onClose}
-              className="p-1 hover:bg-accent rounded-full transition-colors text-muted-foreground"
-            >
-              <X className="w-5 h-5" />
-            </button>
+    <div className="modal-overlay z-[100]" onMouseDown={e => e.target === e.currentTarget && !isLoading && onClose()}>
+      <div role="alertdialog" aria-modal="true" aria-labelledby="confirm-title" className="modal-content max-w-md">
+        <div className="flex items-start gap-4 p-5 sm:p-6">
+          <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-md border ${iconClass}`}>
+            <AlertTriangle className="h-5 w-5" />
           </div>
+          <div className="min-w-0 flex-1">
+            <h3 id="confirm-title" className="text-base font-semibold text-foreground">{title}</h3>
+            <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{description}</p>
+          </div>
+          <button onClick={onClose} className="modal-close -mr-2 -mt-2" aria-label="Cerrar" disabled={isLoading}>
+            <X className="h-4 w-4" />
+          </button>
         </div>
 
-        <div className="p-4 bg-muted/30 border-t border-border flex items-center justify-end gap-3">
-          <button 
-            type="button"
-            onClick={onClose}
-            className="btn-outline px-6"
-            disabled={isLoading}
-          >
+        <div className="modal-footer bg-muted/40">
+          <button type="button" onClick={onClose} className="btn-outline" disabled={isLoading}>
             {cancelLabel}
           </button>
-          <button 
-            type="button"
-            onClick={onConfirm}
-            className={`btn-primary px-6 shadow-lg border-none ${variantClasses[variant]}`}
-            disabled={isLoading}
-          >
-            {isLoading ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              confirmLabel
-            )}
+          <button type="button" onClick={onConfirm} className={confirmClass} disabled={isLoading}>
+            {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : confirmLabel}
           </button>
         </div>
       </div>

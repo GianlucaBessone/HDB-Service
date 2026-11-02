@@ -46,7 +46,7 @@ export default function VerificationPage() {
           <div className="w-16 h-16 bg-primary/10 text-primary rounded-2xl flex items-center justify-center mx-auto mb-4">
             <Lock className="w-8 h-8" />
           </div>
-          <h1 className="text-2xl font-bold tracking-tight">Verificación de Firmas Digitales</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Verificación de firmas digitales</h1>
           <p className="text-muted-foreground mt-2 max-w-lg mx-auto">
             Sistema de validación criptográfica (SHA-512 + AES-256-GCM). 
             Ingrese el hash del certificado para comprobar la autenticidad e integridad de la firma.
@@ -75,7 +75,7 @@ export default function VerificationPage() {
         {error && (
           <div className="bg-danger/10 border border-danger/20 rounded-2xl p-6 text-center animate-fade-in">
             <AlertTriangle className="w-10 h-10 text-danger mx-auto mb-3" />
-            <h2 className="text-lg font-bold text-danger">Verificación Fallida</h2>
+            <h2 className="text-lg font-bold text-danger">Verificación fallida</h2>
             <p className="text-danger/80 mt-1">{error}</p>
           </div>
         )}
@@ -88,7 +88,7 @@ export default function VerificationPage() {
                 <ShieldCheck className="w-6 h-6" />
               </div>
               <div>
-                <h2 className="text-xl font-bold text-primary">Firma Auténtica y Verificada</h2>
+                <h2 className="text-xl font-bold text-primary">Firma auténtica y verificada</h2>
                 <p className="text-sm text-muted-foreground">La integridad criptográfica del documento está intacta.</p>
               </div>
             </div>
@@ -104,7 +104,7 @@ export default function VerificationPage() {
                   <p className="font-medium">{result.customerName}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">DNI / Identificación</p>
+                  <p className="text-sm text-muted-foreground">DNI / identificación</p>
                   <p className="font-medium">{result.customerIdentity}</p>
                 </div>
               </div>
@@ -114,7 +114,7 @@ export default function VerificationPage() {
                   <FileSignature className="w-4 h-4" /> Detalles de Operación
                 </h3>
                 <div>
-                  <p className="text-sm text-muted-foreground">Fecha y Hora Exacta</p>
+                  <p className="text-sm text-muted-foreground">Fecha y hora exacta</p>
                   <p className="font-medium flex items-center gap-1.5">
                     <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
                     {new Date(result.signedAt).toLocaleString('es-AR')}

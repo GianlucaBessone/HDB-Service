@@ -1,7 +1,7 @@
 import { Metadata } from 'next';
 import { PrefetchProvider } from "@/providers/PrefetchProvider";
 import { ReactQueryProvider } from "@/providers/ReactQueryProvider";
-import { Inter } from 'next/font/google';
+import { IBM_Plex_Sans, IBM_Plex_Mono } from 'next/font/google';
 import './globals.css';
 import { getSession } from '@/lib/auth';
 import { ThemeProvider } from '@/components/ThemeProvider';
@@ -14,11 +14,26 @@ import { headers } from 'next/headers';
 import { Analytics } from '@vercel/analytics/next';
 import AuthGuard from '@/components/AuthGuard';
 
-const inter = Inter({ subsets: ['latin'] });
+const fontSans = IBM_Plex_Sans({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-sans',
+  display: 'swap',
+});
+
+const fontMono = IBM_Plex_Mono({
+  subsets: ['latin'],
+  weight: ['400', '500'],
+  variable: '--font-mono',
+  display: 'swap',
+});
 
 export const metadata: Metadata = {
-  title: 'HDB-Service | Gestión Integral de Servicios y Activos',
-  description: 'Gestión de mantenimiento técnico, climatización, refrigeración y equipamiento industrial',
+  title: {
+    default: 'HDB Service',
+    template: '%s · HDB Service',
+  },
+  description: 'Gestión de mantenimiento técnico, climatización, refrigeración y equipamiento industrial.',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
@@ -31,11 +46,13 @@ export const metadata: Metadata = {
 };
 
 export const viewport = {
-  themeColor: '#0b8296',
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
+    { media: '(prefers-color-scheme: dark)', color: '#171b22' },
+  ],
   width: 'device-width',
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
+  viewportFit: 'cover',
 };
 
 import ForcePasswordChangeModal from '@/components/ForcePasswordChangeModal';
@@ -53,19 +70,21 @@ export default async function RootLayout({
   const mustChangePassword = session?.user.mustChangePassword && !pathname.startsWith('/login');
 
   return (
-    <html lang="es" suppressHydrationWarning>
-      <body className={`${inter.className} min-h-screen bg-background`} suppressHydrationWarning>
+    <html lang="es" suppressHydrationWarning className={`${fontSans.variable} ${fontMono.variable}`}>
+      <body className="min-h-dvh bg-background font-sans" suppressHydrationWarning>
         <ReactQueryProvider>
           <PrefetchProvider>
-            <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+            <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
               <AuthGuard session={session}>
                 {showSidebar ? (
-                  <div className="flex h-screen overflow-hidden">
+                  <div className="flex h-dvh overflow-hidden">
                     <Sidebar userRole={session!.user.role} />
-                    <div className="flex flex-col flex-1 overflow-hidden ml-0 md:ml-64 transition-all duration-300">
+                    <div className="flex min-w-0 flex-1 flex-col lg:pl-[248px]">
                       <TopBar user={session!.user} />
-                      <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 pb-28 md:pb-6 lg:pb-8">
-                        {children}
+                      <main id="main-content" className="flex-1 overflow-y-auto overflow-x-hidden">
+                        <div className="mx-auto w-full max-w-[1440px] px-4 pt-5 pb-[calc(5.5rem+env(safe-area-inset-bottom))] sm:px-6 md:pb-10 lg:px-8 lg:pt-7">
+                          {children}
+                        </div>
                       </main>
                     </div>
                     {session!.user.role !== 'CLIENT_REQUESTER' && <OneSignalInit user={session!.user} />}
@@ -73,13 +92,21 @@ export default async function RootLayout({
                     <MobileTabBar userRole={session!.user.role} />
                   </div>
                 ) : (
-                  <main className={pathname.startsWith('/login') ? "h-screen flex items-center justify-center" : ""}>
+                  <main className={pathname.startsWith('/login') ? "min-h-dvh flex items-center justify-center" : ""}>
                     {children}
                     {mustChangePassword && <ForcePasswordChangeModal />}
                   </main>
                 )}
               </AuthGuard>
-              <Toaster position="bottom-right" />
+              <Toaster
+                position="top-center"
+                toastOptions={{
+                  className: 'hdb-toast',
+                  duration: 4000,
+                  success: { iconTheme: { primary: 'hsl(152 62% 29%)', secondary: '#fff' } },
+                  error: { iconTheme: { primary: 'hsl(0 70% 44%)', secondary: '#fff' } },
+                }}
+              />
               <Analytics />
             </ThemeProvider>
           </PrefetchProvider>

@@ -113,7 +113,7 @@ export default function QRScanPage() {
           <ArrowLeft className="w-6 h-6" />
         </button>
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Escaneo de Equipo</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Escaneo de equipo</h1>
           <p className="text-xs text-muted-foreground">Identificación rápida mediante QR</p>
         </div>
       </div>
@@ -143,7 +143,7 @@ export default function QRScanPage() {
                   </div>
                   <button 
                     onClick={startScanning}
-                    className="w-full h-12 bg-primary text-primary-foreground font-bold rounded-2xl shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
+                    className="w-full h-12 bg-primary text-primary-foreground font-bold rounded-2xl shadow-lg transition-all"
                   >
                     Escanear QR
                   </button>
@@ -156,7 +156,7 @@ export default function QRScanPage() {
             <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20">
               <button 
                 onClick={stopScanning}
-                className="px-6 py-3 bg-destructive text-destructive-foreground font-bold rounded-2xl shadow-xl flex items-center gap-2 hover:scale-105 transition-transform"
+                className="px-6 py-3 bg-destructive text-destructive-foreground font-bold rounded-2xl shadow-xl flex items-center gap-2 transition-transform"
               >
                 <CameraOff className="w-5 h-5" />
                 Detener
@@ -184,7 +184,7 @@ export default function QRScanPage() {
           <div className="space-y-3">
             <div className="flex items-center gap-2 px-1">
               <History className="w-4 h-4 text-muted-foreground" />
-              <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+              <h2 className="eyebrow">
                 Recientes
               </h2>
             </div>
@@ -201,7 +201,7 @@ export default function QRScanPage() {
                     </div>
                     <span className="font-mono font-bold">{id}</span>
                   </div>
-                  <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-all group-hover:translate-x-1" />
+                  <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-all" />
                 </button>
               ))}
             </div>

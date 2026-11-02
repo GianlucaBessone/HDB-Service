@@ -110,7 +110,7 @@ export default function PublicApprovalPage() {
           <div className="w-16 h-16 bg-primary/10 text-primary rounded-2xl flex items-center justify-center mx-auto mb-4">
             <ShieldCheck className="w-8 h-8" />
           </div>
-          <h1 className="text-2xl font-bold tracking-tight">Validación de Mantenimiento</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Validación de mantenimiento</h1>
           <p className="text-muted-foreground mt-2">
             Por favor revise los servicios realizados y firme en conformidad.
           </p>
@@ -138,7 +138,7 @@ export default function PublicApprovalPage() {
                   <div>
                     <div className="flex items-center gap-2">
                       <h3 className="font-bold text-lg">{schedule.dispenser.id}</h3>
-                      <span className="badge badge-outline text-[10px]">
+                      <span className="badge badge-outline text-2xs">
                         {getEquipmentTypeLabel(schedule.dispenser.equipmentType || 'DISPENSER')}
                       </span>
                     </div>
@@ -160,7 +160,7 @@ export default function PublicApprovalPage() {
               {schedule.checklist && (
                 <div className="text-sm space-y-3 border-t border-border pt-4">
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Condición General:</span>
+                    <span className="text-muted-foreground">Condición general:</span>
                     <span className="font-medium">
                       {{
                         GOOD: 'Buena',
@@ -176,7 +176,7 @@ export default function PublicApprovalPage() {
                     <div className="p-3 bg-muted/20 border border-border rounded-xl space-y-2">
                       <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
                         <Gauge className="w-3.5 h-3.5 text-primary" />
-                        <span>Mediciones Técnicas de Servicio</span>
+                        <span>Mediciones técnicas de servicio</span>
                       </div>
                       <div className="grid grid-cols-2 gap-2 text-xs">
                         {Object.entries(schedule.checklist.measurements).map(([k, val]: [string, any]) => {
@@ -197,7 +197,7 @@ export default function PublicApprovalPage() {
                             caudalM3h: 'Caudal: ' + val + ' m³/h',
                           };
                           return (
-                            <span key={k} className="p-1.5 bg-card rounded border font-mono text-[11px]">
+                            <span key={k} className="p-1.5 bg-card rounded border font-mono text-2xs">
                               {labels[k] || `${k}: ${val}`}
                             </span>
                           );
@@ -209,7 +209,7 @@ export default function PublicApprovalPage() {
                   {/* Puntos de control verificados */}
                   {schedule.checklist.checklistItems && (
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <ClipboardCheck className="w-4 h-4 text-emerald-600" />
+                      <ClipboardCheck className="w-4 h-4 text-success" />
                       <span>
                         Protocolo verificado: {Object.values(schedule.checklist.checklistItems).filter(Boolean).length} puntos conformes
                       </span>
@@ -224,7 +224,7 @@ export default function PublicApprovalPage() {
                   )}
                   {schedule.checklist.fallas && schedule.checklist.fallas.length > 0 && (
                     <div>
-                      <span className="text-muted-foreground block mb-1">Fallas Detectadas:</span>
+                      <span className="text-muted-foreground block mb-1">Fallas detectadas:</span>
                       <div className="flex flex-wrap gap-1">
                         {schedule.checklist.fallas.map((f: string, i: number) => (
                           <span key={i} className="bg-danger/10 text-danger px-2 py-0.5 rounded text-xs">
@@ -247,7 +247,7 @@ export default function PublicApprovalPage() {
               <div className="w-16 h-16 bg-success/10 text-success rounded-full flex items-center justify-center mx-auto">
                 <CheckCircle2 className="w-8 h-8" />
               </div>
-              <h2 className="text-xl font-bold">¡Aprobación Registrada!</h2>
+              <h2 className="text-xl font-bold">¡Aprobación registrada!</h2>
               <p className="text-muted-foreground">Gracias por confirmar el servicio de mantenimiento.</p>
               
               <div className="mt-6 text-left border-t border-border pt-6 space-y-4">
@@ -266,7 +266,7 @@ export default function PublicApprovalPage() {
                   <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 mt-4">
                     <div className="flex items-center gap-2 mb-2 text-primary">
                       <ShieldCheck className="w-5 h-5" />
-                      <h3 className="font-bold text-sm">Certificado Digital SHA-512</h3>
+                      <h3 className="font-bold text-sm">Certificado digital SHA-512</h3>
                     </div>
                     <div className="space-y-2 text-xs">
                       <div>
@@ -290,10 +290,10 @@ export default function PublicApprovalPage() {
             </div>
           ) : (
             <div className="space-y-5">
-              <h2 className="text-xl font-bold mb-4">Conformidad del Cliente</h2>
+              <h2 className="text-xl font-bold mb-4">Conformidad del cliente</h2>
               
               <div>
-                <label className="label">Nombre Completo *</label>
+                <label className="label">Nombre completo *</label>
                 <input 
                   type="text" 
                   className="input mt-1" 
@@ -304,7 +304,7 @@ export default function PublicApprovalPage() {
               </div>
 
               <div>
-                <label className="label">DNI / Identificación *</label>
+                <label className="label">DNI / identificación *</label>
                 <input 
                   type="text" 
                   className="input mt-1" 
@@ -328,7 +328,7 @@ export default function PublicApprovalPage() {
                 {isSubmitting ? <Loader2 className="w-6 h-6 animate-spin mx-auto" /> : (
                   <>
                     <ShieldCheck className="w-5 h-5" />
-                    Confirmar y Firmar Digitalmente
+                    Confirmar y firmar digitalmente
                   </>
                 )}
               </button>
@@ -340,15 +340,15 @@ export default function PublicApprovalPage() {
 
       {/* Security Modal */}
       {showSecurityModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
-          <div className="bg-card rounded-2xl p-6 max-w-md w-full shadow-2xl relative animate-in zoom-in-95 duration-300">
+        <div className="modal-overlay">
+          <div className="modal-content max-w-md p-6 relative">
             <div className="w-12 h-12 bg-primary/10 text-primary rounded-full flex items-center justify-center mb-4">
               <Lock className="w-6 h-6" />
             </div>
-            <h2 className="text-xl font-bold mb-2">Firma Digital Segura Aplicada</h2>
+            <h2 className="text-xl font-bold mb-2">Firma digital segura aplicada</h2>
             <div className="space-y-4 text-sm text-muted-foreground mb-6">
               <p>
-                Su conformidad ha sido registrada exitosamente utilizando tecnología de <strong>Firma Digital Segura</strong>.
+                Su conformidad ha sido registrada exitosamente utilizando tecnología de <strong>Firma digital segura</strong>.
               </p>
               <div className="bg-muted/30 p-3 rounded-lg">
                 <strong className="text-foreground flex items-center gap-1.5 mb-1">
@@ -360,7 +360,7 @@ export default function PublicApprovalPage() {
               <div className="bg-muted/30 p-3 rounded-lg">
                 <strong className="text-foreground flex items-center gap-1.5 mb-1">
                   <Lock className="w-4 h-4 text-primary" />
-                  Seguridad de Grado Militar
+                  Seguridad de grado militar
                 </strong>
                 Para proteger esta huella digital, aplicamos cifrado <strong>AES-256-GCM</strong>. Este es el mismo estándar avanzado de encriptación utilizado a nivel mundial por bancos, gobiernos y agencias de inteligencia para proteger información de máximo secreto, garantizando que su firma sea inviolable y 100% auténtica.
               </div>

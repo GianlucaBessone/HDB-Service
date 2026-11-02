@@ -46,13 +46,13 @@ export default function ForcePasswordChangeModal() {
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-background/90 backdrop-blur-md">
-      <div className="w-full max-w-md bg-card border border-border rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
+    <div className="modal-overlay z-[100]">
+      <div className="modal-content max-w-md">
         <div className="p-8 text-center border-b border-border bg-muted/30">
           <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4 text-primary">
             <Lock className="w-8 h-8" />
           </div>
-          <h2 className="text-2xl font-bold text-foreground">Actualizar Contraseña</h2>
+          <h2 className="text-2xl font-bold text-foreground">Actualizar contraseña</h2>
           <p className="text-sm text-muted-foreground mt-2">
             Por seguridad, debes cambiar tu contraseña temporal antes de continuar.
           </p>
@@ -61,7 +61,7 @@ export default function ForcePasswordChangeModal() {
         <form onSubmit={handleSubmit} className="p-8 space-y-6">
           <div className="space-y-1.5">
             <label className="text-sm font-semibold flex items-center gap-2">
-              Nueva Contraseña
+              Nueva contraseña
             </label>
             <div className="relative">
               <input
@@ -84,7 +84,7 @@ export default function ForcePasswordChangeModal() {
 
           <div className="space-y-1.5">
             <label className="text-sm font-semibold flex items-center gap-2">
-              Confirmar Nueva Contraseña
+              Confirmar nueva contraseña
             </label>
             <div className="relative">
               <input
@@ -100,7 +100,7 @@ export default function ForcePasswordChangeModal() {
 
           <div className="flex items-start gap-3 p-4 bg-primary/5 rounded-xl border border-primary/10">
             <ShieldCheck className="w-5 h-5 text-primary shrink-0 mt-0.5" />
-            <p className="text-[11px] text-muted-foreground leading-relaxed">
+            <p className="text-2xs text-muted-foreground leading-relaxed">
               Usa una combinación de letras, números y símbolos para una mayor seguridad. 
               No compartas tu contraseña con nadie.
             </p>
@@ -109,7 +109,7 @@ export default function ForcePasswordChangeModal() {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full h-12 btn-primary shadow-lg shadow-primary/20 flex items-center justify-center gap-2 text-base font-bold"
+            className="w-full h-12 btn-primary flex items-center justify-center gap-2 text-base font-bold"
           >
             {isLoading ? (
               <Loader2 className="w-5 h-5 animate-spin" />

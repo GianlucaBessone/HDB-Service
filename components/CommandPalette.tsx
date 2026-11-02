@@ -20,28 +20,40 @@ import {
   Cpu
 } from 'lucide-react';
 import { getEquipmentTypeLabel } from '@/lib/equipment';
+import { isNavVisible } from '@/lib/rbac';
+import { UserRole } from '@prisma/client';
 
 function getAssetIcon(type?: string) {
+  const cls = 'w-4 h-4 text-muted-foreground shrink-0';
   switch (type) {
     case 'AIR_CONDITIONER':
-      return <Wind className="w-4 h-4 text-sky-500" />;
+      return <Wind className={cls} />;
     case 'COLD_ROOM':
-      return <Snowflake className="w-4 h-4 text-cyan-400" />;
+      return <Snowflake className={cls} />;
     case 'VENTILATION':
-      return <Fan className="w-4 h-4 text-emerald-500" />;
+      return <Fan className={cls} />;
     case 'DISPENSER':
-      return <Droplets className="w-4 h-4 text-blue-500" />;
+      return <Droplets className={cls} />;
     default:
-      return <Cpu className="w-4 h-4 text-purple-500" />;
+      return <Cpu className={cls} />;
   }
 }
+
+const SECTION_LABELS: Record<string, string> = {
+  action: 'Accesos rápidos',
+  equipment: 'Activos',
+  ticket: 'Tickets',
+  client: 'Clientes',
+};
 
 export default function CommandPalette({
   isOpen,
   onClose,
+  userRole,
 }: {
   isOpen: boolean;
   onClose: () => void;
+  userRole?: UserRole;
 }) {
   const router = useRouter();
   const [query, setQuery] = useState('');
@@ -64,17 +76,11 @@ export default function CommandPalette({
     }
   }, [isOpen]);
 
-  // Global Ctrl+K / Cmd+K listener
+  // Escape para cerrar (Ctrl/⌘+K lo maneja TopBar)
   useEffect(() => {
+    if (!isOpen) return;
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
-        e.preventDefault();
-        if (isOpen) onClose();
-        else onClose(); // parent will toggle
-      }
-      if (e.key === 'Escape' && isOpen) {
-        onClose();
-      }
+      if (e.key === 'Escape') onClose();
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
@@ -108,17 +114,18 @@ export default function CommandPalette({
   }, [query]);
 
   // Flattened items for keyboard navigation
-  const flatItems: { type: string; id: string; label: string; url: string; badge?: string }[] = [];
+  const flatItems: { type: string; id: string; label: string; url: string; badge?: string; assetType?: string }[] = [];
 
   if (!query || query.length < 2) {
     // Quick Actions
-    flatItems.push(
-      { type: 'action', id: 'scan-qr', label: 'Escanear Código QR en Planta', url: '/qr/scan' },
-      { type: 'action', id: 'view-equipments', label: 'Flota de Equipos y Activos', url: '/dispensers' },
-      { type: 'action', id: 'view-tickets', label: 'Mesa de Ayuda / Tickets', url: '/tickets' },
-      { type: 'action', id: 'view-maintenance', label: 'Órdenes de Mantenimiento', url: '/maintenance' },
-      { type: 'action', id: 'view-dashboard', label: 'Centro de Control y Analítica', url: '/dashboard' }
-    );
+    const actions = [
+      { type: 'action', id: 'scan-qr', label: 'Escanear QR de un activo', url: '/qr/scan' },
+      { type: 'action', id: 'view-tickets', label: 'Ir a Tickets', url: '/tickets' },
+      { type: 'action', id: 'view-equipments', label: 'Ir a Activos', url: '/dispensers' },
+      { type: 'action', id: 'view-maintenance', label: 'Ir a Mantenimiento', url: '/maintenance' },
+      { type: 'action', id: 'view-dashboard', label: 'Ir a Dashboard', url: '/dashboard' },
+    ];
+    flatItems.push(...actions.filter(a => !userRole || isNavVisible(a.url, userRole)));
   } else {
     results.equipments.forEach(e => {
       flatItems.push({
@@ -127,13 +134,14 @@ export default function CommandPalette({
         label: `${e.id} — ${e.marca} ${e.modelo}`,
         url: `/dispensers/${e.id}`,
         badge: getEquipmentTypeLabel(e.equipmentType),
+        assetType: e.equipmentType,
       });
     });
     results.tickets.forEach(t => {
       flatItems.push({
         type: 'ticket',
         id: t.id,
-        label: `#${t.id.slice(-6)}: ${t.titulo}`,
+        label: `#${t.id.slice(-6)} · ${t.titulo}`,
         url: `/tickets/${t.id}`,
         badge: t.prioridad,
       });
@@ -172,91 +180,81 @@ export default function CommandPalette({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-16 md:pt-24 px-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-      <div 
-        className="w-full max-w-2xl bg-card border border-border rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh]"
-        onClick={e => e.stopPropagation()}
+    <div
+      className="fixed inset-0 z-[60] flex items-start justify-center bg-slate-950/50 px-0 pt-0 sm:px-4 sm:pt-[12vh] dark:bg-black/70 animate-in fade-in-0 duration-150"
+      onMouseDown={e => e.target === e.currentTarget && onClose()}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Búsqueda global"
+        className="flex h-[100dvh] w-full max-w-2xl flex-col overflow-hidden border-border bg-popover shadow-xl sm:h-auto sm:max-h-[70vh] sm:rounded-xl sm:border"
       >
-        {/* Search Input Bar */}
-        <div className="flex items-center px-4 py-3.5 border-b border-border gap-3 bg-muted/30">
-          <Search className="w-5 h-5 text-muted-foreground shrink-0" />
+        {/* Campo de búsqueda */}
+        <div className="flex items-center gap-3 border-b border-border px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))] sm:pt-3">
+          <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
           <input
             ref={inputRef}
             type="text"
             value={query}
             onChange={e => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Buscar por serial, modelo, cliente, ticket o acción rápida..."
-            className="w-full bg-transparent border-none outline-none text-foreground placeholder:text-muted-foreground text-base"
+            placeholder="Buscar activo, ticket o cliente…"
+            className="w-full border-none bg-transparent text-base text-foreground outline-none placeholder:text-muted-foreground sm:text-sm"
+            aria-label="Buscar"
           />
-          {loading && <Loader2 className="w-4 h-4 text-primary animate-spin shrink-0" />}
+          {loading && <Loader2 className="h-4 w-4 shrink-0 animate-spin text-muted-foreground" />}
           {query && !loading && (
-            <button 
-              onClick={() => setQuery('')}
-              className="p-1 text-muted-foreground hover:text-foreground rounded"
-            >
-              <X className="w-4 h-4" />
+            <button onClick={() => setQuery('')} className="rounded p-1 text-muted-foreground hover:text-foreground" aria-label="Limpiar búsqueda">
+              <X className="h-4 w-4" />
             </button>
           )}
-          <kbd className="hidden sm:inline-block px-2 py-0.5 text-[11px] font-mono bg-muted text-muted-foreground rounded border border-border">
-            ESC
-          </kbd>
+          <button onClick={onClose} className="btn-ghost btn-sm sm:hidden">Cancelar</button>
+          <kbd className="hidden rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-2xs text-muted-foreground sm:inline-block">Esc</kbd>
         </div>
 
-        {/* Results List */}
-        <div className="overflow-y-auto p-2 space-y-1">
+        {/* Resultados */}
+        <div className="flex-1 overflow-y-auto p-2">
           {flatItems.length === 0 && !loading && (
-            <div className="p-8 text-center text-muted-foreground text-sm">
-              No se encontraron resultados para &quot;{query}&quot;.
-            </div>
-          )}
-
-          {/* Render Sections */}
-          {!query && (
-            <div className="px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Acciones Rápidas
+            <div className="p-8 text-center text-sm text-muted-foreground">
+              Sin resultados para “{query}”.
             </div>
           )}
 
           {flatItems.map((item, idx) => {
             const isSelected = idx === selectedIndex;
+            const showSection = idx === 0 || flatItems[idx - 1].type !== item.type;
             return (
-              <button
-                key={`${item.type}-${item.id}`}
-                onClick={() => handleSelect(item.url)}
-                onMouseEnter={() => setSelectedIndex(idx)}
-                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-left text-sm transition-colors ${
-                  isSelected ? 'bg-primary/10 text-primary font-medium' : 'hover:bg-muted/60 text-foreground'
-                }`}
-              >
-                <div className="flex items-center gap-3 truncate">
-                  {item.type === 'action' && <ScanLine className="w-4 h-4 text-primary shrink-0" />}
-                  {item.type === 'equipment' && getAssetIcon()}
-                  {item.type === 'ticket' && <Ticket className="w-4 h-4 text-amber-500 shrink-0" />}
-                  {item.type === 'client' && <Building2 className="w-4 h-4 text-emerald-500 shrink-0" />}
-                  <span className="truncate">{item.label}</span>
-                </div>
-
-                <div className="flex items-center gap-2 shrink-0 ml-3">
-                  {item.badge && (
-                    <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-muted text-muted-foreground border border-border">
-                      {item.badge}
-                    </span>
-                  )}
-                  {isSelected && <ArrowRight className="w-3.5 h-3.5 text-primary" />}
-                </div>
-              </button>
+              <div key={`${item.type}-${item.id}`}>
+                {showSection && (
+                  <div className="eyebrow px-3 pb-1.5 pt-3 first:pt-1.5">{SECTION_LABELS[item.type]}</div>
+                )}
+                <button
+                  onClick={() => handleSelect(item.url)}
+                  onMouseEnter={() => setSelectedIndex(idx)}
+                  className={`flex min-h-[44px] w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm transition-colors sm:min-h-[38px] ${
+                    isSelected ? 'bg-accent text-foreground' : 'text-foreground hover:bg-accent/60'
+                  }`}
+                >
+                  <div className="flex min-w-0 items-center gap-3">
+                    {item.type === 'action' && <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" />}
+                    {item.type === 'equipment' && getAssetIcon(item.assetType)}
+                    {item.type === 'ticket' && <Ticket className="h-4 w-4 shrink-0 text-muted-foreground" />}
+                    {item.type === 'client' && <Building2 className="h-4 w-4 shrink-0 text-muted-foreground" />}
+                    <span className="truncate">{item.label}</span>
+                  </div>
+                  {item.badge && <span className="badge-neutral ml-3 shrink-0">{item.badge}</span>}
+                </button>
+              </div>
             );
           })}
         </div>
 
-        {/* Footer shortcuts helper */}
-        <div className="px-4 py-2 bg-muted/40 border-t border-border flex items-center justify-between text-[11px] text-muted-foreground">
-          <div className="flex items-center gap-3">
-            <span><kbd className="px-1.5 py-0.5 bg-muted rounded border border-border">↑</kbd> <kbd className="px-1.5 py-0.5 bg-muted rounded border border-border">↓</kbd> Navegar</span>
-            <span><kbd className="px-1.5 py-0.5 bg-muted rounded border border-border">↵</kbd> Abrir</span>
-          </div>
-          <span>HDB Service Universal Search</span>
+        {/* Ayuda de teclado */}
+        <div className="hidden items-center gap-4 border-t border-border bg-muted/50 px-4 py-2 text-2xs text-muted-foreground sm:flex">
+          <span><kbd className="rounded border border-border bg-card px-1.5 py-0.5 font-mono">↑</kbd> <kbd className="rounded border border-border bg-card px-1.5 py-0.5 font-mono">↓</kbd> Navegar</span>
+          <span><kbd className="rounded border border-border bg-card px-1.5 py-0.5 font-mono">↵</kbd> Abrir</span>
+          <span><kbd className="rounded border border-border bg-card px-1.5 py-0.5 font-mono">Esc</kbd> Cerrar</span>
         </div>
       </div>
     </div>

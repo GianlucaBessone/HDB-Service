@@ -110,7 +110,7 @@ export default function InventoryPage() {
   });
 
   const tabs: { key: Tab; label: string; icon: React.ElementType }[] = [
-    { key: 'stock', label: 'Stock Actual', icon: Package },
+    { key: 'stock', label: 'Stock actual', icon: Package },
     { key: 'transfers', label: 'Transferencias', icon: ArrowRightLeft },
     { key: 'debts', label: 'Deudas Inter-Plantas', icon: CreditCard },
   ];
@@ -153,7 +153,7 @@ export default function InventoryPage() {
               }}
               className="select pl-10 min-w-[200px]"
             >
-              <option value="">Todas las Empresas (Global)</option>
+              <option value="">Todas las empresas (global)</option>
               {clients.map((c: any) => (
                 <option key={c.id} value={c.id}>{c.nombre}</option>
               ))}
@@ -281,9 +281,9 @@ function StockTab({
           />
         </div>
         {lowStockCount > 0 && (
-          <div className="flex items-center gap-2 px-3 py-2 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg">
-            <AlertTriangle className="w-4 h-4 text-red-500" />
-            <span className="text-sm font-medium text-red-700 dark:text-red-400">
+          <div className="flex items-center gap-2 px-3 py-2 bg-destructive/10 border border-destructive/25 rounded-lg">
+            <AlertTriangle className="w-4 h-4 text-destructive" />
+            <span className="text-sm font-medium text-destructive">
               {lowStockCount} ítems bajo mínimo
             </span>
           </div>
@@ -291,7 +291,7 @@ function StockTab({
         {(role === 'ADMIN' || role === 'SUPERVISOR' || role === 'TECHNICIAN') && (
           <button onClick={() => setShowAddModal(true)} className="btn-primary gap-2 shrink-0">
             <Plus className="w-4 h-4" />
-            Agregar Stock
+            Agregar stock
           </button>
         )}
       </div>
@@ -321,7 +321,7 @@ function StockTab({
                   <tr>
                     <th className="text-center w-[12%]">Código</th>
                     <th className="text-center w-[28%]">Material</th>
-                    <th className="text-center w-[15%]">N° Serie</th>
+                    <th className="text-center w-[15%]">N° serie</th>
                     <th className="text-center w-[12%]">Cantidad</th>
                     <th className="text-center w-[8%]">Mínimo</th>
                     <th className="text-center w-[8%]">Máximo</th>
@@ -334,7 +334,7 @@ function StockTab({
                     const isLow = e.minLevel > 0 && e.cantidad < e.minLevel;
                     const serials = (e as any).serialNumbers as string[] | undefined;
                     return (
-                      <tr key={e.id} className={isLow ? 'bg-red-50/50 dark:bg-red-950/10' : ''}>
+                      <tr key={e.id} className={isLow ? 'bg-destructive/10' : ''}>
                         <td className="text-center">
                           <div className="flex justify-center font-mono text-xs">{e.materialCode}</div>
                         </td>
@@ -346,7 +346,7 @@ function StockTab({
                             {serials && serials.length > 0 ? (
                               <div className="flex flex-wrap gap-1 justify-center">
                                 {serials.map(sn => (
-                                  <span key={sn} className="inline-block px-1.5 py-0.5 bg-primary/10 text-primary text-[10px] font-mono rounded">
+                                  <span key={sn} className="inline-block px-1.5 py-0.5 bg-primary/10 text-primary text-2xs font-mono rounded">
                                     {sn}
                                   </span>
                                 ))}
@@ -383,7 +383,7 @@ function StockTab({
                             {(role === 'ADMIN' || role === 'SUPERVISOR' || role === 'TECHNICIAN') ? (
                               <button
                                 onClick={() => setAdjustEntry(e)}
-                                className="btn-ghost btn-sm text-xs gap-1 text-amber-600 hover:text-amber-700 hover:bg-amber-50 dark:hover:bg-amber-950/30"
+                                className="btn-ghost btn-sm text-xs gap-1 text-warning hover:text-warning hover:bg-warning/10"
                                 title="Ajuste de inventario"
                               >
                                 <Settings2 className="w-3.5 h-3.5" />
@@ -445,7 +445,7 @@ function TransfersTab({ plantId, plants, role }: { plantId: string; plants: any[
         <div className="flex justify-end">
           <button onClick={() => setShowModal(true)} className="btn-primary gap-2">
             <ArrowRightLeft className="w-4 h-4" />
-            Nueva Transferencia
+            Nueva transferencia
           </button>
         </div>
       )}
@@ -576,7 +576,7 @@ function DebtsTab({ role }: { role?: string }) {
         </div>
       ) : debts.length === 0 ? (
         <div className="glass-card p-12 flex flex-col items-center text-center">
-          <CheckCircle2 className="w-16 h-16 text-emerald-500/30 mb-4" />
+          <CheckCircle2 className="w-16 h-16 text-success/30 mb-4" />
           <p className="text-muted-foreground text-lg font-medium">Sin deudas pendientes</p>
           <p className="text-muted-foreground text-sm mt-1">Todas las deudas inter-plantas están al día</p>
         </div>
@@ -591,9 +591,9 @@ function DebtsTab({ role }: { role?: string }) {
                     Código: {d.materialCode} · Cantidad: {d.cantidad}
                   </div>
                   <div className="flex items-center gap-2 mt-2 text-xs">
-                    <span className="font-medium text-red-600 dark:text-red-400">{d.debtorPlant?.nombre}</span>
+                    <span className="font-medium text-destructive">{d.debtorPlant?.nombre}</span>
                     <span className="text-muted-foreground">debe a</span>
-                    <span className="font-medium text-emerald-600 dark:text-emerald-400">{d.creditorPlant?.nombre}</span>
+                    <span className="font-medium text-success">{d.creditorPlant?.nombre}</span>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
@@ -744,7 +744,7 @@ function AddStockModal({
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content max-w-lg" onClick={e => e.stopPropagation()}>
         <div className="modal-header">
-          <h2 className="text-lg font-semibold">Agregar / Actualizar Stock</h2>
+          <h2>Agregar / actualizar stock</h2>
           <button onClick={onClose} className="btn-ghost btn-icon"><X className="w-5 h-5" /></button>
         </div>
         <form onSubmit={handleSubmit}>
@@ -752,7 +752,7 @@ function AddStockModal({
             <div>
               <label className="label">Planta *</label>
               <select className="select mt-1" value={form.plantId} onChange={e => setForm(p => ({ ...p, plantId: e.target.value }))} required>
-                <option value="">Seleccionar Planta...</option>
+                <option value="">Seleccionar planta...</option>
                 {plants.map(p => (
                   <option key={p.id} value={p.id}>
                     {p.client?.nombre ? `${p.client.nombre} — ` : ''}{p.nombre}
@@ -761,7 +761,7 @@ function AddStockModal({
               </select>
             </div>
             <div>
-              <label className="label">Repuesto / Consumible *</label>
+              <label className="label">Repuesto / consumible *</label>
               <MaterialCombobox 
                 items={catalogItems}
                 value={form.materialCode}
@@ -770,19 +770,19 @@ function AddStockModal({
                 autoFocus
               />
               {form.plantId && catalogItems.length === 0 && (
-                <p className="text-xs text-amber-600 mt-1">El cliente de esta planta no tiene repuestos en su catálogo.</p>
+                <p className="text-xs text-warning mt-1">El cliente de esta planta no tiene repuestos en su catálogo.</p>
               )}
             </div>
 
             {form.itemType === 'CONSUMABLE' && (
               <div className="grid grid-cols-2 gap-4 bg-muted/30 p-3 rounded-lg border border-border">
                 <div>
-                  <label className="label">N° Serie (Opcional)</label>
+                  <label className="label">N° serie (opcional)</label>
                   <input className="input mt-1" placeholder="Ej: SN-12345" value={form.uniqueId} onChange={e => setForm(p => ({ ...p, uniqueId: e.target.value }))} />
                   <p className="text-xs text-muted-foreground mt-1">Si se ingresa, la cantidad será 1.</p>
                 </div>
                 <div>
-                  <label className="label">Vencimiento (Meses)</label>
+                  <label className="label">Vencimiento (meses)</label>
                   <input type="number" className="input mt-1" placeholder="Ej: 6" value={form.expirationMonths} onChange={e => setForm(p => ({ ...p, expirationMonths: e.target.value }))} />
                   <p className="text-xs text-muted-foreground mt-1">Calculado al instalar.</p>
                 </div>
@@ -911,14 +911,14 @@ function TransferModal({
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content max-w-lg" onClick={e => e.stopPropagation()}>
         <div className="modal-header">
-          <h2 className="text-lg font-semibold">Nueva Transferencia</h2>
+          <h2>Nueva transferencia</h2>
           <button onClick={onClose} className="btn-ghost btn-icon"><X className="w-5 h-5" /></button>
         </div>
         <form onSubmit={handleSubmit}>
           <div className="modal-body space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
-                <label className="label">Planta Origen *</label>
+                <label className="label">Planta origen *</label>
                 <select 
                   className="select mt-1" 
                   value={form.fromPlantId} 
@@ -933,7 +933,7 @@ function TransferModal({
                 </select>
               </div>
               <div>
-                <label className="label">Planta Destino *</label>
+                <label className="label">Planta destino *</label>
                 <select className="select mt-1" value={form.toPlantId} onChange={e => setForm(p => ({ ...p, toPlantId: e.target.value }))} required>
                   <option value="">Seleccionar...</option>
                   {plants.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
@@ -944,7 +944,7 @@ function TransferModal({
             {form.fromPlantId && (
               <div className="space-y-3 p-3 bg-muted/30 rounded-lg border border-border">
                 <div className="relative">
-                  <label className="label">Buscar Material en Origen</label>
+                  <label className="label">Buscar material en origen</label>
                   <div className="relative mt-1">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                     <input
@@ -981,7 +981,7 @@ function TransferModal({
                         >
                           <div>
                             <div className="font-medium">{item.nombre}</div>
-                            <div className="text-[10px] opacity-70">{item.materialCode}</div>
+                            <div className="text-2xs opacity-70">{item.materialCode}</div>
                           </div>
                           <div className="text-xs font-semibold">
                             {item.cantidad} {item.unidad}
@@ -997,11 +997,11 @@ function TransferModal({
             {form.materialCode && (
               <div className="grid grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-2">
                 <div>
-                  <label className="label">Código Material</label>
+                  <label className="label">Código material</label>
                   <input className="input mt-1 bg-muted" value={form.materialCode} readOnly />
                 </div>
                 <div>
-                  <label className="label">Cantidad a Transferir *</label>
+                  <label className="label">Cantidad a transferir *</label>
                   <input 
                     type="number" 
                     className="input mt-1" 
@@ -1013,7 +1013,7 @@ function TransferModal({
                     required 
                   />
                   {selectedItem && (
-                    <p className="text-[10px] text-muted-foreground mt-1 text-right">
+                    <p className="text-2xs text-muted-foreground mt-1 text-right">
                       Max: {selectedItem.cantidad} {selectedItem.unidad}
                     </p>
                   )}
@@ -1082,7 +1082,7 @@ function AdjustStockModal({
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content max-w-md" onClick={e => e.stopPropagation()}>
         <div className="modal-header">
-          <h2 className="text-lg font-semibold text-amber-600">Ajuste de Inventario</h2>
+          <h2 className="text-lg font-semibold text-warning">Ajuste de inventario</h2>
           <button onClick={onClose} className="btn-ghost btn-icon"><X className="w-5 h-5" /></button>
         </div>
         <div className="modal-body space-y-4">
@@ -1093,13 +1093,13 @@ function AdjustStockModal({
               className={clsx('flex-1 py-1.5 text-xs rounded-md transition-all', action === 'ADJUST_QTY' ? 'bg-white shadow-sm font-semibold' : 'text-muted-foreground')}
               onClick={() => setAction('ADJUST_QTY')}
             >
-              Ajustar Cantidad
+              Ajustar cantidad
             </button>
             <button 
-              className={clsx('flex-1 py-1.5 text-xs rounded-md transition-all', action === 'DELETE' ? 'bg-red-500 text-white font-semibold' : 'text-muted-foreground')}
+              className={clsx('flex-1 py-1.5 text-xs rounded-md transition-all', action === 'DELETE' ? 'bg-destructive text-white font-semibold' : 'text-muted-foreground')}
               onClick={() => setAction('DELETE')}
             >
-              Eliminar Registro
+              Eliminar registro
             </button>
           </div>
 
@@ -1109,14 +1109,14 @@ function AdjustStockModal({
               <input type="number" className="input mt-1" value={newCantidad} onChange={e => setNewCantidad(e.target.value)} />
             </div>
           ) : (
-            <div className="p-3 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-lg text-red-700 dark:text-red-400 text-sm">
+            <div className="p-3 bg-destructive/10 border border-destructive/25 rounded-lg text-destructive text-sm">
               <AlertTriangle className="w-4 h-4 inline mr-2" />
               Esta acción eliminará el registro de stock para esta planta permanentemente.
             </div>
           )}
 
           <div>
-            <label className="label">Justificación / Motivo *</label>
+            <label className="label">Justificación / motivo *</label>
             <textarea className="textarea mt-1" rows={3} placeholder="Ej: Error de carga inicial, merma, rotura..." value={justificacion} onChange={e => setJustificacion(e.target.value)} />
           </div>
         </div>

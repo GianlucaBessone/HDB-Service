@@ -34,7 +34,7 @@ export default function IdeasSugerenciasReclamos() {
       <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 relative overflow-hidden">
         <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/20 blur-[120px] rounded-full mix-blend-multiply dark:mix-blend-screen animate-pulse-soft" />
         <div className="glass-card max-w-md w-full p-8 text-center z-10 relative">
-          <CheckCircle className="w-16 h-16 text-emerald-500 mx-auto mb-6" />
+          <CheckCircle className="w-16 h-16 text-success mx-auto mb-6" />
           <h2 className="text-2xl font-bold text-foreground mb-2">¡Gracias por tu aporte!</h2>
           <p className="text-muted-foreground mb-6">Tu registro ha sido enviado y será evaluado por nuestro equipo. Valoramos tu contribución a la mejora continua.</p>
           <button onClick={() => setSubmitted(false)} className="btn-primary w-full">
@@ -49,15 +49,15 @@ export default function IdeasSugerenciasReclamos() {
     <div className="min-h-screen bg-background relative overflow-hidden py-12 px-4 sm:px-6">
       {/* Background decoration */}
       <div className="absolute top-0 right-0 w-[50%] h-[50%] bg-primary/10 blur-[150px] rounded-full mix-blend-multiply dark:mix-blend-screen animate-pulse-soft pointer-events-none" />
-      <div className="absolute bottom-0 left-0 w-[50%] h-[50%] bg-cyan-500/10 blur-[150px] rounded-full mix-blend-multiply dark:mix-blend-screen pointer-events-none" />
+      <div className="absolute bottom-0 left-0 w-[50%] h-[50%] bg-primary/10 blur-[150px] rounded-full mix-blend-multiply dark:mix-blend-screen pointer-events-none" />
 
       <div className="max-w-3xl mx-auto z-10 relative">
         <div className="text-center mb-10">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-cyan-400 text-white mb-6 shadow-lg shadow-primary/20 rotate-3 hover:rotate-0 transition-transform">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-primary text-white mb-6 shadow-lg transition-transform">
             <Lightbulb className="w-8 h-8 fill-white/20" />
           </div>
-          <h1 className="text-4xl font-extrabold tracking-tight text-foreground mb-3">
-            Ideas, Sugerencias y Reclamos
+          <h1 className="text-4xl font-semibold tracking-tight text-foreground mb-3">
+            Ideas, sugerencias y reclamos
           </h1>
           <p className="text-muted-foreground text-lg max-w-xl mx-auto">
             Tu opinión es fundamental para nuestra mejora continua. Completa el formulario y ayúdanos a crecer juntos.
@@ -135,7 +135,7 @@ export default function IdeasSugerenciasReclamos() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-foreground">Tipo de Registro <span className="text-destructive">*</span></label>
+                <label className="text-sm font-medium text-foreground">Tipo de registro <span className="text-destructive">*</span></label>
                 <select name="tipo_registro" required className="select">
                   <option value="">Seleccione una opción</option>
                   <option value="IDEA">Idea de mejora</option>
@@ -149,18 +149,18 @@ export default function IdeasSugerenciasReclamos() {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-foreground">Área Involucrada <span className="text-destructive">*</span></label>
+                <label className="text-sm font-medium text-foreground">Área involucrada <span className="text-destructive">*</span></label>
                 <select name="area_involucrada" required className="select">
                   <option value="">Seleccione una opción</option>
                   <option value="PRODUCCION">Producción</option>
                   <option value="MANTENIMIENTO">Mantenimiento</option>
                   <option value="CALIDAD">Calidad</option>
-                  <option value="SEGURIDAD">Seguridad e Higiene</option>
+                  <option value="SEGURIDAD">Seguridad e higiene</option>
                   <option value="LOGISTICA">Logística</option>
                   <option value="COMPRAS">Compras</option>
                   <option value="ADMINISTRACION">Administración</option>
                   <option value="SISTEMAS">Sistemas</option>
-                  <option value="RRHH">Recursos Humanos</option>
+                  <option value="RRHH">Recursos humanos</option>
                   <option value="DIRECCION">Dirección</option>
                   <option value="OTRA">Otra</option>
                 </select>
@@ -185,7 +185,7 @@ export default function IdeasSugerenciasReclamos() {
             </h3>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">Beneficios Esperados (Múltiple elección)</label>
+              <label className="text-sm font-medium text-foreground">Beneficios esperados (múltiple elección)</label>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 mt-2">
                 {[
                   { id: 'Mayor seguridad', label: 'Mayor seguridad' },
@@ -208,7 +208,7 @@ export default function IdeasSugerenciasReclamos() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-foreground">Impacto Estimado <span className="text-destructive">*</span></label>
+                <label className="text-sm font-medium text-foreground">Impacto estimado <span className="text-destructive">*</span></label>
                 <select name="impacto_estimado" required className="select">
                   <option value="">Seleccione una opción</option>
                   <option value="BAJO">Bajo</option>
@@ -231,7 +231,7 @@ export default function IdeasSugerenciasReclamos() {
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-foreground flex items-center gap-1">Propuesta de Solución <span className="text-xs text-muted-foreground font-normal">(Opcional)</span></label>
+              <label className="text-sm font-medium text-foreground flex items-center gap-1">Propuesta de solución <span className="text-xs text-muted-foreground font-normal">(Opcional)</span></label>
               <textarea name="propuesta_solucion" className="textarea min-h-[80px]" placeholder="¿Cómo considera que podría resolverse o mejorarse?"></textarea>
             </div>
           </section>
@@ -240,13 +240,13 @@ export default function IdeasSugerenciasReclamos() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full md:w-auto min-w-[200px] h-12 btn-primary shadow-lg shadow-primary/25 relative overflow-hidden group text-base"
+              className="w-full md:w-auto min-w-[200px] h-12 btn-primary relative overflow-hidden group text-base"
             >
               {isSubmitting ? (
                 <Loader2 className="w-5 h-5 animate-spin mx-auto" />
               ) : (
                 <span className="relative z-10 flex items-center justify-center gap-2">
-                  Enviar Registro
+                  Enviar registro
                 </span>
               )}
               <div className="absolute inset-0 h-full w-full bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]" />

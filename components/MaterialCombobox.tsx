@@ -147,7 +147,7 @@ export default function MaterialCombobox({ items, value, onChange, disabled, aut
                   <span className="font-semibold">{item.nombre}</span>
                   <span className="text-xs font-mono opacity-70">{item.code}</span>
                 </div>
-                <span className={clsx("badge text-[10px] px-1.5 py-0", item.type === 'CONSUMABLE' ? 'badge-primary' : 'badge-warning')}>
+                <span className={clsx("badge text-2xs px-1.5 py-0", item.type === 'CONSUMABLE' ? 'badge-primary' : 'badge-warning')}>
                   {item.type === 'CONSUMABLE' ? 'Consumible' : 'Repuesto'}
                 </span>
               </li>

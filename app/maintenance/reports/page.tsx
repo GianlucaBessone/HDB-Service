@@ -152,7 +152,7 @@ export default function MaintenanceReportsPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3">
             <LayoutGrid className="w-8 h-8 text-primary" />
-            Matriz de Mantenimiento
+            Matriz de mantenimiento
           </h1>
           <p className="text-muted-foreground mt-1">Reporte de cumplimiento y estado de flota por periodo.</p>
         </div>
@@ -178,7 +178,7 @@ export default function MaintenanceReportsPage() {
               onChange={e => { setClientId(e.target.value); setPlantId(''); setSectorId(''); }} 
               className="w-full px-3 py-2 bg-background border border-border rounded-lg outline-none focus:ring-2 focus:ring-primary/20"
             >
-              <option value="">Todos los Clientes</option>
+              <option value="">Todos los clientes</option>
               {clientsData.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
             </select>
           </div>
@@ -191,7 +191,7 @@ export default function MaintenanceReportsPage() {
               className="w-full px-3 py-2 bg-background border border-border rounded-lg outline-none focus:ring-2 focus:ring-primary/20 disabled:opacity-50"
               disabled={availablePlants.length === 0}
             >
-              <option value="">Todas las Plantas</option>
+              <option value="">Todas las plantas</option>
               {availablePlants.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
             </select>
           </div>
@@ -204,7 +204,7 @@ export default function MaintenanceReportsPage() {
               className="w-full px-3 py-2 bg-background border border-border rounded-lg outline-none focus:ring-2 focus:ring-primary/20 disabled:opacity-50"
               disabled={sectorsData.length === 0}
             >
-              <option value="">Todos los Sectores</option>
+              <option value="">Todos los sectores</option>
               {sectorsData.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
             </select>
           </div>
@@ -220,7 +220,7 @@ export default function MaintenanceReportsPage() {
         <div className="glass-card flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
           <div className="p-4 border-b border-border flex flex-col md:flex-row justify-between items-center gap-4 bg-muted/30">
             <h2 className="font-bold text-lg">Reporte de Flota ({reportData.length} unidades)</h2>
-            <button onClick={handleExportExcel} className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg hover:bg-emerald-100 transition-colors text-sm font-semibold">
+            <button onClick={handleExportExcel} className="flex items-center gap-2 px-4 py-2 bg-success/10 text-success border border-success/25 rounded-lg hover:bg-success/10 transition-colors text-sm font-semibold">
               <FileSpreadsheet className="w-4 h-4" />
               Exportar Excel
             </button>
@@ -228,8 +228,8 @@ export default function MaintenanceReportsPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm text-left border-collapse">
               <thead>
-                <tr className="bg-muted/50 text-muted-foreground uppercase text-[10px] font-bold tracking-widest border-b border-border">
-                  <th className="px-6 py-4 sticky left-0 bg-muted/50 z-10">Equipo / Activo</th>
+                <tr className="bg-muted/50 text-muted-foreground uppercase text-2xs font-bold tracking-widest border-b border-border">
+                  <th className="px-6 py-4 sticky left-0 bg-muted/50 z-10">Equipo / activo</th>
                   <th className="px-6 py-4">Ubicación</th>
                   {matrixMonths.map(m => (
                     <th key={m} className="px-4 py-4 text-center border-l border-border min-w-[120px]">{m}</th>
@@ -253,7 +253,7 @@ export default function MaintenanceReportsPage() {
                       return (
                         <td key={m} className="px-4 py-4 text-center border-l border-border/50">
                           {status ? (
-                            <span className={`inline-flex items-center px-2 py-1 rounded text-[10px] font-bold ${getStatusColor(status)}`}>
+                            <span className={`inline-flex items-center px-2 py-1 rounded text-2xs font-bold ${getStatusColor(status)}`}>
                               {t(status)}
                             </span>
                           ) : (
