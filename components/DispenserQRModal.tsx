@@ -41,21 +41,21 @@ export default function DispenserQRModal({ dispenserId, onClose }: DispenserQRMo
     <div className="modal-overlay">
       <div className="modal-content max-w-sm flex flex-col overflow-hidden">
         <div className="modal-header">
-          <h2>Código QR del equipo</h2>
+          <h2>Código QR del activo</h2>
           <button type="button" onClick={onClose} className="modal-close" aria-label="Cerrar">
-            <X className="w-5 h-5" />
+            <X className="h-4 w-4" />
           </button>
         </div>
         
-        <div className="p-8 flex flex-col items-center justify-center">
+        <div className="modal-body flex flex-col items-center justify-center py-6">
           {!qrDataUrl ? (
             <div className="flex flex-col items-center justify-center h-48">
               <Loader2 className="w-8 h-8 animate-spin text-primary mb-4" />
-              <p className="text-sm text-muted-foreground">Generando código QR...</p>
+              <p className="text-sm text-muted-foreground">Generando código QR…</p>
             </div>
           ) : (
             <div className="flex flex-col items-center space-y-6">
-              <div className="bg-white p-4 rounded-xl shadow-sm border border-border">
+              <div className="rounded-lg border border-border bg-white p-4">
                 <img src={qrDataUrl} alt={`Código QR para Equipo ${dispenserId}`} className="w-48 h-48" />
               </div>
               <p className="text-sm font-mono text-muted-foreground font-medium">{dispenserId}</p>

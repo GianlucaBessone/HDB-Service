@@ -4,6 +4,10 @@ import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Loader2, ShieldCheck, Calendar, FileSignature, MapPin, Search, Filter, X, Lock, ShieldAlert, LayoutGrid, List } from 'lucide-react';
 import toast from 'react-hot-toast';
+import Link from 'next/link';
+import { Wrench, FileText } from 'lucide-react';
+import PageHeader from '@/components/ui/PageHeader';
+import EmptyState from '@/components/ui/EmptyState';
 
 export default function MaintenanceApprovalsPage() {
   const [plants, setPlants] = useState<any[]>([]);
@@ -62,116 +66,94 @@ export default function MaintenanceApprovalsPage() {
   }, []);
 
   return (
-    <div className="space-y-6 animate-fade-in pb-20">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3">
-            <div className="p-2 bg-primary/10 rounded-lg">
-              <FileSignature className="w-7 h-7 text-primary" />
-            </div>
-            Historial de firmas
-          </h1>
-          <p className="text-muted-foreground mt-1">Registro de conformidades de mantenimiento firmadas por clientes</p>
+    <div className="space-y-6 animate-fade-in">
+      <PageHeader
+        title="Firmas de conformidad"
+        description="Conformidades de mantenimiento firmadas por los clientes."
+      />
+
+      <nav className="tabs" aria-label="Secciones de mantenimiento">
+        <Link href="/maintenance" className="tab"><Wrench className="h-4 w-4" /> Planificación</Link>
+        <span className="tab-active" aria-current="page"><FileSignature className="h-4 w-4" /> Firmas</span>
+        <Link href="/maintenance/reports" className="tab"><FileText className="h-4 w-4" /> Reportes</Link>
+      </nav>
+
+      <div className="filter-bar">
+        <div className="relative sm:col-span-2 lg:min-w-[220px] lg:flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <input
+            type="search"
+            placeholder="Buscar por cliente o activo…"
+            aria-label="Buscar firmas"
+            className="input pl-9"
+            value={filterSearch}
+            onChange={e => setFilterSearch(e.target.value)}
+          />
         </div>
-      </div>
 
-      {/* Filters Bar */}
-      <div className="glass-card p-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <input 
-              type="text" 
-              placeholder="Buscar por cliente o equipo..." 
-              className="input pl-10"
-              value={filterSearch}
-              onChange={e => setFilterSearch(e.target.value)}
-            />
-          </div>
+        <div className="relative lg:w-52">
+          <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <select className="select pl-9" aria-label="Planta" value={filterPlant} onChange={e => setFilterPlant(e.target.value)}>
+            <option value="">Todas las plantas</option>
+            {(Array.isArray(plants) ? plants : []).map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
+          </select>
+        </div>
 
-          <div className="relative">
-            <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <select 
-              className="select pl-10"
-              value={filterPlant}
-              onChange={e => setFilterPlant(e.target.value)}
+        <div className="flex items-center gap-2 sm:col-span-2 lg:col-span-1">
+          <input
+            type="date"
+            aria-label="Desde"
+            className="input min-w-0 cursor-pointer lg:w-40"
+            value={filterStart}
+            onChange={e => setFilterStart(e.target.value)}
+            onClick={e => (e.target as HTMLInputElement).showPicker?.()}
+          />
+          <span className="text-muted-foreground">–</span>
+          <input
+            type="date"
+            aria-label="Hasta"
+            className="input min-w-0 cursor-pointer lg:w-40"
+            value={filterEnd}
+            onChange={e => setFilterEnd(e.target.value)}
+            onClick={e => (e.target as HTMLInputElement).showPicker?.()}
+          />
+        </div>
+
+        <div className="flex items-center justify-between gap-2 sm:col-span-2 lg:ml-auto lg:col-span-1">
+          {(filterPlant || filterStart || filterEnd || filterSearch) && (
+            <button
+              onClick={() => { setFilterPlant(''); setFilterStart(''); setFilterEnd(''); setFilterSearch(''); }}
+              className="btn-ghost btn-sm"
             >
-              <option value="">Todas las plantas</option>
-              {(Array.isArray(plants) ? plants : []).map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
-            </select>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Calendar className="w-4 h-4 text-muted-foreground shrink-0" />
-            <input 
-              type="date" 
-              className="input w-full cursor-pointer" 
-              value={filterStart}
-              onChange={e => setFilterStart(e.target.value)}
-              onClick={e => (e.target as HTMLInputElement).showPicker?.()}
-            />
-            <span className="text-muted-foreground">—</span>
-            <input 
-              type="date" 
-              className="input w-full cursor-pointer" 
-              value={filterEnd}
-              onChange={e => setFilterEnd(e.target.value)}
-              onClick={e => (e.target as HTMLInputElement).showPicker?.()}
-            />
-          </div>
-
-          <div className="flex items-center justify-between lg:justify-end gap-3">
-            <div className="flex items-center p-1 bg-muted/50 rounded-lg">
-              <button
-                onClick={() => setViewMode('grid')}
-                className={`p-1.5 rounded-md transition-all ${viewMode === 'grid' ? 'bg-white shadow-sm text-primary' : 'text-muted-foreground hover:text-foreground'}`}
-                title="Vista de tarjetas"
-              >
-                <LayoutGrid className="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => setViewMode('list')}
-                className={`p-1.5 rounded-md transition-all ${viewMode === 'list' ? 'bg-white shadow-sm text-primary' : 'text-muted-foreground hover:text-foreground'}`}
-                title="Vista de lista"
-              >
-                <List className="w-4 h-4" />
-              </button>
-            </div>
-
-            {(filterPlant || filterStart || filterEnd || filterSearch) && (
-              <button 
-                onClick={() => {
-                  setFilterPlant('');
-                  setFilterStart('');
-                  setFilterEnd('');
-                  setFilterSearch('');
-                }}
-                className="btn-ghost btn-sm text-destructive gap-2"
-              >
-                <X className="w-4 h-4" />
-                Limpiar filtros
-              </button>
-            )}
+              <X className="h-4 w-4" />
+              Limpiar
+            </button>
+          )}
+          <div className="segmented ml-auto" role="group" aria-label="Vista">
+            <button onClick={() => setViewMode('grid')} className={viewMode === 'grid' ? 'segmented-item-active' : 'segmented-item'} aria-pressed={viewMode === 'grid'} title="Vista de tarjetas">
+              <LayoutGrid className="h-3.5 w-3.5" /> Tarjetas
+            </button>
+            <button onClick={() => setViewMode('list')} className={viewMode === 'list' ? 'segmented-item-active' : 'segmented-item'} aria-pressed={viewMode === 'list'} title="Vista de lista">
+              <List className="h-3.5 w-3.5" /> Lista
+            </button>
           </div>
         </div>
       </div>
 
       {isLoading ? (
-        <div className="flex items-center justify-center py-20">
-          <Loader2 className="w-10 h-10 animate-spin text-primary" />
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3" aria-busy="true">
+          {[0, 1, 2].map(i => <div key={i} className="skeleton h-64 rounded-lg" />)}
         </div>
       ) : approvals.length === 0 ? (
-        <div className="glass-card p-12 flex flex-col items-center justify-center text-center">
-          <ShieldCheck className="w-16 h-16 text-muted-foreground/20 mb-4" />
-          <p className="text-muted-foreground font-medium text-lg">No hay firmas registradas</p>
-          <p className="text-sm mt-1">
-            {filterPlant || filterStart || filterEnd || filterSearch 
-              ? "No se encontraron firmas que coincidan con los filtros seleccionados." 
-              : "Los registros aparecerán aquí cuando los clientes completen la validación QR."}
-          </p>
-        </div>
+        <EmptyState
+          icon={ShieldCheck}
+          title="No hay firmas registradas"
+          description={filterPlant || filterStart || filterEnd || filterSearch
+            ? 'Ninguna firma coincide con los filtros aplicados.'
+            : 'Las conformidades aparecerán aquí cuando los clientes completen la validación por QR.'}
+        />
       ) : (
-        <div className="space-y-10">
+        <div className="space-y-8">
           {Object.entries(
             approvals.reduce((acc: any, approval) => {
               const date = new Date(approval.createdAt);
@@ -183,20 +165,20 @@ export default function MaintenanceApprovalsPage() {
             }, {})
           ).map(([month, monthApprovals]: [string, any]) => (
             <div key={month} className="space-y-4">
-              <div className="flex items-center gap-4">
-                <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground bg-background pr-4 z-10">{month}</h2>
-                <div className="h-px bg-border flex-1"></div>
-                <span className="text-xs font-medium text-muted-foreground bg-background pl-4 z-10">{monthApprovals.length} {monthApprovals.length === 1 ? 'firma' : 'firmas'}</span>
+              <div className="flex items-center gap-3">
+                <h2 className="eyebrow">{month}</h2>
+                <div className="h-px flex-1 bg-border" />
+                <span className="text-xs text-muted-foreground tabular">{monthApprovals.length} {monthApprovals.length === 1 ? 'firma' : 'firmas'}</span>
               </div>
 
               {viewMode === 'grid' ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
                   {monthApprovals.map((approval: any) => (
-                    <div key={approval.id} className="glass-card p-5 flex flex-col gap-4">
+                    <div key={approval.id} className="glass-card flex flex-col gap-4 p-4 sm:p-5">
                       {/* Header */}
                       <div className="flex justify-between items-start border-b border-border pb-3">
                         <div>
-                          <h3 className="font-bold text-lg">{approval.customerName}</h3>
+                          <h3 className="text-[15px] font-semibold">{approval.customerName}</h3>
                           <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
                             <Calendar className="w-3.5 h-3.5" />
                             {new Date(approval.createdAt).toLocaleDateString('es-AR', {
@@ -206,15 +188,9 @@ export default function MaintenanceApprovalsPage() {
                         </div>
                         <div className="flex flex-col items-end gap-1">
                           {approval.signatureHash ? (
-                            <div className="bg-primary/10 text-primary px-2.5 py-1 rounded-full flex items-center gap-1 text-2xs font-bold uppercase tracking-wide">
-                              <Lock className="w-3 h-3" />
-                              Firma verificada
-                            </div>
+                            <span className="badge-success"><Lock className="h-3 w-3" /> Firma con hash</span>
                           ) : (
-                            <div className="bg-muted text-muted-foreground px-2.5 py-1 rounded-full flex items-center gap-1 text-2xs font-bold uppercase tracking-wide">
-                              <ShieldAlert className="w-3 h-3" />
-                              Firma legacy
-                            </div>
+                            <span className="badge-neutral"><ShieldAlert className="h-3 w-3" /> Firma sin hash</span>
                           )}
                         </div>
                       </div>
@@ -227,10 +203,10 @@ export default function MaintenanceApprovalsPage() {
                         <p><span className="text-muted-foreground">Técnico:</span> {approval.technician.nombre}</p>
                         <p><span className="text-muted-foreground">Equipos validados:</span> {approval.schedules.length}</p>
 
-                        <div className="mt-3 bg-muted/30 p-2.5 rounded-lg space-y-1.5 max-h-32 overflow-y-auto">
+                        <div className="mt-3 max-h-32 space-y-1.5 overflow-y-auto rounded-md border border-border bg-muted/30 p-2.5">
                           {approval.schedules.map((s: any) => (
                             <div key={s.id} className="flex flex-col text-xs">
-                              <span className="font-semibold">{s.dispenser.id}</span>
+                              <span className="font-mono font-medium">{s.dispenser.id}</span>
                               <span className="text-muted-foreground flex items-center gap-1">
                                 <MapPin className="w-3 h-3" />
                                 {s.dispenser.location?.plant?.nombre} - {s.dispenser.location?.nombre}
@@ -244,8 +220,8 @@ export default function MaintenanceApprovalsPage() {
                       <div className="pt-3 border-t border-border mt-auto">
                         {approval.signatureData && (
                           <>
-                            <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-2 block">Firma dibujada</span>
-                            <div className="bg-white border border-border rounded-lg p-2 h-24 flex items-center justify-center overflow-hidden mb-3">
+                            <span className="eyebrow mb-2 block">Firma</span>
+                            <div className="mb-3 flex h-24 items-center justify-center overflow-hidden rounded-md border border-border bg-white p-2">
                               <img 
                                 src={approval.signatureData} 
                                 alt={`Firma de ${approval.customerName}`} 
@@ -256,10 +232,10 @@ export default function MaintenanceApprovalsPage() {
                         )}
                         
                         {approval.signatureHash && (
-                          <details className="group border border-border rounded-lg overflow-hidden bg-muted/20">
+                          <details className="group overflow-hidden rounded-md border border-border">
                             <summary className="text-xs font-semibold p-2.5 cursor-pointer hover:bg-muted/50 flex items-center justify-between">
-                              <div className="flex items-center gap-1.5 text-primary">
-                                <Lock className="w-3.5 h-3.5" />
+                              <div className="flex items-center gap-1.5 text-foreground">
+                                <Lock className="h-3.5 w-3.5 text-muted-foreground" />
                                 Certificado digital
                               </div>
                               <span className="text-2xs text-muted-foreground group-open:hidden">Ver detalles</span>
@@ -292,14 +268,14 @@ export default function MaintenanceApprovalsPage() {
                                 <button
                                   onClick={() => verifySignature(approval.id)}
                                   disabled={verifyingId === approval.id}
-                                  className="btn-primary btn-sm text-2xs gap-1.5"
+                                  className="btn-outline btn-sm"
                                 >
                                   {verifyingId === approval.id ? (
                                     <Loader2 className="w-3 h-3 animate-spin" />
                                   ) : (
                                     <ShieldCheck className="w-3 h-3" />
                                   )}
-                                  Comprobar Integridad
+                                  Verificar integridad
                                 </button>
                               </div>
                             </div>
@@ -310,20 +286,18 @@ export default function MaintenanceApprovalsPage() {
                   ))}
                 </div>
               ) : (
-                <div className="space-y-3">
+                <div className="glass-card divide-y divide-border overflow-hidden">
                   {monthApprovals.map((approval: any) => (
-                    <div key={approval.id} className="glass-card p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                      <div className="flex items-start gap-4">
-                        <div className="bg-primary/10 p-3 rounded-lg flex-shrink-0">
-                          <FileSignature className="w-5 h-5 text-primary" />
-                        </div>
-                        <div>
-                          <h3 className="font-bold text-base flex items-center gap-2">
+                    <div key={approval.id} className="flex flex-col justify-between gap-3 p-4 md:flex-row md:items-center">
+                      <div className="flex min-w-0 items-start gap-3">
+                        <FileSignature className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground" />
+                        <div className="min-w-0">
+                          <h3 className="flex items-center gap-2 text-sm font-semibold">
                             {approval.customerName}
                             {approval.signatureHash ? (
-                              <span title="Firma verificada"><Lock className="w-3.5 h-3.5 text-primary" /></span>
+                              <span title="Firma con hash"><Lock className="h-3.5 w-3.5 text-success" /></span>
                             ) : (
-                              <span title="Firma legacy"><ShieldAlert className="w-3.5 h-3.5 text-muted-foreground" /></span>
+                              <span title="Firma sin hash"><ShieldAlert className="w-3.5 h-3.5 text-muted-foreground" /></span>
                             )}
                           </h3>
                           <div className="text-xs text-muted-foreground flex items-center gap-3 mt-1 flex-wrap">
@@ -342,19 +316,19 @@ export default function MaintenanceApprovalsPage() {
                         </div>
                       </div>
 
-                      <div className="flex flex-col sm:items-end gap-2 shrink-0 w-full sm:w-auto mt-2 sm:mt-0 pt-3 sm:pt-0 border-t sm:border-0 border-border">
+                      <div className="flex w-full shrink-0 flex-col gap-2 sm:w-auto sm:items-end">
                         {approval.signatureHash && (
                            <button
                              onClick={() => verifySignature(approval.id)}
                              disabled={verifyingId === approval.id}
-                             className="btn-outline btn-sm text-xs gap-1.5 whitespace-nowrap w-full sm:w-auto justify-center"
+                             className="btn-outline btn-sm w-full sm:w-auto"
                            >
                              {verifyingId === approval.id ? (
                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
                              ) : (
-                               <ShieldCheck className="w-3.5 h-3.5 text-primary" />
+                               <ShieldCheck className="h-3.5 w-3.5" />
                              )}
-                             Verificar Integridad
+                             Verificar integridad
                            </button>
                         )}
                       </div>

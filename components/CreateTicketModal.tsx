@@ -123,11 +123,9 @@ export default function CreateTicketModal({ initialDispenserId = '', onClose, on
     <div className="modal-overlay">
       <div className="modal-content max-w-md" onClick={e => e.stopPropagation()}>
         <div className="modal-header">
-          <h2 className="text-base font-semibold">
-            Nuevo ticket
-          </h2>
+          <h2>Nuevo ticket</h2>
           <button type="button" onClick={onClose} className="modal-close" aria-label="Cerrar">
-            <X className="w-5 h-5" />
+            <X className="h-4 w-4" />
           </button>
         </div>
         <form onSubmit={handleSubmit}>

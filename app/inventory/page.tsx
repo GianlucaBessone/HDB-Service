@@ -5,13 +5,16 @@ import { useQuery, useMutation, useQueryClient, useIsFetching } from '@tanstack/
 import {
   Package, Search, Plus, Filter, AlertTriangle, ArrowRightLeft,
   CreditCard, X, Loader2, CheckCircle2,
-  Settings2, Building2
+  Settings2, Building2, RefreshCw
 } from 'lucide-react';
 import clsx from 'clsx';
 import toast from 'react-hot-toast';
 import { t, getStatusColor } from '@/lib/translations';
 import { useConfigStore } from '@/lib/store/useConfigStore';
 import MaterialCombobox from '@/components/MaterialCombobox';
+import PageHeader from '@/components/ui/PageHeader';
+import FilterBar, { FieldIcon } from '@/components/ui/FilterBar';
+import EmptyState from '@/components/ui/EmptyState';
 
 type Tab = 'stock' | 'transfers' | 'debts';
 
@@ -112,32 +115,45 @@ export default function InventoryPage() {
   const tabs: { key: Tab; label: string; icon: React.ElementType }[] = [
     { key: 'stock', label: 'Stock actual', icon: Package },
     { key: 'transfers', label: 'Transferencias', icon: ArrowRightLeft },
-    { key: 'debts', label: 'Deudas Inter-Plantas', icon: CreditCard },
+    { key: 'debts', label: 'Deudas entre plantas', icon: CreditCard },
   ];
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3">
-            <div className="p-2 bg-primary/10 rounded-lg">
-              <Package className="w-7 h-7 text-primary" />
-            </div>
-            Inventario
-          </h1>
-          <p className="text-muted-foreground mt-1">Gestión de stock, transferencias y deudas entre plantas</p>
-        </div>
-        <button onClick={handleRefresh} className="btn-outline btn-sm gap-2 shrink-0">
-          <Loader2 className={clsx('w-4 h-4', isFetching && 'animate-spin')} />
-          Actualizar
-        </button>
+      <PageHeader
+        title="Inventario"
+        description="Stock de insumos y repuestos, transferencias y deudas entre plantas."
+        actions={
+          <button onClick={handleRefresh} className="btn-outline">
+            <RefreshCw className={clsx('h-4 w-4', isFetching && 'animate-spin')} />
+            Actualizar
+          </button>
+        }
+      />
+
+      {/* Pestañas */}
+      <div className="tabs" role="tablist">
+        {tabs.map(tab => {
+          const TabIcon = tab.icon;
+          return (
+            <button
+              key={tab.key}
+              role="tab"
+              aria-selected={activeTab === tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className={activeTab === tab.key ? 'tab-active' : 'tab'}
+            >
+              <TabIcon className="h-4 w-4" />
+              {tab.label}
+            </button>
+          );
+        })}
       </div>
 
-      {/* Client & Plant Filter */}
+      {/* Empresa y planta */}
       {activeTab !== 'debts' && (
-        <div className="glass-card p-4 flex flex-wrap items-center gap-3">
-          <div className="relative">
+        <FilterBar>
+          <div className="relative lg:w-64">
             <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <select
               value={selectedClient}
@@ -151,16 +167,17 @@ export default function InventoryPage() {
                   }
                 }
               }}
-              className="select pl-10 min-w-[200px]"
+              className="select pl-9"
+              aria-label="Empresa"
             >
-              <option value="">Todas las empresas (global)</option>
+              <option value="">Todas las empresas</option>
               {clients.map((c: any) => (
                 <option key={c.id} value={c.id}>{c.nombre}</option>
               ))}
             </select>
           </div>
 
-          <div className="relative">
+          <div className="relative lg:w-64">
             <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <select
               value={selectedPlant}
@@ -173,10 +190,11 @@ export default function InventoryPage() {
                   if (cId) setSelectedClient(cId);
                 }
               }}
-              className="select pl-10 min-w-[200px]"
+              className="select pl-9"
+              aria-label="Planta"
             >
               <option value="">
-                {selectedClient ? 'Todas las plantas del cliente' : 'Todas las plantas (Global)'}
+                {selectedClient ? 'Todas las plantas del cliente' : 'Todas las plantas'}
               </option>
               {selectedClient ? (
                 plants
@@ -199,28 +217,10 @@ export default function InventoryPage() {
               )}
             </select>
           </div>
-        </div>
+        </FilterBar>
       )}
 
-      {/* Tabs */}
-      <div className="tabs">
-        {tabs.map(tab => {
-          const TabIcon = tab.icon;
-          return (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
-              className={activeTab === tab.key ? 'tab-active' : 'tab'}
-            >
-              <TabIcon className="w-4 h-4 inline mr-1.5 -mt-0.5" />
-              {tab.label}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Tab Content */}
-      <div className="mt-4">
+      <div>
         {activeTab === 'stock' && (
           <StockTab 
             plantId={selectedPlant} 
@@ -269,24 +269,23 @@ function StockTab({
   return (
     <div className="space-y-4">
       {/* KPIs + Search */}
-      <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <input
-            type="text"
-            placeholder="Buscar por nombre o código..."
+            type="search"
+            placeholder="Buscar por nombre o código…"
+            aria-label="Buscar material"
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="input pl-10"
+            className="input pl-9"
           />
         </div>
         {lowStockCount > 0 && (
-          <div className="flex items-center gap-2 px-3 py-2 bg-destructive/10 border border-destructive/25 rounded-lg">
-            <AlertTriangle className="w-4 h-4 text-destructive" />
-            <span className="text-sm font-medium text-destructive">
-              {lowStockCount} ítems bajo mínimo
-            </span>
-          </div>
+          <span className="badge-danger h-9 justify-center gap-1.5 px-3 text-xs sm:h-auto sm:py-1.5">
+            <AlertTriangle className="h-3.5 w-3.5" />
+            {lowStockCount} bajo mínimo
+          </span>
         )}
         {(role === 'ADMIN' || role === 'SUPERVISOR' || role === 'TECHNICIAN') && (
           <button onClick={() => setShowAddModal(true)} className="btn-primary gap-2 shrink-0">
@@ -301,32 +300,26 @@ function StockTab({
           {[...Array(4)].map((_, i) => <div key={i} className="h-14 skeleton rounded-lg" />)}
         </div>
       ) : Object.keys(grouped).length === 0 ? (
-        <div className="glass-card p-12 flex flex-col items-center text-center">
-          <Package className="w-16 h-16 text-muted-foreground/20 mb-4" />
-          <p className="text-muted-foreground text-lg font-medium">Sin registros de stock</p>
-        </div>
+        <EmptyState icon={Package} title="Sin registros de stock" description="No hay materiales cargados para la selección actual." />
       ) : (
         Object.entries(grouped).sort(([a], [b]) => a.localeCompare(b)).map(([plantName, items]) => (
           <div key={plantName} className="glass-card overflow-hidden">
-            <div className="px-4 py-3 bg-muted/30 border-b border-border">
-              <h3 className="font-semibold text-sm flex items-center gap-2">
-                <Package className="w-4 h-4 text-primary" />
-                {plantName}
-                <span className="text-xs text-muted-foreground font-normal">({items.length} ítems)</span>
-              </h3>
+            <div className="flex items-center justify-between border-b border-border px-4 py-2.5">
+              <h3 className="text-sm font-semibold">{plantName}</h3>
+              <span className="text-xs text-muted-foreground tabular">{items.length} ítems</span>
             </div>
             <div className="overflow-x-auto">
               <table className="table w-full">
                 <thead>
                   <tr>
-                    <th className="text-center w-[12%]">Código</th>
-                    <th className="text-center w-[28%]">Material</th>
-                    <th className="text-center w-[15%]">N° serie</th>
-                    <th className="text-center w-[12%]">Cantidad</th>
-                    <th className="text-center w-[8%]">Mínimo</th>
-                    <th className="text-center w-[8%]">Máximo</th>
-                    <th className="text-center w-[8%]">Estado</th>
-                    <th className="text-center w-[9%]">Acciones</th>
+                    <th className="hidden sm:table-cell">Código</th>
+                    <th>Material</th>
+                    <th className="hidden lg:table-cell">N.º serie</th>
+                    <th className="text-right">Cantidad</th>
+                    <th className="hidden text-right md:table-cell">Mín.</th>
+                    <th className="hidden text-right md:table-cell">Máx.</th>
+                    <th>Estado</th>
+                    <th className="text-right"><span className="sr-only">Acciones</span></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -334,65 +327,42 @@ function StockTab({
                     const isLow = e.minLevel > 0 && e.cantidad < e.minLevel;
                     const serials = (e as any).serialNumbers as string[] | undefined;
                     return (
-                      <tr key={e.id} className={isLow ? 'bg-destructive/10' : ''}>
-                        <td className="text-center">
-                          <div className="flex justify-center font-mono text-xs">{e.materialCode}</div>
+                      <tr key={e.id} className={isLow ? 'bg-destructive/[0.04]' : ''}>
+                        <td className="hidden font-mono text-xs text-muted-foreground sm:table-cell">{e.materialCode}</td>
+                        <td>
+                          <div className="font-medium">{e.nombre}</div>
+                          <div className="font-mono text-2xs text-muted-foreground sm:hidden">{e.materialCode}</div>
                         </td>
-                        <td className="text-center">
-                          <div className="flex justify-center font-medium">{e.nombre}</div>
+                        <td className="hidden lg:table-cell">
+                          {serials && serials.length > 0 ? (
+                            <div className="flex flex-wrap gap-1">
+                              {serials.map(sn => (
+                                <span key={sn} className="badge-neutral font-mono">{sn}</span>
+                              ))}
+                            </div>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">—</span>
+                          )}
                         </td>
-                        <td className="text-center">
-                          <div className="flex justify-center">
-                            {serials && serials.length > 0 ? (
-                              <div className="flex flex-wrap gap-1 justify-center">
-                                {serials.map(sn => (
-                                  <span key={sn} className="inline-block px-1.5 py-0.5 bg-primary/10 text-primary text-2xs font-mono rounded">
-                                    {sn}
-                                  </span>
-                                ))}
-                              </div>
-                            ) : (
-                              <span className="text-xs text-muted-foreground">S/N</span>
-                            )}
-                          </div>
+                        <td className="whitespace-nowrap text-right font-semibold tabular">{e.cantidad} <span className="font-normal text-muted-foreground">{e.unidad}</span></td>
+                        <td className="hidden text-right text-muted-foreground tabular md:table-cell">{e.minLevel}</td>
+                        <td className="hidden text-right text-muted-foreground tabular md:table-cell">{e.maxLevel}</td>
+                        <td>
+                          {isLow ? (
+                            <span className="badge-danger"><AlertTriangle className="h-3 w-3" /> Bajo mínimo</span>
+                          ) : (
+                            <span className="badge-success">OK</span>
+                          )}
                         </td>
-                        <td className="text-center">
-                          <div className="flex justify-center font-semibold whitespace-nowrap">
-                            {e.cantidad} {e.unidad}
-                          </div>
-                        </td>
-                        <td className="text-center">
-                          <div className="flex justify-center text-muted-foreground">{e.minLevel}</div>
-                        </td>
-                        <td className="text-center">
-                          <div className="flex justify-center text-muted-foreground">{e.maxLevel}</div>
-                        </td>
-                        <td className="text-center">
-                          <div className="flex justify-center">
-                            {isLow ? (
-                              <span className="badge-danger">
-                                <AlertTriangle className="w-3 h-3" /> Bajo
-                              </span>
-                            ) : (
-                              <span className="badge-success">OK</span>
-                            )}
-                          </div>
-                        </td>
-                        <td className="text-center">
-                          <div className="flex justify-center">
-                            {(role === 'ADMIN' || role === 'SUPERVISOR' || role === 'TECHNICIAN') ? (
-                              <button
-                                onClick={() => setAdjustEntry(e)}
-                                className="btn-ghost btn-sm text-xs gap-1 text-warning hover:text-warning hover:bg-warning/10"
-                                title="Ajuste de inventario"
-                              >
-                                <Settings2 className="w-3.5 h-3.5" />
-                                Ajustar
-                              </button>
-                            ) : (
-                              <span className="text-xs text-muted-foreground">—</span>
-                            )}
-                          </div>
+                        <td className="text-right">
+                          {(role === 'ADMIN' || role === 'SUPERVISOR' || role === 'TECHNICIAN') ? (
+                            <button onClick={() => setAdjustEntry(e)} className="btn-ghost btn-sm" title="Ajuste de inventario">
+                              <Settings2 className="h-3.5 w-3.5" />
+                              <span className="hidden sm:inline">Ajustar</span>
+                            </button>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">—</span>
+                          )}
                         </td>
                       </tr>
                     );
@@ -455,51 +425,33 @@ function TransfersTab({ plantId, plants, role }: { plantId: string; plants: any[
           {[...Array(3)].map((_, i) => <div key={i} className="h-14 skeleton rounded-lg" />)}
         </div>
       ) : transfers.length === 0 ? (
-        <div className="glass-card p-12 flex flex-col items-center text-center">
-          <ArrowRightLeft className="w-16 h-16 text-muted-foreground/20 mb-4" />
-          <p className="text-muted-foreground text-lg font-medium">Sin transferencias registradas</p>
-        </div>
+        <EmptyState icon={ArrowRightLeft} title="Sin transferencias registradas" />
       ) : (
         <div className="table-container">
           <table className="table w-full">
             <thead>
               <tr>
-                <th className="text-center w-[30%]">Material</th>
-                <th className="text-center w-[20%]">Desde</th>
-                <th className="text-center w-[20%]">Hacia</th>
-                <th className="text-center w-[10%]">Cantidad</th>
-                <th className="text-center w-[10%]">Estado</th>
-                <th className="text-center w-[10%]">Fecha</th>
+                <th>Material</th>
+                <th className="hidden sm:table-cell">Desde</th>
+                <th className="hidden sm:table-cell">Hacia</th>
+                <th className="text-right">Cantidad</th>
+                <th>Estado</th>
+                <th className="hidden md:table-cell">Fecha</th>
               </tr>
             </thead>
             <tbody>
               {transfers.map(tData => (
                 <tr key={tData.id}>
-                  <td className="text-center">
-                    <div className="flex flex-col items-center justify-center">
-                      <div className="font-medium">{tData.nombre}</div>
-                      <div className="text-xs text-muted-foreground">{tData.materialCode}</div>
-                    </div>
+                  <td>
+                    <div className="font-medium">{tData.nombre}</div>
+                    <div className="font-mono text-xs text-muted-foreground">{tData.materialCode}</div>
+                    <div className="mt-0.5 text-xs text-muted-foreground sm:hidden">{tData.fromPlant?.nombre} → {tData.toPlant?.nombre}</div>
                   </td>
-                  <td className="text-center">
-                    <div className="flex justify-center">{tData.fromPlant?.nombre}</div>
-                  </td>
-                  <td className="text-center">
-                    <div className="flex justify-center">{tData.toPlant?.nombre}</div>
-                  </td>
-                  <td className="text-center">
-                    <div className="flex justify-center font-semibold">{tData.cantidad}</div>
-                  </td>
-                  <td className="text-center">
-                    <div className="flex justify-center">
-                      <span className={clsx('badge', getStatusColor(tData.status))}>{t(tData.status)}</span>
-                    </div>
-                  </td>
-                  <td className="text-center">
-                    <div className="flex justify-center text-sm text-muted-foreground">
-                      {new Date(tData.createdAt).toLocaleDateString('es-AR')}
-                    </div>
-                  </td>
+                  <td className="hidden sm:table-cell">{tData.fromPlant?.nombre}</td>
+                  <td className="hidden sm:table-cell">{tData.toPlant?.nombre}</td>
+                  <td className="text-right font-semibold tabular">{tData.cantidad}</td>
+                  <td><span className={clsx('badge', getStatusColor(tData.status))}>{t(tData.status)}</span></td>
+                  <td className="hidden text-[13px] text-muted-foreground tabular md:table-cell">{new Date(tData.createdAt).toLocaleDateString('es-AR')}</td>
                 </tr>
               ))}
             </tbody>
@@ -575,28 +527,24 @@ function DebtsTab({ role }: { role?: string }) {
           {[...Array(3)].map((_, i) => <div key={i} className="h-14 skeleton rounded-lg" />)}
         </div>
       ) : debts.length === 0 ? (
-        <div className="glass-card p-12 flex flex-col items-center text-center">
-          <CheckCircle2 className="w-16 h-16 text-success/30 mb-4" />
-          <p className="text-muted-foreground text-lg font-medium">Sin deudas pendientes</p>
-          <p className="text-muted-foreground text-sm mt-1">Todas las deudas inter-plantas están al día</p>
-        </div>
+        <EmptyState icon={CheckCircle2} title="Sin deudas pendientes" description="Todas las deudas entre plantas están saldadas." />
       ) : (
-        <div className="space-y-3">
+        <ul className="glass-card divide-y divide-border overflow-hidden">
           {debts.map(d => (
-            <div key={d.id} className="glass-card p-4">
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex-1">
-                  <div className="font-semibold text-sm">{d.nombre}</div>
-                  <div className="text-xs text-muted-foreground mt-1">
-                    Código: {d.materialCode} · Cantidad: {d.cantidad}
+            <li key={d.id} className="p-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div className="min-w-0 flex-1">
+                  <div className="text-sm font-medium">{d.nombre}</div>
+                  <div className="mt-0.5 text-xs text-muted-foreground tabular">
+                    <span className="font-mono">{d.materialCode}</span> · Cantidad: {d.cantidad}
                   </div>
-                  <div className="flex items-center gap-2 mt-2 text-xs">
-                    <span className="font-medium text-destructive">{d.debtorPlant?.nombre}</span>
+                  <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs">
+                    <span className="font-medium text-foreground">{d.debtorPlant?.nombre}</span>
                     <span className="text-muted-foreground">debe a</span>
-                    <span className="font-medium text-success">{d.creditorPlant?.nombre}</span>
+                    <span className="font-medium text-foreground">{d.creditorPlant?.nombre}</span>
                   </div>
                 </div>
-                <div className="flex items-center gap-2 shrink-0">
+                <div className="flex shrink-0 items-center gap-2">
                   <span className={clsx('badge', getStatusColor(d.status))}>
                     {t(d.status)}
                   </span>
@@ -608,9 +556,9 @@ function DebtsTab({ role }: { role?: string }) {
                   )}
                 </div>
               </div>
-            </div>
+            </li>
           ))}
-        </div>
+        </ul>
       )}
     </div>
   );
@@ -741,18 +689,18 @@ function AddStockModal({
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay" onMouseDown={e => e.target === e.currentTarget && onClose()}>
       <div className="modal-content max-w-lg" onClick={e => e.stopPropagation()}>
         <div className="modal-header">
           <h2>Agregar / actualizar stock</h2>
-          <button onClick={onClose} className="btn-ghost btn-icon"><X className="w-5 h-5" /></button>
+          <button type="button" onClick={onClose} className="modal-close" aria-label="Cerrar"><X className="h-4 w-4" /></button>
         </div>
         <form onSubmit={handleSubmit}>
           <div className="modal-body space-y-4">
             <div>
               <label className="label">Planta *</label>
               <select className="select mt-1" value={form.plantId} onChange={e => setForm(p => ({ ...p, plantId: e.target.value }))} required>
-                <option value="">Seleccionar planta...</option>
+                <option value="">Seleccionar planta…</option>
                 {plants.map(p => (
                   <option key={p.id} value={p.id}>
                     {p.client?.nombre ? `${p.client.nombre} — ` : ''}{p.nombre}
@@ -908,11 +856,11 @@ function TransferModal({
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay" onMouseDown={e => e.target === e.currentTarget && onClose()}>
       <div className="modal-content max-w-lg" onClick={e => e.stopPropagation()}>
         <div className="modal-header">
           <h2>Nueva transferencia</h2>
-          <button onClick={onClose} className="btn-ghost btn-icon"><X className="w-5 h-5" /></button>
+          <button type="button" onClick={onClose} className="modal-close" aria-label="Cerrar"><X className="h-4 w-4" /></button>
         </div>
         <form onSubmit={handleSubmit}>
           <div className="modal-body space-y-4">
@@ -928,14 +876,14 @@ function TransferModal({
                   }} 
                   required
                 >
-                  <option value="">Seleccionar...</option>
+                  <option value="">Seleccionar…</option>
                   {plants.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
                 </select>
               </div>
               <div>
                 <label className="label">Planta destino *</label>
                 <select className="select mt-1" value={form.toPlantId} onChange={e => setForm(p => ({ ...p, toPlantId: e.target.value }))} required>
-                  <option value="">Seleccionar...</option>
+                  <option value="">Seleccionar…</option>
                   {plants.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
                 </select>
               </div>
@@ -1079,11 +1027,11 @@ function AdjustStockModal({
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay" onMouseDown={e => e.target === e.currentTarget && onClose()}>
       <div className="modal-content max-w-md" onClick={e => e.stopPropagation()}>
         <div className="modal-header">
-          <h2 className="text-lg font-semibold text-warning">Ajuste de inventario</h2>
-          <button onClick={onClose} className="btn-ghost btn-icon"><X className="w-5 h-5" /></button>
+          <h2>Ajuste de inventario</h2>
+          <button type="button" onClick={onClose} className="modal-close" aria-label="Cerrar"><X className="h-4 w-4" /></button>
         </div>
         <div className="modal-body space-y-4">
           <p className="text-sm font-medium">{entry.nombre} ({entry.materialCode})</p>

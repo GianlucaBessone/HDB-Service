@@ -135,7 +135,7 @@ export default function IdeasSugerenciasReclamos() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-foreground">Tipo de registro <span className="text-destructive">*</span></label>
+                <label className="label">Tipo de registro <span className="text-destructive">*</span></label>
                 <select name="tipo_registro" required className="select">
                   <option value="">Seleccione una opción</option>
                   <option value="IDEA">Idea de mejora</option>
@@ -149,7 +149,7 @@ export default function IdeasSugerenciasReclamos() {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-foreground">Área involucrada <span className="text-destructive">*</span></label>
+                <label className="label">Área involucrada <span className="text-destructive">*</span></label>
                 <select name="area_involucrada" required className="select">
                   <option value="">Seleccione una opción</option>
                   <option value="PRODUCCION">Producción</option>
@@ -168,12 +168,12 @@ export default function IdeasSugerenciasReclamos() {
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-foreground">Título <span className="text-destructive">*</span></label>
+              <label className="label">Título <span className="text-destructive">*</span></label>
               <input type="text" name="titulo" maxLength={150} required className="input" placeholder="Breve descripción del asunto (máx 150 caract.)" />
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-foreground">Descripción <span className="text-destructive">*</span></label>
+              <label className="label">Descripción <span className="text-destructive">*</span></label>
               <textarea name="descripcion" required className="textarea min-h-[120px]" placeholder="Detalla la situación observada, problema u oportunidad..."></textarea>
             </div>
           </section>
@@ -185,7 +185,7 @@ export default function IdeasSugerenciasReclamos() {
             </h3>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">Beneficios esperados (múltiple elección)</label>
+              <label className="label">Beneficios esperados (múltiple elección)</label>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 mt-2">
                 {[
                   { id: 'Mayor seguridad', label: 'Mayor seguridad' },
@@ -208,7 +208,7 @@ export default function IdeasSugerenciasReclamos() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-foreground">Impacto estimado <span className="text-destructive">*</span></label>
+                <label className="label">Impacto estimado <span className="text-destructive">*</span></label>
                 <select name="impacto_estimado" required className="select">
                   <option value="">Seleccione una opción</option>
                   <option value="BAJO">Bajo</option>

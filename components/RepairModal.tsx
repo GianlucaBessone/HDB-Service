@@ -98,24 +98,21 @@ export default function RepairModal({ ticket, onClose, onSuccess }: RepairModalP
       <div className="modal-content max-w-2xl flex flex-col overflow-hidden">
         <div className="modal-header">
           <div>
-            <h2 className="text-xl font-bold flex items-center gap-2">
-              <Wrench className="w-6 h-6 text-primary" />
-              Registrar reparación
-            </h2>
-            <p className="text-xs text-muted-foreground mt-1">
-              Ticket: <span className="font-mono text-foreground font-bold">{ticket.id}</span> · Equipo: {ticket.dispenserId}
+            <h2>Registrar reparación</h2>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              Ticket <span className="font-mono text-foreground">{ticket.id}</span> · Activo <span className="font-mono text-foreground">{ticket.dispenserId}</span>
             </p>
           </div>
           <button type="button" onClick={onClose} className="modal-close" aria-label="Cerrar">
-            <X className="w-5 h-5" />
+            <X className="h-4 w-4" />
           </button>
         </div>
         
-        <div className="p-6 space-y-6 overflow-y-auto flex-1">
+        <div className="modal-body flex-1 space-y-6 overflow-y-auto">
           {/* Detalles de la reparación */}
           <div className="grid grid-cols-1 gap-4">
             <div>
-              <label className="text-sm font-semibold mb-2 block">Descripción del problema (síntomas)</label>
+              <label className="label mb-1.5">Descripción del problema (síntomas)</label>
               <textarea
                 className="textarea"
                 rows={2}
@@ -125,7 +122,7 @@ export default function RepairModal({ ticket, onClose, onSuccess }: RepairModalP
               />
             </div>
             <div>
-              <label className="text-sm font-semibold mb-2 block">Solución aplicada (Diagnóstico/Acción)</label>
+              <label className="label mb-1.5">Solución aplicada (Diagnóstico/Acción)</label>
               <textarea
                 className="textarea"
                 rows={3}

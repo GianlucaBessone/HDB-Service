@@ -13,12 +13,17 @@ import clsx from 'clsx';
 import toast from 'react-hot-toast';
 import { t, getStatusColor } from '@/lib/translations';
 import ChecklistModal from '@/components/ChecklistModal';
+import PageHeader from '@/components/ui/PageHeader';
+import StatCard from '@/components/ui/StatCard';
+import FilterBar, { FieldIcon } from '@/components/ui/FilterBar';
+import EmptyState from '@/components/ui/EmptyState';
 import { getEquipmentTypeLabel, getEquipmentTypeIcon } from '@/lib/equipment';
 import { EquipmentType } from '@prisma/client';
 
 export default function MaintenancePage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
+  const [selectedDay, setSelectedDay] = useState<number | null>(null);
   
   const currentMonthStr = new Date().toISOString().slice(0, 7); // YYYY-MM
   const [month, setMonth] = useState(currentMonthStr);
@@ -158,99 +163,63 @@ export default function MaintenancePage() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Subnavigation Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border pb-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="px-3 py-1.5 rounded-xl bg-primary/10 text-primary font-bold text-xs flex items-center gap-1.5 border border-primary/20">
-            <Wrench className="w-3.5 h-3.5" /> Planificación Operativa
+      <PageHeader
+        title="Mantenimiento preventivo"
+        description="Planificación mensual de rutas y checklists por activo."
+        actions={
+          (role === 'ADMIN' || role === 'SUPERVISOR' || role === 'TECHNICIAN') && (
+            <button onClick={handleGenerate} disabled={isGenerating} className="btn-primary">
+              {isGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Settings2 className="h-4 w-4" />}
+              Generar tareas del mes
+            </button>
+          )
+        }
+      />
+
+      {/* Subnavegación + vista */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <nav className="tabs flex-1 sm:border-b-0" aria-label="Secciones de mantenimiento">
+          <span className="tab-active" aria-current="page">
+            <Wrench className="h-4 w-4" /> Planificación
           </span>
-          <Link href="/maintenance/approvals" className="text-xs text-muted-foreground hover:text-foreground font-medium flex items-center gap-1.5 px-3 py-1.5 rounded-xl hover:bg-muted transition-colors">
-            <FileSignature className="w-3.5 h-3.5 text-info" /> Aprobaciones & Firmas
+          <Link href="/maintenance/approvals" className="tab">
+            <FileSignature className="h-4 w-4" /> Firmas
           </Link>
-          <Link href="/maintenance/reports" className="text-xs text-muted-foreground hover:text-foreground font-medium flex items-center gap-1.5 px-3 py-1.5 rounded-xl hover:bg-muted transition-colors">
-            <FileText className="w-3.5 h-3.5 text-success" /> Reportes & Cierres
+          <Link href="/maintenance/reports" className="tab">
+            <FileText className="h-4 w-4" /> Reportes
           </Link>
-        </div>
-
-        {/* View Toggle */}
-        <div className="flex items-center bg-muted/60 p-1 rounded-xl border border-border shrink-0 self-start sm:self-auto">
-          <button
-            onClick={() => setViewMode('list')}
-            className={clsx(
-              "px-3 py-1 text-xs font-semibold rounded-lg transition-all flex items-center gap-1.5",
-              viewMode === 'list' ? "bg-card text-foreground shadow-xs font-bold" : "text-muted-foreground hover:text-foreground"
-            )}
-          >
-            <LayoutList className="w-3.5 h-3.5" /> Lista
+        </nav>
+        <div className="segmented self-start sm:self-auto" role="group" aria-label="Vista">
+          <button onClick={() => setViewMode('list')} className={viewMode === 'list' ? 'segmented-item-active' : 'segmented-item'} aria-pressed={viewMode === 'list'}>
+            <LayoutList className="h-3.5 w-3.5" /> Lista
           </button>
-          <button
-            onClick={() => setViewMode('calendar')}
-            className={clsx(
-              "px-3 py-1 text-xs font-semibold rounded-lg transition-all flex items-center gap-1.5",
-              viewMode === 'calendar' ? "bg-card text-foreground shadow-xs font-bold" : "text-muted-foreground hover:text-foreground"
-            )}
-          >
-            <CalendarDays className="w-3.5 h-3.5" /> Calendario
+          <button onClick={() => setViewMode('calendar')} className={viewMode === 'calendar' ? 'segmented-item-active' : 'segmented-item'} aria-pressed={viewMode === 'calendar'}>
+            <CalendarDays className="h-3.5 w-3.5" /> Calendario
           </button>
         </div>
       </div>
 
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold tracking-tight flex items-center gap-3">
-            <div className="p-2 bg-primary/10 rounded-xl">
-              <Wrench className="w-6 h-6 text-primary" />
-            </div>
-            Rutas de mantenimiento preventivo
-          </h1>
-          <p className="text-xs md:text-sm text-muted-foreground mt-1">Planificación y checklists preventivos multiactivo</p>
-        </div>
-        {(role === 'ADMIN' || role === 'SUPERVISOR' || role === 'TECHNICIAN') && (
-          <button onClick={handleGenerate} disabled={isGenerating} className="btn-primary py-2 px-4 gap-2 shrink-0 rounded-xl text-sm">
-            {isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Settings2 className="w-4 h-4" />}
-            Generar Tareas del Mes
-          </button>
-        )}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-5">
+        <StatCard label="Total del mes" value={kpis.total} />
+        <StatCard label="Completados" value={kpis.completed} tone="success" />
+        <StatCard label="Firmados" value={kpis.signed} tone="info" />
+        <StatCard label="Pendientes" value={kpis.pending} tone="warning" />
+        <StatCard label="Vencidos" value={kpis.overdue} tone="danger" emphasize={kpis.overdue > 0} />
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3.5">
-        <KpiCard label="Total del mes" value={kpis.total} color="primary" />
-        <KpiCard label="Completados" value={kpis.completed} color="emerald" />
-        <KpiCard label="Firmados" value={kpis.signed} color="blue" />
-        <KpiCard label="Pendientes" value={kpis.pending} color="amber" />
-        <KpiCard label="Vencidos" value={kpis.overdue} color="red" />
-      </div>
-
-      {/* Filters */}
-      <div className="glass-card p-4 flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1 max-w-xs">
-          <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <input
-            type="month"
-            value={month}
-            onChange={e => setMonth(e.target.value)}
-            className="input pl-10"
-          />
-        </div>
-        <div className="relative">
-          <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <select
-            value={clientId}
-            onChange={e => setClientId(e.target.value)}
-            className="select pl-10 min-w-[180px]"
-          >
+      <FilterBar>
+        <FieldIcon icon={Calendar} className="lg:w-48">
+          <input type="month" value={month} onChange={e => setMonth(e.target.value)} className="input pl-9" aria-label="Mes" />
+        </FieldIcon>
+        <FieldIcon icon={Building2} className="lg:w-56">
+          <select value={clientId} onChange={e => setClientId(e.target.value)} className="select pl-9" aria-label="Empresa">
             <option value="">Todas las empresas</option>
             {clients.map((c: any) => (
               <option key={c.id} value={c.id}>{c.nombre}</option>
             ))}
           </select>
-        </div>
-        <select
-          value={statusFilter}
-          onChange={e => setStatusFilter(e.target.value)}
-          className="select min-w-[150px]"
-        >
+        </FieldIcon>
+        <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="select lg:w-44" aria-label="Estado">
           <option value="">Todos los estados</option>
           <option value="PENDING">Pendiente</option>
           <option value="COMPLETED">Completado</option>
@@ -258,11 +227,7 @@ export default function MaintenancePage() {
           <option value="EXPIRED">Vencido</option>
           <option value="SIGNED">Firmado</option>
         </select>
-        <select
-          value={equipmentTypeFilter}
-          onChange={e => setEquipmentTypeFilter(e.target.value)}
-          className="select min-w-[180px]"
-        >
+        <select value={equipmentTypeFilter} onChange={e => setEquipmentTypeFilter(e.target.value)} className="select lg:w-52" aria-label="Tipo de activo">
           <option value="">Todos los activos</option>
           <option value="AIR_CONDITIONER">Aires acondicionados</option>
           <option value="COLD_ROOM">Cámaras frigoríficas</option>
@@ -271,28 +236,28 @@ export default function MaintenancePage() {
           <option value="VENTILATION">Ventilación / extracción</option>
           <option value="OTHER">Otros equipos</option>
         </select>
-      </div>
+      </FilterBar>
 
       {/* Calendar or List View */}
       {viewMode === 'calendar' ? (
-        <div className="glass-card p-4 md:p-6 space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border pb-3">
+        <div className="glass-card space-y-4 p-3 sm:p-5">
+          <div className="flex flex-col justify-between gap-2 border-b border-border pb-3 sm:flex-row sm:items-center">
             <div>
-              <h3 className="font-bold text-base text-foreground capitalize">
-                Calendario Operativo — {new Date(daysInMonth.year, daysInMonth.month - 1).toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })}
+              <h3 className="panel-title first-letter:uppercase">
+                {new Date(daysInMonth.year, daysInMonth.month - 1).toLocaleDateString('es-AR', { month: 'long', year: 'numeric' })}
               </h3>
-              <p className="text-xs text-muted-foreground">Planificación mensual de tareas preventivas e intervenciones técnicas</p>
+              <p className="text-xs text-muted-foreground">Tareas preventivas programadas por día.</p>
             </div>
             <div className="flex flex-wrap items-center gap-3 text-xs">
-              <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-success"></span> Completado</span>
-              <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-info"></span> Firmado</span>
-              <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-warning"></span> Pendiente</span>
-              <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-destructive"></span> Vencido</span>
+              <span className="flex items-center gap-1.5"><span className="status-dot bg-success"></span> Completado</span>
+              <span className="flex items-center gap-1.5"><span className="status-dot bg-info"></span> Firmado</span>
+              <span className="flex items-center gap-1.5"><span className="status-dot bg-warning"></span> Pendiente</span>
+              <span className="flex items-center gap-1.5"><span className="status-dot bg-destructive"></span> Vencido</span>
             </div>
           </div>
 
           {/* Days of week header */}
-          <div className="grid grid-cols-7 gap-1.5 md:gap-2 text-center eyebrow py-1 border-b border-border/50">
+          <div className="grid grid-cols-7 gap-1 py-1 text-center eyebrow md:gap-2">
             <div>Lun</div>
             <div>Mar</div>
             <div>Mié</div>
@@ -303,10 +268,10 @@ export default function MaintenancePage() {
           </div>
 
           {/* Calendar Day Cells */}
-          <div className="grid grid-cols-7 gap-1.5 md:gap-2">
+          <div className="grid grid-cols-7 gap-1 md:gap-2">
             {/* Empty offset padding */}
             {Array.from({ length: daysInMonth.firstDayIndex }).map((_, i) => (
-              <div key={`empty-${i}`} className="min-h-[90px] rounded-xl bg-muted/15 border border-border/20 opacity-40 hidden sm:block" />
+              <div key={`empty-${i}`} className="min-h-[64px] rounded-md bg-muted/40 sm:min-h-[90px]" />
             ))}
 
             {/* Days in Month */}
@@ -316,22 +281,25 @@ export default function MaintenancePage() {
               const isToday = new Date().getDate() === dayNum && (new Date().getMonth() + 1) === daysInMonth.month && new Date().getFullYear() === daysInMonth.year;
 
               return (
-                <div 
+                <div
                   key={`day-${dayNum}`}
+                  onClick={() => daySchedules.length > 0 && setSelectedDay(dayNum)}
                   className={clsx(
-                    "min-h-[90px] p-1.5 md:p-2 rounded-xl border flex flex-col justify-between transition-colors",
-                    isToday ? "border-primary bg-primary/5" : "border-border bg-card/60 hover:bg-muted/30"
+                    selectedDay === dayNum && 'ring-2 ring-primary/40 sm:ring-0',
+                    daySchedules.length > 0 && 'cursor-pointer sm:cursor-default',
+                    "flex min-h-[64px] flex-col rounded-md border p-1 transition-colors sm:min-h-[90px] md:p-2",
+                    isToday ? "border-primary bg-primary/[0.04]" : "border-border bg-card hover:bg-muted/40"
                   )}
                 >
                   <div className="flex items-center justify-between mb-1">
                     <span className={clsx(
                       "text-2xs md:text-xs font-semibold w-5 h-5 md:w-6 md:h-6 rounded-full flex items-center justify-center",
-                      isToday ? "bg-primary text-white" : "text-muted-foreground"
+                      isToday ? "bg-primary text-primary-foreground" : "text-muted-foreground"
                     )}>
                       {dayNum}
                     </span>
                     {daySchedules.length > 0 && (
-                      <span className="text-2xs font-bold text-primary bg-primary/10 px-1.5 py-0.2 rounded-full">
+                      <span className="rounded bg-muted px-1 text-2xs font-semibold text-foreground tabular">
                         {daySchedules.length}
                       </span>
                     )}
@@ -346,7 +314,7 @@ export default function MaintenancePage() {
                           key={s.id}
                           onClick={() => setSelectedSchedule(s)}
                           className={clsx(
-                            "p-1 rounded text-2xs md:text-2xs font-semibold border flex items-center justify-between cursor-pointer transition-transform",
+                            "hidden cursor-pointer items-center justify-between rounded border p-1 text-2xs font-medium sm:flex",
                             s.status === 'COMPLETED' ? "bg-success/10 border-success/30 text-success" :
                             s.status === 'SIGNED' ? "bg-info/10 border-info/30 text-info" :
                             s.status === 'OVERDUE' ? "bg-destructive/10 border-destructive/30 text-destructive" :
@@ -371,6 +339,27 @@ export default function MaintenancePage() {
               );
             })}
           </div>
+
+          {/* Móvil: detalle del día seleccionado */}
+          <div className="sm:hidden">
+            {selectedDay && (schedulesByDay[selectedDay] || []).length > 0 ? (
+              <div className="rounded-md border border-border">
+                <p className="eyebrow border-b border-border px-3 py-2">Día {selectedDay}</p>
+                <ul className="divide-y divide-border">
+                  {(schedulesByDay[selectedDay] || []).map((s: any) => (
+                    <li key={s.id}>
+                      <button onClick={() => setSelectedSchedule(s)} className="flex w-full items-center justify-between gap-2 px-3 py-2.5 text-left">
+                        <span className="font-mono text-sm font-medium">{s.dispenserId}</span>
+                        <span className={clsx('badge', getStatusColor(s.status))}>{t(s.status)}</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : (
+              <p className="text-center text-xs text-muted-foreground">Tocá un día con tareas para ver el detalle.</p>
+            )}
+          </div>
         </div>
       ) : isLoading ? (
         <div className="space-y-3">
@@ -379,13 +368,9 @@ export default function MaintenancePage() {
           ))}
         </div>
       ) : schedules.length === 0 ? (
-        <div className="glass-card p-12 flex flex-col items-center justify-center text-center">
-          <Wrench className="w-16 h-16 text-muted-foreground/20 mb-4" />
-          <p className="text-muted-foreground font-medium text-lg">No hay mantenimientos planificados</p>
-          <p className="text-sm mt-1">Generá las tareas del mes para empezar a trabajar.</p>
-        </div>
+        <EmptyState icon={Wrench} title="No hay mantenimientos planificados" description="Generá las tareas del mes para comenzar." />
       ) : (
-        <div className="grid grid-cols-1 gap-3">
+        <div className="glass-card divide-y divide-border overflow-hidden">
           {schedules.map(schedule => {
             const isCompleted = schedule.status === 'COMPLETED';
             const isSelected = selectedForApproval.includes(schedule.id);
@@ -394,12 +379,13 @@ export default function MaintenancePage() {
                                schedule.dispenser?.location?.plant?.client?.nombre;
 
             return (
-              <div key={schedule.id} className={clsx('glass-card p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-colors', isSelected && 'border-primary shadow-sm')}>
-                <div className="flex items-start sm:items-center gap-4">
+              <div key={schedule.id} className={clsx('flex flex-col justify-between gap-3 p-4 transition-colors sm:flex-row sm:items-center', isSelected && 'bg-primary/[0.05]')}>
+                <div className="flex min-w-0 items-start gap-3">
                   {isCompleted && (
                     <input 
                       type="checkbox" 
-                      className="mt-1.5 sm:mt-0 w-5 h-5 accent-primary cursor-pointer"
+                      className="mt-1 h-4 w-4 shrink-0 cursor-pointer accent-[hsl(var(--primary))]"
+                      aria-label={`Seleccionar ${schedule.dispenserId} para firma`}
                       checked={isSelected}
                       onChange={() => toggleApprovalSelection(schedule.id)}
                     />
@@ -408,42 +394,37 @@ export default function MaintenancePage() {
                     const eqType = schedule.dispenser?.equipmentType || 'DISPENSER';
                     const Icon = getEquipmentTypeIcon(eqType);
                     return (
-                      <div className={clsx(
-                        'w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-sm', 
-                        isCompleted ? 'bg-success/10 text-success border border-success/20' : 'bg-primary/10 text-primary border border-primary/20'
-                      )}>
-                        <Icon className="w-6 h-6" />
+                      <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-border bg-muted text-muted-foreground">
+                        <Icon className="h-[18px] w-[18px]" />
                       </div>
                     );
                   })()}
-                  <div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-bold text-lg">{schedule.dispenserId}</span>
-                      <span className={clsx('badge text-2xs px-2 py-0.5', getStatusColor(schedule.status))}>
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className="mr-1 font-mono text-[15px] font-semibold">{schedule.dispenserId}</span>
+                      <span className={clsx('badge', getStatusColor(schedule.status))}>
                         {t(schedule.status)}
                       </span>
                       {clientName && (
-                        <span className="badge bg-primary/10 text-primary border border-primary/20 text-2xs px-2 py-0.5 flex items-center gap-1 font-semibold">
-                          <Building2 className="w-3 h-3 shrink-0" />
+                        <span className="badge-neutral">
+                          <Building2 className="h-3 w-3 shrink-0" />
                           {clientName}
                         </span>
                       )}
-                      <span className="badge badge-outline text-2xs px-1.5 py-0">
+                      <span className="badge-neutral">
                         {getEquipmentTypeLabel(schedule.dispenser?.equipmentType || 'DISPENSER')}
                       </span>
                       {schedule.dispenser?.criticality === 'CRITICAL' && (
-                        <span className="badge bg-destructive/10 text-destructive text-2xs px-1.5 py-0 font-bold">
-                          CRÍTICO
-                        </span>
+                        <span className="badge-danger">Crítico</span>
                       )}
                     </div>
-                    <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
+                    <p className="mt-1 flex flex-wrap items-center gap-1 text-[13px] text-muted-foreground">
                       <MapPin className="w-3.5 h-3.5 shrink-0" />
                       <span>{schedule.dispenser?.location?.plant?.nombre}</span>
                       {schedule.dispenser?.location?.sector?.nombre && (
-                        <span>— {schedule.dispenser.location.sector.nombre}</span>
+                        <span>· {schedule.dispenser.location.sector.nombre}</span>
                       )}
-                      <span>({schedule.dispenser?.location?.nombre || 'Sin ubicación'})</span>
+                      <span>· {schedule.dispenser?.location?.nombre || 'Sin ubicación'}</span>
                     </p>
                     {schedule.dispenser?.marca && (
                       <p className="text-xs text-muted-foreground mt-0.5">
@@ -453,22 +434,22 @@ export default function MaintenancePage() {
                     {schedule.checklist?.measurements && Object.keys(schedule.checklist.measurements).length > 0 && (
                       <div className="flex flex-wrap gap-2 mt-2">
                         {schedule.checklist.measurements.presionBajaPsi && (
-                          <span className="text-2xs px-2 py-0.5 rounded bg-muted/60 text-foreground font-mono">
+                          <span className="badge-neutral tabular">
                             Succión: <strong>{schedule.checklist.measurements.presionBajaPsi} PSI</strong>
                           </span>
                         )}
                         {schedule.checklist.measurements.saltoTermicoC && (
-                          <span className="text-2xs px-2 py-0.5 rounded bg-muted/60 text-foreground font-mono">
-                            Salto Térmico: <strong>{schedule.checklist.measurements.saltoTermicoC} °C</strong>
+                          <span className="badge-neutral tabular">
+                            Salto térmico: <strong>{schedule.checklist.measurements.saltoTermicoC} °C</strong>
                           </span>
                         )}
                         {schedule.checklist.measurements.tempCamaraC && (
-                          <span className="text-2xs px-2 py-0.5 rounded bg-muted/60 text-foreground font-mono">
+                          <span className="badge-neutral tabular">
                             Cámara: <strong>{schedule.checklist.measurements.tempCamaraC} °C</strong>
                           </span>
                         )}
                         {schedule.checklist.measurements.corrienteCompresorA && (
-                          <span className="text-2xs px-2 py-0.5 rounded bg-muted/60 text-foreground font-mono">
+                          <span className="badge-neutral tabular">
                             I: <strong>{schedule.checklist.measurements.corrienteCompresorA} A</strong>
                           </span>
                         )}
@@ -477,14 +458,14 @@ export default function MaintenancePage() {
                   </div>
                 </div>
 
-                <div className="flex gap-2">
-                    <button
-                      onClick={() => setSelectedSchedule(schedule)}
-                      className={clsx('btn-sm gap-1.5 w-full sm:w-auto', (isCompleted || schedule.status === 'SIGNED' || (role === 'CLIENT_REQUESTER' || role === 'CLIENT_RESPONSIBLE')) ? 'btn-outline' : 'btn-primary')}
-                    >
-                      {isCompleted || schedule.status === 'SIGNED' ? 'Ver Reporte' : (role === 'CLIENT_REQUESTER' || role === 'CLIENT_RESPONSIBLE') ? 'Ver Detalles' : 'Completar Checklist'}
-                      <ChevronRight className="w-4 h-4" />
-                    </button>
+                <div className="flex shrink-0 gap-2 sm:pl-4">
+                  <button
+                    onClick={() => setSelectedSchedule(schedule)}
+                    className={clsx('w-full sm:w-auto', (isCompleted || schedule.status === 'SIGNED' || (role === 'CLIENT_REQUESTER' || role === 'CLIENT_RESPONSIBLE')) ? 'btn-outline' : 'btn-primary')}
+                  >
+                    {isCompleted || schedule.status === 'SIGNED' ? 'Ver reporte' : (role === 'CLIENT_REQUESTER' || role === 'CLIENT_RESPONSIBLE') ? 'Ver detalle' : 'Completar checklist'}
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
                 </div>
               </div>
             );
@@ -501,66 +482,48 @@ export default function MaintenancePage() {
       )}
 
       {selectedForApproval.length > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/80 backdrop-blur-md border-t border-border z-40 flex justify-between items-center animate-slide-up">
-          <div className="flex flex-col ml-12 lg:ml-64">
-            <span className="font-semibold">{selectedForApproval.length} seleccionados</span>
-            <span className="text-sm text-muted-foreground">Listos para firma de cliente</span>
+        <div className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-40 flex items-center justify-between gap-3 border-t border-border bg-card px-4 py-3 shadow-lg animate-sheet-up md:bottom-0 md:pb-[max(0.75rem,env(safe-area-inset-bottom))] lg:left-[248px] lg:px-8">
+          <div className="min-w-0">
+            <p className="text-sm font-semibold tabular">{selectedForApproval.length} seleccionados</p>
+            <p className="text-xs text-muted-foreground">Listos para firma del cliente</p>
           </div>
-          <button 
-            onClick={handleGenerateApproval} 
-            disabled={isGeneratingApproval}
-            className="btn-primary gap-2"
-          >
-            {isGeneratingApproval ? <Loader2 className="w-5 h-5 animate-spin" /> : <QrCode className="w-5 h-5" />}
-            Pedir Firma
+          <button onClick={handleGenerateApproval} disabled={isGeneratingApproval} className="btn-primary shrink-0">
+            {isGeneratingApproval ? <Loader2 className="h-4 w-4 animate-spin" /> : <QrCode className="h-4 w-4" />}
+            Solicitar firma
           </button>
         </div>
       )}
 
       {approvalModalId && (
-        <div className="modal-overlay">
-          <div className="modal-content max-w-md p-6 relative">
-            <button 
-              onClick={() => { setApprovalModalId(null); fetchSchedules(); }}
-              className="absolute top-4 right-4 p-2 hover:bg-muted rounded-full"
-            >
-              <X className="w-5 h-5" />
-            </button>
-            <div className="text-center">
-              <QrCode className="w-12 h-12 text-primary mx-auto mb-4" />
-              <h2 className="text-2xl font-bold mb-6">Firma del cliente</h2>
-              
-              <div className="bg-white p-4 rounded-xl mx-auto inline-block">
-                <QRCodeSVG 
-                  value={`${window.location.origin}/public/approval/${approvalModalId}`}
-                  size={200}
-                  level="H"
-                />
+        <div className="modal-overlay" onMouseDown={e => { if (e.target === e.currentTarget) { setApprovalModalId(null); fetchSchedules(); } }}>
+          <div className="modal-content max-w-md">
+            <div className="modal-header">
+              <h2>Firma del cliente</h2>
+              <button onClick={() => { setApprovalModalId(null); fetchSchedules(); }} className="modal-close" aria-label="Cerrar">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="modal-body text-center">
+              <p className="mb-4 text-sm text-muted-foreground">El cliente puede escanear este código para revisar y firmar la conformidad.</p>
+              <div className="inline-block rounded-lg border border-border bg-white p-4">
+                <QRCodeSVG value={`${window.location.origin}/public/approval/${approvalModalId}`} size={200} level="H" />
               </div>
-
-              <p className="text-xs text-muted-foreground mt-6 break-all">
-                URL manual: {window.location.origin}/public/approval/{approvalModalId}
-              </p>
+              <div className="mt-4 flex items-center gap-2 rounded-md border border-border bg-muted/40 p-2 text-left">
+                <code className="min-w-0 flex-1 truncate text-xs">{window.location.origin}/public/approval/{approvalModalId}</code>
+                <button
+                  className="btn-outline btn-sm shrink-0"
+                  onClick={() => {
+                    navigator.clipboard?.writeText(`${window.location.origin}/public/approval/${approvalModalId}`);
+                    toast.success('Enlace copiado');
+                  }}
+                >
+                  Copiar
+                </button>
+              </div>
             </div>
           </div>
         </div>
       )}
-    </div>
-  );
-}
-
-function KpiCard({ label, value, color }: { label: string; value: number; color: string }) {
-  const colorMap: Record<string, string> = {
-    primary: 'border-t-primary text-primary',
-    emerald: 'border-t-success text-success',
-    blue: 'border-t-info text-info',
-    amber: 'border-t-warning text-warning',
-    red: 'border-t-destructive text-destructive',
-  };
-  return (
-    <div className={`glass-card p-4 border-t-4 ${colorMap[color]?.split(' ')[0]}`}>
-      <p className="text-sm text-muted-foreground font-medium">{label}</p>
-      <p className={`text-2xl font-bold mt-1 ${colorMap[color]?.split(' ').slice(1).join(' ')}`}>{value}</p>
     </div>
   );
 }

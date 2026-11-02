@@ -69,7 +69,7 @@ function CustomSelect({
       </button>
 
       {isOpen && !disabled && (
-        <div className="absolute left-0 right-0 top-full mt-1.5 z-50 max-h-60 overflow-y-auto rounded-xl bg-card border border-border shadow-xl p-1.5 custom-scrollbar animate-in fade-in zoom-in-95 duration-150">
+        <div className="absolute left-0 right-0 top-full mt-1.5 z-50 max-h-60 overflow-y-auto rounded-md bg-popover border border-border shadow-lg p-1 custom-scrollbar animate-in fade-in zoom-in-95 duration-150">
           {options.length === 0 ? (
             <div className="p-3 text-xs text-muted-foreground text-center italic">
               No hay opciones disponibles
@@ -261,33 +261,23 @@ export default function UserModal({ user, onClose, onSuccess }: UserModalProps) 
     <div className="modal-overlay">
       <div className="modal-content max-w-lg">
         <div className="modal-header">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-primary/10 rounded-lg text-primary">
-              <User className="w-5 h-5" />
-            </div>
-            <div>
-              <h2 className="text-xl font-bold">{isEditing ? 'Editar Usuario' : 'Nuevo Usuario'}</h2>
-              <p className="text-xs text-muted-foreground">
-                {isEditing ? 'Actualice los datos del perfil.' : 'Se enviará una invitación por email para configurar la contraseña.'}
-              </p>
-            </div>
+          <div className="min-w-0">
+            <h2>{isEditing ? 'Editar usuario' : 'Nuevo usuario'}</h2>
+            <p className="text-xs text-muted-foreground">
+              {isEditing ? 'Actualizá los datos del perfil.' : 'Se enviará una invitación por email para definir la contraseña.'}
+            </p>
           </div>
-          <button 
-            type="button"
-            onClick={onClose}
-            className="p-2 hover:bg-accent rounded-full transition-colors"
-          >
-            <X className="w-5 h-5" />
+          <button type="button" onClick={onClose} className="modal-close" aria-label="Cerrar">
+            <X className="h-4 w-4" />
           </button>
         </div>
 
         <form onSubmit={handleSubmit}>
-          <div className="p-6 space-y-5 max-h-[70vh] overflow-y-auto custom-scrollbar">
+          <div className="modal-body space-y-5">
             
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">
-                <label className="text-sm font-semibold flex items-center gap-2">
-                  Nombre <span className="text-destructive">*</span>
+                <label className="label">Nombre <span className="text-destructive">*</span>
                 </label>
                 <input
                   required
@@ -298,7 +288,7 @@ export default function UserModal({ user, onClose, onSuccess }: UserModalProps) 
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="text-sm font-semibold">Apellido</label>
+                <label className="label">Apellido</label>
                 <input
                   className="input"
                   placeholder="Ej: Pérez"
@@ -309,9 +299,7 @@ export default function UserModal({ user, onClose, onSuccess }: UserModalProps) 
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-sm font-semibold flex items-center gap-2">
-                <Mail className="w-3.5 h-3.5 text-muted-foreground" />
-                Email / Usuario <span className="text-destructive">*</span>
+              <label className="label">Email <span className="text-destructive">*</span>
               </label>
               <input
                 required
@@ -322,14 +310,12 @@ export default function UserModal({ user, onClose, onSuccess }: UserModalProps) 
                 value={form.email}
                 onChange={e => setForm({ ...form, email: e.target.value })}
               />
-              {isEditing && <p className="text-2xs text-muted-foreground italic">El email no puede ser modificado.</p>}
+              {isEditing && <p className="field-hint">El email no puede modificarse.</p>}
             </div>
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">
-                <label className="text-sm font-semibold flex items-center gap-2">
-                  <Shield className="w-3.5 h-3.5 text-muted-foreground" />
-                  Rol de Sistema <span className="text-destructive">*</span>
+                <label className="label">Rol de Sistema <span className="text-destructive">*</span>
                 </label>
                 <CustomSelect
                   value={form.role}
@@ -340,9 +326,7 @@ export default function UserModal({ user, onClose, onSuccess }: UserModalProps) 
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-sm font-semibold flex items-center gap-2">
-                  <Building2 className="w-3.5 h-3.5 text-muted-foreground" />
-                  Cliente / Empresa {isClientRole && <span className="text-destructive">*</span>}
+                <label className="label">Cliente / Empresa {isClientRole && <span className="text-destructive">*</span>}
                 </label>
                 <CustomSelect
                   disabled={!isClientRole && !isTechnician}
@@ -357,9 +341,7 @@ export default function UserModal({ user, onClose, onSuccess }: UserModalProps) 
 
             {canAssignPlants && (
               <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
-                <label className="text-sm font-semibold flex items-center gap-2">
-                  <MapPin className="w-3.5 h-3.5 text-muted-foreground" />
-                  Plantas asignadas / autorizadas {isClientRole && <span className="text-destructive">*</span>}
+                <label className="label">Plantas asignadas / autorizadas {isClientRole && <span className="text-destructive">*</span>}
                 </label>
                 
                 {isLoadingPlants ? (
@@ -415,8 +397,7 @@ export default function UserModal({ user, onClose, onSuccess }: UserModalProps) 
 
             {isTechnician && (
               <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300 border-t border-border/60 pt-4">
-                <label className="text-sm font-semibold flex items-center gap-2">
-                  <Shield className="w-3.5 h-3.5 text-primary" />
+                <label className="label"><Shield className="w-3.5 h-3.5 text-primary" />
                   Especialidad / Equipos que Atiende <span className="text-destructive">*</span>
                 </label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -459,9 +440,7 @@ export default function UserModal({ user, onClose, onSuccess }: UserModalProps) 
             )}
 
             <div className="space-y-1.5">
-              <label className="text-sm font-semibold flex items-center gap-2">
-                <Lock className="w-3.5 h-3.5 text-muted-foreground" />
-                {isEditing ? 'Nueva Contraseña (opcional)' : 'Contraseña Inicial'} {!isEditing && <span className="text-destructive">*</span>}
+              <label className="label">{isEditing ? 'Nueva Contraseña (opcional)' : 'Contraseña Inicial'} {!isEditing && <span className="text-destructive">*</span>}
               </label>
               <div className="relative">
                 <input
@@ -516,7 +495,7 @@ export default function UserModal({ user, onClose, onSuccess }: UserModalProps) 
               {isLoading ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
-                isEditing ? 'Guardar Cambios' : (
+                isEditing ? 'Guardar cambios' : (
                   <>
                     <UserPlus className="w-4 h-4" />
                     Crear usuario

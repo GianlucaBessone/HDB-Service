@@ -12,6 +12,8 @@ import * as XLSX from 'xlsx';
 import { useConfigStore } from '@/lib/store/useConfigStore';
 import { getEquipmentTypeIcon } from '@/lib/equipment';
 import ConfirmModal from '@/components/ConfirmModal';
+import PageHeader from '@/components/ui/PageHeader';
+import UIEmptyState from '@/components/ui/EmptyState';
 
 type Client = { id: string; nombre: string; email: string | null; telefono: string | null; active: boolean };
 type Plant = { id: string; nombre: string; direccion: string | null; clientId: string; _count: { locations: number } };
@@ -49,15 +51,10 @@ export default function ConfigPage() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3">
-          <div className="p-2 bg-primary/10 rounded-lg">
-            <Settings className="w-7 h-7 text-primary" />
-          </div>
-          Configuración
-        </h1>
-        <p className="text-muted-foreground mt-1">Gestión de clientes, plantas, sectores, ubicaciones y plantillas</p>
-      </div>
+      <PageHeader
+        title="Configuración"
+        description="Clientes, plantas, sectores, ubicaciones, catálogo y correo."
+      />
 
       {/* Section Tabs */}
       <div className="tabs">
@@ -69,7 +66,7 @@ export default function ConfigPage() {
               onClick={() => setSection(item.key)}
               className={section === item.key ? 'tab-active' : 'tab'}
             >
-              <Icon className="w-4 h-4 inline mr-1.5 -mt-0.5" />
+              <Icon className="h-4 w-4" />
               {item.label}
             </button>
           );
@@ -137,14 +134,11 @@ function SmtpSection() {
   if (isLoading) return <LoadingSkeleton />;
 
   return (
-    <div className="max-w-3xl glass-card p-6 md:p-8 animate-fade-in">
+    <div className="glass-card max-w-3xl p-4 animate-fade-in sm:p-6">
       <div className="mb-6">
-        <h2 className="text-xl font-bold flex items-center gap-2">
-          <Server className="w-5 h-5 text-primary" />
-          Servidor de Correo Electrónico (SMTP)
-        </h2>
-        <p className="text-sm text-muted-foreground mt-1">
-          Configura los datos del servidor de correo saliente. Estos datos se utilizarán para enviar todas las notificaciones automáticas (como tickets y claves) a través del sistema.
+        <h2 className="panel-title">Servidor de correo (SMTP)</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Servidor de correo saliente usado para todas las notificaciones automáticas (tickets, claves de acceso, avisos).
         </p>
       </div>
 
@@ -335,22 +329,23 @@ function EmailsSection() {
             <div key={t.id} className="glass-card p-6 flex flex-col justify-between">
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <span className="badge-primary text-2xs uppercase tracking-wider">
+                  <span className="badge-neutral">
                     {(templateTypes as any)[t.type]?.label || t.type}
                   </span>
                   <button 
                     onClick={() => setEditingTemplate(t)}
-                    className="p-2 hover:bg-primary/10 text-primary rounded-md transition-colors"
+                    className="btn-icon btn-ghost"
+                    aria-label="Editar plantilla"
                   >
                     <Edit2 className="w-4 h-4" />
                   </button>
                 </div>
-                <h3 className="font-bold text-lg mb-1">{t.subject}</h3>
-                <p className="text-sm text-muted-foreground line-clamp-3 font-mono bg-muted/30 p-3 rounded-lg border border-border">
+                <h3 className="mb-1 text-[15px] font-semibold">{t.subject}</h3>
+                <p className="line-clamp-3 rounded-md border border-border bg-muted/40 p-3 font-mono text-xs text-muted-foreground">
                   {t.body}
                 </p>
               </div>
-              <div className="mt-4 pt-4 border-t border-border flex items-center justify-between text-2xs text-muted-foreground italic">
+              <div className="mt-4 pt-4 border-t border-border flex items-center justify-between text-2xs text-muted-foreground">
                 <div className="flex items-center gap-1.5">
                   <HelpCircle className="w-3 h-3" />
                   {(templateTypes as any)[t.type]?.help} Variables: {((templateTypes as any)[t.type]?.variables || []).join(', ')}
@@ -362,11 +357,11 @@ function EmailsSection() {
         </div>
       )}
       {editingTemplate && (
-        <div className="modal-overlay" onClick={() => setEditingTemplate(null)}>
+        <div className="modal-overlay" onMouseDown={e => e.target === e.currentTarget && setEditingTemplate(null)}>
           <div className="modal-content max-w-4xl" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <h2>Editar Plantilla: {(templateTypes as any)[editingTemplate.type]?.label}</h2>
-              <button onClick={() => setEditingTemplate(null)} className="btn-ghost btn-icon"><X className="w-5 h-5" /></button>
+              <h2>Editar plantilla: {(templateTypes as any)[editingTemplate.type]?.label}</h2>
+              <button type="button" onClick={() => setEditingTemplate(null)} className="modal-close" aria-label="Cerrar"><X className="h-4 w-4" /></button>
             </div>
             <form onSubmit={(e) => {
               e.preventDefault();
@@ -500,7 +495,7 @@ function ClientsSection() {
     <div className="space-y-4">
       <div className="flex justify-end">
         <button onClick={() => { setEditingClient(null); setShowModal(true); }} className="btn-primary gap-2">
-          <Plus className="w-4 h-4" /> Nuevo Cliente
+          <Plus className="w-4 h-4" /> Nuevo cliente
         </button>
       </div>
 
@@ -509,22 +504,24 @@ function ClientsSection() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {clients.map(c => (
-            <div key={c.id} className="glass-card-hover p-5 flex flex-col justify-between group">
+            <div key={c.id} className="glass-card-hover group flex flex-col justify-between p-4">
               <div>
                 <div className="flex items-start justify-between">
-                  <h3 className="font-semibold text-lg">{c.nombre}</h3>
-                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <h3 className="text-[15px] font-semibold">{c.nombre}</h3>
+                  <div className="flex items-center gap-1 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 lg:group-focus-within:opacity-100 transition-opacity">
                     <button 
                       onClick={() => { setEditingClient(c); setShowModal(true); }}
-                      className="p-1.5 hover:bg-primary/10 text-primary rounded-md transition-colors"
+                      className="btn-icon btn-ghost h-8 w-8 sm:h-8 sm:w-8"
                       title="Editar"
+                      aria-label="Editar"
                     >
                       <Edit2 className="w-4 h-4" />
                     </button>
                     <button 
                       onClick={() => setClientToDelete(c.id)}
-                      className="p-1.5 hover:bg-destructive/10 text-destructive rounded-md transition-colors"
+                      className="btn-icon btn-ghost h-8 w-8 hover:text-destructive sm:h-8 sm:w-8"
                       title="Eliminar"
+                      aria-label="Eliminar"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -540,7 +537,7 @@ function ClientsSection() {
 
       {showModal && (
         <SimpleFormModal
-          title={editingClient ? "Editar Cliente" : "Nuevo Cliente"}
+          title={editingClient ? "Editar cliente" : "Nuevo cliente"}
           initialData={editingClient ? {
             nombre: editingClient.nombre,
             email: editingClient.email || '',
@@ -572,7 +569,7 @@ function ClientsSection() {
       {clientToDelete && (
         <ConfirmModal
           title="Eliminar cliente"
-          description="¿Estás seguro de que deseas eliminar este cliente? Esta acción lo desactivará del sistema."
+          description="¿Eliminar este cliente? Se desactivará del sistema."
           onConfirm={handleDelete}
           onClose={() => setClientToDelete(null)}
           isLoading={isDeleting}
@@ -636,7 +633,7 @@ function PlantsSection() {
     <div className="space-y-4">
       <div className="flex justify-end">
         <button onClick={() => setShowModal('new')} className="btn-primary gap-2">
-          <Plus className="w-4 h-4" /> Nueva Planta
+          <Plus className="w-4 h-4" /> Nueva planta
         </button>
       </div>
 
@@ -653,10 +650,10 @@ function PlantsSection() {
                 <div className="flex items-center">
                   <button
                     onClick={() => setExpandedPlant(isExpanded ? null : p.id)}
-                    className="flex-1 px-5 py-4 flex items-center justify-between hover:bg-muted/30 transition-colors"
+                    className="flex flex-1 items-center justify-between px-4 py-3 transition-colors hover:bg-muted/40"
                   >
                     <div className="flex items-center gap-3">
-                      <Building2 className="w-5 h-5 text-primary" />
+                      <Building2 className="h-4 w-4 text-muted-foreground" />
                       <div className="text-left">
                         <span className="font-semibold">{p.nombre}</span>
                         <span className="text-xs text-muted-foreground ml-2">
@@ -666,42 +663,42 @@ function PlantsSection() {
                     </div>
                     {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
                   </button>
-                  <div className="flex items-center gap-1 pr-4">
+                  <div className="flex items-center gap-0.5 pr-2">
                     <button
                       onClick={() => setShowModal(p)}
                       className="btn-ghost btn-icon"
                       title="Editar planta"
                     >
-                      <Edit2 className="w-4 h-4 text-info" />
+                      <Edit2 className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => setDeleteConfirm(p)}
                       className="btn-ghost btn-icon"
                       title="Eliminar planta"
                     >
-                      <Trash2 className="w-4 h-4 text-destructive" />
+                      <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
 
                 {isExpanded && (
-                  <div className="px-5 pb-4 border-t border-border animate-in slide-in-from-top-1 duration-200">
+                  <div className="border-t border-border px-4 pb-4">
                     <div className="mt-3 space-y-2">
                       {myLocations.length === 0 ? (
                         <p className="text-sm text-muted-foreground py-2">Sin ubicaciones en esta planta</p>
                       ) : (
                         myLocations.map((loc: any) => (
-                          <div key={loc.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/20">
+                          <div key={loc.id} className="flex items-center justify-between gap-2 rounded-md border border-border p-2.5">
                             <div className="flex items-center gap-2">
                               <MapPin className="w-4 h-4 text-muted-foreground" />
                               <span className="text-sm font-medium">{loc.nombre}</span>
                               {loc.sector && (
-                                <span className="badge-neutral text-xs">{loc.sector.nombre}</span>
+                                <span className="badge-neutral">{loc.sector.nombre}</span>
                               )}
                             </div>
                             <div className="flex items-center gap-2">
                               {loc.dispensers?.length > 0 ? (
-                                <span className="badge-success text-xs gap-1">
+                                <span className="badge-success font-mono">
                                   {(() => {
                                     const EqIcon = getEquipmentTypeIcon(loc.dispensers[0].equipmentType);
                                     return <EqIcon className="w-3 h-3" />;
@@ -709,7 +706,7 @@ function PlantsSection() {
                                   {loc.dispensers[0].id}
                                 </span>
                               ) : (
-                                <span className="text-xs text-muted-foreground italic">Vacía</span>
+                                <span className="text-xs text-muted-foreground">Vacía</span>
                               )}
                             </div>
                           </div>
@@ -726,7 +723,7 @@ function PlantsSection() {
 
       {showModal && (
         <SimpleFormModal
-          title={showModal === 'new' ? "Nueva Planta" : "Editar Planta"}
+          title={showModal === 'new' ? "Nueva planta" : "Editar planta"}
           initialData={showModal === 'new' ? undefined : {
             nombre: showModal.nombre,
             direccion: showModal.direccion || '',
@@ -757,7 +754,7 @@ function PlantsSection() {
       {deleteConfirm && (
         <ConfirmModal
           title="Eliminar planta"
-          description={`¿Estás seguro de que deseas eliminar la planta "${deleteConfirm.nombre}"? Esta acción no se puede deshacer.`}
+          description={`¿Eliminar la planta "${deleteConfirm.nombre}"? Esta acción no se puede deshacer.`}
           onConfirm={handleDelete}
           onClose={() => setDeleteConfirm(null)}
         />
@@ -798,7 +795,7 @@ function SectorsSection() {
     <div className="space-y-4">
       <div className="flex justify-end">
         <button onClick={() => setShowModal('new')} className="btn-primary gap-2">
-          <Plus className="w-4 h-4" /> Nuevo Sector
+          <Plus className="w-4 h-4" /> Nuevo sector
         </button>
       </div>
 
@@ -814,10 +811,10 @@ function SectorsSection() {
                 </div>
                 <div className="flex items-center gap-1">
                   <button onClick={() => setShowModal(s)} className="btn-ghost btn-icon p-1">
-                    <Edit2 className="w-4 h-4 text-info" />
+                    <Edit2 className="w-4 h-4" />
                   </button>
                   <button onClick={() => setDeleteConfirm(s)} className="btn-ghost btn-icon p-1">
-                    <Trash2 className="w-4 h-4 text-destructive" />
+                    <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
               </div>
@@ -834,7 +831,7 @@ function SectorsSection() {
 
       {showModal && (
         <SimpleFormModal
-          title={showModal === 'new' ? "Nuevo Sector" : "Editar Sector"}
+          title={showModal === 'new' ? "Nuevo sector" : "Editar sector"}
           initialData={showModal === 'new' ? undefined : {
             nombre: showModal.nombre,
             descripcion: showModal.descripcion || ''
@@ -862,7 +859,7 @@ function SectorsSection() {
       {deleteConfirm && (
         <ConfirmModal
           title="Eliminar sector"
-          description={`¿Estás seguro de que deseas eliminar el sector "${deleteConfirm.nombre}"? Esta acción no se puede deshacer.`}
+          description={`¿Eliminar el sector "${deleteConfirm.nombre}"? Esta acción no se puede deshacer.`}
           onConfirm={handleDelete}
           onClose={() => setDeleteConfirm(null)}
         />
@@ -975,7 +972,7 @@ function LocationsSection() {
           )}
         </div>
         <button onClick={() => setShowModal('new')} className="btn-primary btn-sm md:btn-md gap-2 shrink-0">
-          <Plus className="w-4 h-4" /> Nueva Ubicación
+          <Plus className="w-4 h-4" /> Nueva ubicación
         </button>
       </div>
 
@@ -1004,7 +1001,7 @@ function LocationsSection() {
                   <td className="text-center">
                     <div className="flex justify-center">
                       {loc.dispensers?.length > 0 ? (
-                        <span className="badge-success text-xs gap-1">
+                        <span className="badge-success font-mono">
                           {(() => {
                             const EqIcon = getEquipmentTypeIcon(loc.dispensers[0].equipmentType);
                             return <EqIcon className="w-3 h-3" />;
@@ -1012,17 +1009,17 @@ function LocationsSection() {
                           {loc.dispensers[0].id}
                         </span>
                       ) : (
-                        <span className="text-xs text-muted-foreground italic">Vacía</span>
+                        <span className="text-xs text-muted-foreground">Vacía</span>
                       )}
                     </div>
                   </td>
                   <td className="text-center">
                     <div className="flex justify-center gap-1">
                       <button onClick={() => setShowModal(loc)} className="btn-ghost btn-icon p-1">
-                        <Edit2 className="w-4 h-4 text-info" />
+                        <Edit2 className="w-4 h-4" />
                       </button>
                       <button onClick={() => setDeleteConfirm(loc)} className="btn-ghost btn-icon p-1">
-                        <Trash2 className="w-4 h-4 text-destructive" />
+                        <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
                   </td>
@@ -1035,7 +1032,7 @@ function LocationsSection() {
 
       {showModal && (
         <SimpleFormModal
-          title={showModal === 'new' ? "Nueva Ubicación" : "Editar Ubicación"}
+          title={showModal === 'new' ? "Nueva ubicación" : "Editar ubicación"}
           initialData={showModal === 'new' ? undefined : {
             id: showModal.id,
             plantId: showModal.plantId,
@@ -1069,7 +1066,7 @@ function LocationsSection() {
       {deleteConfirm && (
         <ConfirmModal
           title="Eliminar ubicación"
-          description={`¿Estás seguro de que deseas eliminar la ubicación "${deleteConfirm.nombre}"? Esta acción no se puede deshacer.`}
+          description={`¿Eliminar la ubicación "${deleteConfirm.nombre}"? Esta acción no se puede deshacer.`}
           onConfirm={handleDelete}
           onClose={() => setDeleteConfirm(null)}
         />
@@ -1116,11 +1113,11 @@ function SimpleFormModal({
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay" onMouseDown={e => e.target === e.currentTarget && onClose()}>
       <div className="modal-content max-w-md" onClick={e => e.stopPropagation()}>
         <div className="modal-header">
           <h2>{title}</h2>
-          <button onClick={onClose} className="btn-ghost btn-icon"><X className="w-5 h-5" /></button>
+          <button type="button" onClick={onClose} className="modal-close" aria-label="Cerrar"><X className="h-4 w-4" /></button>
         </div>
         <form onSubmit={handleSubmit}>
           <div className="modal-body space-y-4">
@@ -1134,7 +1131,7 @@ function SimpleFormModal({
                     onChange={e => setForm(p => ({ ...p, [f.name]: e.target.value }))}
                     required={f.required}
                   >
-                    <option value="">Seleccionar...</option>
+                    <option value="">Seleccionar…</option>
                     {f.options?.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                   </select>
                 ) : (
@@ -1163,19 +1160,14 @@ function SimpleFormModal({
 }
 
 // ─── Shared: Empty & Loading ────────────────────────
-function EmptyState({ icon: Icon, text }: { icon: React.ElementType; text: string }) {
-  return (
-    <div className="glass-card p-12 flex flex-col items-center text-center">
-      <Icon className="w-16 h-16 text-muted-foreground/20 mb-4" />
-      <p className="text-muted-foreground text-lg font-medium">{text}</p>
-    </div>
-  );
+function EmptyState({ icon, text }: { icon: React.ElementType; text: string }) {
+  return <UIEmptyState icon={icon} title={text} />;
 }
 
 function LoadingSkeleton() {
   return (
     <div className="space-y-3">
-      {[...Array(4)].map((_, i) => <div key={i} className="h-16 skeleton rounded-lg" />)}
+      {[...Array(4)].map((_, i) => <div key={i} className="h-14 skeleton rounded-lg" />)}
     </div>
   );
 }
@@ -1208,10 +1200,10 @@ function CatalogSection() {
   return (
     <div className="space-y-4 animate-fade-in">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold flex items-center gap-2">
-          <Package className="w-5 h-5 text-primary" />
-          Catálogo de repuestos y consumibles por cliente
-        </h2>
+        <div>
+          <h2 className="panel-title">Catálogo de repuestos y consumibles</h2>
+          <p className="text-xs text-muted-foreground">Materiales habilitados por cliente.</p>
+        </div>
         <button onClick={() => setShowModal(true)} className="btn-primary gap-2">
           <Plus className="w-4 h-4" />
           Nuevo ítem
@@ -1220,13 +1212,11 @@ function CatalogSection() {
 
       <div className="glass-card overflow-hidden">
         {isLoading ? (
-          <div className="p-8 flex justify-center"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
+          <div className="space-y-2 p-4">{[0, 1, 2, 3].map(i => <div key={i} className="skeleton h-10" />)}</div>
         ) : materials.length === 0 ? (
-          <div className="p-12 text-center text-muted-foreground">
-            <Package className="w-12 h-12 mx-auto mb-4 opacity-20" />
-            <p>No hay repuestos registrados en el catálogo.</p>
-          </div>
+          <UIEmptyState bare icon={Package} title="Catálogo vacío" description="No hay repuestos registrados." />
         ) : (
+          <div className="overflow-x-auto">
           <table className="table w-full">
             <thead>
               <tr>
@@ -1256,13 +1246,14 @@ function CatalogSection() {
                   </td>
                   <td className="px-4 py-3 text-center">
                     <button onClick={() => { setEditItem(m); setShowModal(true); }} className="btn-ghost btn-icon p-1" title="Editar">
-                      <Edit2 className="w-4 h-4 text-info" />
+                      <Edit2 className="w-4 h-4" />
                     </button>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </div>
 
@@ -1334,7 +1325,7 @@ function CreateMaterialModal({ clients, editItem, onClose, onSaved }: { clients:
     <div className="modal-overlay">
       <div className="modal-content max-w-lg">
         <div className="modal-header">
-          <h2>{isEdit ? 'Editar Ítem del Catálogo' : 'Nuevo Repuesto / Consumible'}</h2>
+          <h2>{isEdit ? 'Editar ítem del catálogo' : 'Nuevo repuesto o consumible'}</h2>
           <button onClick={onClose} className="p-2 hover:bg-accent rounded-full"><X className="w-5 h-5" /></button>
         </div>
         <form onSubmit={handleSubmit}>
@@ -1370,7 +1361,7 @@ function CreateMaterialModal({ clients, editItem, onClose, onSaved }: { clients:
             <button type="button" onClick={onClose} className="btn-outline">Cancelar</button>
             <button type="submit" disabled={saving} className="btn-primary gap-2">
               {saving && <Loader2 className="w-4 h-4 animate-spin" />}
-              {isEdit ? 'Guardar Cambios' : 'Guardar'}
+              {isEdit ? 'Guardar cambios' : 'Guardar'}
             </button>
           </div>
         </form>

@@ -587,7 +587,7 @@ function CreateAssetModal({ onClose, onCreated }: { onClose: () => void; onCreat
   const activeSpecFields = SPEC_FIELDS_BY_TYPE[form.equipmentType] || [];
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay" onMouseDown={e => e.target === e.currentTarget && onClose()}>
       <div className="modal-content max-w-2xl flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
         <div className="modal-header shrink-0">
           <div className="min-w-0">
@@ -785,13 +785,13 @@ function CreateAssetModal({ onClose, onCreated }: { onClose: () => void; onCreat
                     if (field.type === 'select') {
                       return (
                         <div key={field.key}>
-                          <label className="text-xs font-semibold text-foreground/80 mb-1 block">{field.label}</label>
+                          <label className="label mb-1.5">{field.label}</label>
                           <select
-                            className="select text-xs w-full"
+                            className="select"
                             value={value}
                             onChange={e => handleSpecChange(field.key, e.target.value)}
                           >
-                            <option value="">Seleccionar...</option>
+                            <option value="">Seleccionar…</option>
                             {field.options?.map(opt => (
                               <option key={opt} value={opt}>{opt}</option>
                             ))}
@@ -801,12 +801,12 @@ function CreateAssetModal({ onClose, onCreated }: { onClose: () => void; onCreat
                     }
                     return (
                       <div key={field.key}>
-                        <label className="text-xs font-semibold text-foreground/80 mb-1 block">
+                        <label className="label mb-1.5">
                           {field.label} {field.unit && <span className="text-muted-foreground font-normal">({field.unit})</span>}
                         </label>
                         <input
                           type={field.type === 'number' ? 'number' : 'text'}
-                          className="input text-xs w-full"
+                          className="input"
                           placeholder={field.placeholder || ''}
                           value={value}
                           onChange={e => handleSpecChange(field.key, e.target.value)}
