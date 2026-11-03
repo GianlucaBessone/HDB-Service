@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { format } from 'date-fns';
 import { getSlaStatus } from '@/lib/sla';
 import { sendPushNotification } from '@/lib/onesignal';
+import { appUrl } from '@/lib/appUrl';
 import { ensureHealthSnapshots } from '@/lib/healthScore';
 
 export const revalidate = 0; // Disable static rendering/caching for this cron route
@@ -150,7 +151,7 @@ export async function GET(req: Request) {
             shouldUpdate = true;
 
             notifications.push({
-              title: 'SLA Incumplido',
+              title: 'SLA incumplido',
               message: `Ticket ${ticket.id} (${ticket.reason.substring(0, 50)}) venció su SLA.`,
               type: 'SLA_BREACHED',
               ticketId: ticket.id,
@@ -162,7 +163,7 @@ export async function GET(req: Request) {
             
             if (status === 'NEAR_BREACH' && !notifiedTicketIds.has(ticket.id)) {
               notifications.push({
-                title: 'Próximo a Vencer SLA',
+                title: 'SLA próximo a vencer',
                 message: `El ticket ${ticket.id} (${ticket.reason.substring(0, 50)}) está próximo a vencer su SLA de resolución.`,
                 type: 'SLA_NEAR_BREACH',
                 ticketId: ticket.id,
@@ -185,16 +186,18 @@ export async function GET(req: Request) {
       if (notifications.length > 0) {
         const supervisors = await prisma.user.findMany({
           where: { role: { in: ['SUPERVISOR', 'ADMIN'] }, active: true },
-          select: { id: true, onesignalPlayerId: true },
+          select: { id: true },
         });
 
-        const playerIds = supervisors.map(s => s.onesignalPlayerId).filter(Boolean) as string[];
-
-        if (playerIds.length > 0) {
+        if (supervisors.length > 0) {
           await sendPushNotification({
-            playerIds,
-            title: 'Alertas SLA',
-            message: `${notifications.length} tickets han incumplido su SLA.`,
+            userIds: supervisors.map(s => s.id),
+            title: 'Alerta de SLA',
+            message: notifications.length === 1
+              ? notifications[0].message
+              : `${notifications.length} tickets con SLA vencido o por vencer.`,
+            url: appUrl(notifications.length === 1 ? `/tickets/${notifications[0].ticketId}` : '/tickets'),
+            data: { type: 'SLA_ALERT' },
           });
         }
 

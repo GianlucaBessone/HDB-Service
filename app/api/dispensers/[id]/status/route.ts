@@ -5,6 +5,7 @@ import { requirePermission } from '@/lib/auth';
 import { createAuditLog } from '@/lib/audit';
 import { DispenserStatus } from '@prisma/client';
 import { sendEmail } from '@/lib/email';
+import { appUrl } from '@/lib/appUrl';
 
 /**
  * PUT /api/dispensers/[id]/status — Change dispenser status.
@@ -94,6 +95,7 @@ export async function PUT(req: Request, props: { params: Promise<{ id: string }>
                 planta: plant.nombre,
                 ubicacion: dispenser.location?.nombre || 'N/A',
                 fecha_bloqueo: new Date().toLocaleDateString('es-AR'),
+                link: appUrl(`/dispensers/${dispenser.id}`),
               }
             });
           }
@@ -128,6 +130,7 @@ export async function PUT(req: Request, props: { params: Promise<{ id: string }>
                 planta: plant.nombre,
                 ubicacion: dispenser.location?.nombre || 'N/A',
                 fecha_bloqueo: new Date().toLocaleDateString('es-AR'),
+                link: appUrl(`/dispensers/${dispenser.id}`),
               }
             });
           }

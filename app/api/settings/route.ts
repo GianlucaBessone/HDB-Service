@@ -3,8 +3,9 @@ import { prisma } from '@/lib/prisma';
 import { requireRole } from '@/lib/auth';
 
 export async function GET(req: Request) {
+  const auth = await requireRole('ADMIN', 'SUPERVISOR');
+  if (auth instanceof NextResponse) return auth;
   try {
-    await requireRole('ADMIN', 'SUPERVISOR');
     const { searchParams } = new URL(req.url);
     const keysParam = searchParams.get('keys');
     
@@ -25,8 +26,9 @@ export async function GET(req: Request) {
 }
 
 export async function PUT(req: Request) {
+  const auth = await requireRole('ADMIN');
+  if (auth instanceof NextResponse) return auth;
   try {
-    await requireRole('ADMIN');
     const body = await req.json();
     
     const transactions = Object.entries(body).map(([key, value]) => {
