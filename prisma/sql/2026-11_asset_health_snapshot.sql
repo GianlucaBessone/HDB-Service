@@ -1,5 +1,6 @@
 -- Fotos mensuales congeladas de salud del parque (AssetHealthSnapshot).
--- Equivalente a 'npx prisma db push' para este cambio. Ejecutar una sola vez en el SQL Editor de Supabase.
+-- Referencia: la app crea esta tabla automáticamente (lib/healthScore.ts → ensureSnapshotTable).
+-- Sólo hace falta ejecutarlo a mano si el usuario de la base no tiene permiso de CREATE.
 
 -- CreateEnum
 CREATE TYPE "HealthSnapshotSource" AS ENUM ('CIERRE', 'RECONSTRUIDO');

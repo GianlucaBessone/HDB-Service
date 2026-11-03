@@ -20,7 +20,7 @@
 En **Configuración → Servidor SMTP**. Mientras está activo, **todos** los correos van a la casilla de prueba y el asunto indica a quién iban dirigidos. Viene activo por defecto (comportamiento anterior); desactivarlo para enviar a los usuarios reales.
 
 ### Enlaces
-Los botones de los correos y las notificaciones push usan `APP_URL` (p. ej. `https://hdb-service.vercel.app`). Si no está definida, los correos salen sin botón.
+Los botones de los correos y las notificaciones push usan `APP_URL`; si no está definida, se usa automáticamente el dominio de producción de Vercel (`VERCEL_PROJECT_PRODUCTION_URL`).
 
 ## Notificaciones push (OneSignal)
 

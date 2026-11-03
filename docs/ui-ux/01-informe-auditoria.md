@@ -109,4 +109,4 @@ Además, `/api/dashboard/salud` generaba la evolución mensual del score con una
 - Pruebas de usabilidad con 3–5 técnicos en campo (escaneo QR + checklist).
 - Auditoría de contraste automática (axe) en CI.
 - Validar el isotipo con un diseñador (los íconos PWA ya se regeneraron con el monograma provisorio).
-- **Antes de desplegar:** crear la tabla `AssetHealthSnapshot` en la base (`npx prisma db push` o el script `prisma/sql/2026-11_asset_health_snapshot.sql`). Sin ella la vista funciona pero sin historial.
+- La tabla `AssetHealthSnapshot` se crea sola la primera vez que corre el cron o se abre la vista (DDL idempotente). El script `prisma/sql/2026-11_asset_health_snapshot.sql` queda como referencia.

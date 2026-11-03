@@ -20,6 +20,63 @@ export type HealthScope = {
   repairWhere?: Prisma.DispenserRepairHistoryWhereInput;
 };
 
+/**
+ * Crea la tabla de fotos si todavía no existe (DDL idempotente, equivalente a
+ * prisma/sql/2026-11_asset_health_snapshot.sql). Permite desplegar sin pasos manuales
+ * en la base. Sólo toca objetos nuevos; nunca modifica ni borra datos existentes.
+ */
+const SNAPSHOT_DDL = [
+  `DO $$ BEGIN
+     CREATE TYPE "HealthSnapshotSource" AS ENUM ('CIERRE', 'RECONSTRUIDO');
+   EXCEPTION WHEN duplicate_object THEN NULL;
+   END $$`,
+  `CREATE TABLE IF NOT EXISTS "AssetHealthSnapshot" (
+    "id" TEXT NOT NULL,
+    "month" TEXT NOT NULL,
+    "dispenserId" TEXT NOT NULL,
+    "clientId" TEXT,
+    "ownerPlantId" TEXT,
+    "locationPlantId" TEXT,
+    "equipmentType" "EquipmentType" NOT NULL,
+    "criticality" "AssetCriticality" NOT NULL,
+    "score" INTEGER NOT NULL,
+    "status" TEXT NOT NULL,
+    "mtbfDays" DOUBLE PRECISION NOT NULL,
+    "mttrHours" DOUBLE PRECISION NOT NULL,
+    "recurrences" INTEGER NOT NULL,
+    "condition" DOUBLE PRECISION NOT NULL,
+    "lifespanPct" DOUBLE PRECISION NOT NULL,
+    "formulaVersion" INTEGER NOT NULL DEFAULT 1,
+    "source" "HealthSnapshotSource" NOT NULL DEFAULT 'CIERRE',
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "AssetHealthSnapshot_pkey" PRIMARY KEY ("id")
+  )`,
+  `CREATE INDEX IF NOT EXISTS "AssetHealthSnapshot_month_idx" ON "AssetHealthSnapshot"("month")`,
+  `CREATE INDEX IF NOT EXISTS "AssetHealthSnapshot_clientId_month_idx" ON "AssetHealthSnapshot"("clientId", "month")`,
+  `CREATE INDEX IF NOT EXISTS "AssetHealthSnapshot_ownerPlantId_month_idx" ON "AssetHealthSnapshot"("ownerPlantId", "month")`,
+  `CREATE INDEX IF NOT EXISTS "AssetHealthSnapshot_locationPlantId_month_idx" ON "AssetHealthSnapshot"("locationPlantId", "month")`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS "AssetHealthSnapshot_month_dispenserId_key" ON "AssetHealthSnapshot"("month", "dispenserId")`,
+];
+
+let snapshotTableReady: Promise<void> | null = null;
+
+export function ensureSnapshotTable(): Promise<void> {
+  if (!snapshotTableReady) {
+    snapshotTableReady = (async () => {
+      const exists = await prisma.$queryRawUnsafe<{ exists: boolean }[]>(
+        `SELECT to_regclass('"AssetHealthSnapshot"') IS NOT NULL AS "exists"`
+      );
+      if (exists[0]?.exists) return;
+      for (const sql of SNAPSHOT_DDL) await prisma.$executeRawUnsafe(sql);
+      console.log('[Salud] Tabla AssetHealthSnapshot creada.');
+    })().catch(err => {
+      snapshotTableReady = null; // reintentar en la próxima llamada
+      throw err;
+    });
+  }
+  return snapshotTableReady;
+}
+
 export const monthKey = (date: Date) =>
   `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
 
@@ -181,6 +238,7 @@ export async function takeHealthSnapshot(
  * Idempotente: no modifica fotos existentes.
  */
 export async function ensureHealthSnapshots(now = new Date()) {
+  await ensureSnapshotTable();
   const current = monthKey(now);
   const lastClosed = previousMonthKey(current);
   const results: { month: string; created: number; source: string }[] = [];

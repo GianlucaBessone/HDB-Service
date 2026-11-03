@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requirePermission, getDataFilter } from '@/lib/auth';
 import {
-  loadHealthData, computeHealth, ensureHealthSnapshots, monthKey, previousMonthKey, endOfMonthKey, statusFromScore,
+  loadHealthData, computeHealth, ensureHealthSnapshots, ensureSnapshotTable, monthKey, previousMonthKey, endOfMonthKey, statusFromScore,
 } from '@/lib/healthScore';
 export const dynamic = 'force-dynamic';
 
@@ -112,7 +112,8 @@ export async function GET(req: Request) {
     let snapshotsAvailable = true;
     let snapshotRows: { month: string; score: number; source: string }[] = [];
     try {
-      // Garantiza que el último mes cerrado tenga su foto aunque el cron no haya corrido
+      // Crea la tabla si falta y garantiza la foto del último mes cerrado aunque el cron no haya corrido
+      await ensureSnapshotTable();
       const lastClosed = closedMonths[closedMonths.length - 1];
       const hasLastClosed = await prisma.assetHealthSnapshot.findFirst({ where: { month: lastClosed }, select: { id: true } });
       if (!hasLastClosed) await ensureHealthSnapshots(now);
@@ -122,7 +123,7 @@ export async function GET(req: Request) {
         select: { month: true, score: true, source: true },
       });
     } catch (err) {
-      // La tabla todavía no existe en la base (falta `prisma db push`): se informa en la respuesta.
+      // No se pudo crear/leer la tabla (p. ej. permisos de la base): la vista sigue funcionando sin historial.
       console.error('[API] salud: fotos mensuales no disponibles', err);
       snapshotsAvailable = false;
     }
