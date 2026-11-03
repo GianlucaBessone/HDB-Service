@@ -53,7 +53,12 @@ La aplicación es funcionalmente completa, pero su capa visual transmite "planti
 ### 2.4 Integridad de datos (crítico)
 El resumen del dashboard mostraba `94%`, `18.4h` y `42` como valores por defecto. Además, leía campos que **las APIs no devuelven** (`overallHealthScore`, `avgResolutionHours`, `completedTicketsThisMonth`…), por lo que **siempre** se veían esas cifras inventadas. **Corregido:** el dashboard ahora calcula los indicadores desde los campos reales (`ranking`, `distribution`, `kpis.sla/mttr/mtbf`) y muestra "—" cuando no hay dato.
 
-Además, `/api/dashboard/salud` generaba la evolución mensual del score con una función seno sobre el valor actual (no era histórico real). **Corregido:** cada mes se reconstruye con los datos disponibles al cierre de ese mes (reparaciones, tickets resueltos, checklists y antigüedad de cada activo); los meses sin activos se muestran sin dato.
+Además, `/api/dashboard/salud` generaba la evolución mensual del score con una función seno sobre el valor actual (no era histórico real). **Corregido con fotos mensuales congeladas** (tabla `AssetHealthSnapshot`):
+
+- El cron diario (`/api/cron`) guarda, una vez por activo y mes, la foto de salud al cierre del mes anterior. Las fotos **nunca se actualizan** (`skipDuplicates`), así que la evolución queda fija aunque después se carguen datos retroactivos, se elimine un activo o cambie la fórmula (`formulaVersion`).
+- La primera vez se completan los 5 meses previos con una carga inicial **reconstruida** con los datos disponibles al cierre de cada mes; en la vista se identifica como tal.
+- La foto guarda cliente y plantas del momento, por lo que los filtros y permisos se aplican sobre el ámbito histórico.
+- El mes en curso se muestra en vivo y como provisorio.
 
 ### 2.5 Funcionalidad rota o engañosa
 - `Ctrl/⌘ + K` sólo cerraba la paleta de comandos; nunca la abría.
@@ -104,4 +109,4 @@ Además, `/api/dashboard/salud` generaba la evolución mensual del score con una
 - Pruebas de usabilidad con 3–5 técnicos en campo (escaneo QR + checklist).
 - Auditoría de contraste automática (axe) en CI.
 - Validar el isotipo con un diseñador (los íconos PWA ya se regeneraron con el monograma provisorio).
-- Si se modifica la fórmula de salud, el historial reconstruido cambiará retroactivamente; si se necesita congelar valores, persistir snapshots mensuales.
+- **Antes de desplegar:** crear la tabla `AssetHealthSnapshot` en la base (`npx prisma db push` o el script `prisma/sql/2026-11_asset_health_snapshot.sql`). Sin ella la vista funciona pero sin historial.

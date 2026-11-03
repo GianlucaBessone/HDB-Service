@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { format } from 'date-fns';
 import { getSlaStatus } from '@/lib/sla';
 import { sendPushNotification } from '@/lib/onesignal';
+import { ensureHealthSnapshots } from '@/lib/healthScore';
 
 export const revalidate = 0; // Disable static rendering/caching for this cron route
 
@@ -36,6 +37,18 @@ export async function GET(req: Request) {
     } catch (err: any) {
       console.error('[CRON] Error during monthly closure:', err);
       results.monthlyClosure = { success: false, error: err.message };
+    }
+
+    // =========================================================================
+    // TASK A2: Foto mensual de salud del parque (congelada, idempotente)
+    // =========================================================================
+    try {
+      const snapshots = await ensureHealthSnapshots(now);
+      results.healthSnapshots = { success: true, snapshots };
+      console.log(`[CRON] Health snapshots: ${JSON.stringify(snapshots)}`);
+    } catch (err: any) {
+      console.error('[CRON] Error taking health snapshots:', err);
+      results.healthSnapshots = { success: false, error: err.message };
     }
 
     // =========================================================================

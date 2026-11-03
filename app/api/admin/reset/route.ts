@@ -71,6 +71,7 @@ export async function POST(req: Request) {
       await prisma.maintenanceSchedule.deleteMany({});
       await prisma.ticketComment.deleteMany({});
       await prisma.ticket.deleteMany({});
+      await prisma.assetHealthSnapshot.deleteMany({});
 
       // Eliminar todos los equipos
       const deletedEquipments = await prisma.dispenser.deleteMany({});
@@ -78,7 +79,7 @@ export async function POST(req: Request) {
       equipmentResult = {
         action: 'purge',
         deletedEquipmentsCount: deletedEquipments.count,
-        message: 'Todos los equipos, historiales, rutas y tickets fueron eliminados. Inventario en 0.',
+        message: 'Todos los equipos, historiales (incluidas las fotos mensuales de salud), rutas y tickets fueron eliminados. Inventario en 0.',
       };
     } else {
       // Resetear estado operativo a IN_SERVICE (como nuevo)
