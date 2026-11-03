@@ -1,50 +1,50 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
 import { requireRole } from '@/lib/auth';
 import { EMAIL_TEMPLATES, EMAIL_TEMPLATE_TYPES, renderEmailHtml, renderEmailText, applyVariables } from '@/lib/emailTemplates';
-import nodemailer from 'nodemailer';
+import { getMailConfig, deliverMail } from '@/lib/mailer';
 
 export const dynamic = 'force-dynamic';
 
-/** Envía la plantilla (tal como está en el editor) con datos de ejemplo al correo del usuario actual. */
+/**
+ * Envía una plantilla (tal como está en el editor) con datos de ejemplo al correo del usuario actual.
+ * Sin `type`, envía un correo simple para verificar la configuración.
+ */
 export async function POST(req: Request) {
   const user = await requireRole('ADMIN', 'SUPERVISOR');
   if (user instanceof NextResponse) return user;
 
   try {
-    const { type, subject, body } = await req.json();
-    if (!EMAIL_TEMPLATE_TYPES.includes(type)) return NextResponse.json({ error: 'Tipo inválido' }, { status: 400 });
-    const def = EMAIL_TEMPLATES[type as keyof typeof EMAIL_TEMPLATES];
-
-    const settings = await prisma.systemSetting.findMany({
-      where: { key: { in: ['SMTP_HOST', 'SMTP_PORT', 'SMTP_USER', 'SMTP_PASS', 'SMTP_FROM_NAME', 'SMTP_FROM_EMAIL'] } },
-    });
-    const smtp = Object.fromEntries(settings.map(s => [s.key, s.value]));
-    if (!smtp.SMTP_HOST || !smtp.SMTP_USER || !smtp.SMTP_PASS) {
-      return NextResponse.json({ error: 'Configurá primero el servidor SMTP.' }, { status: 400 });
+    const { type, subject, body } = await req.json().catch(() => ({}));
+    const config = await getMailConfig();
+    if (!config.apiKey) {
+      return NextResponse.json({ error: 'Configurá primero la clave de API de Resend (Configuración → Correo).' }, { status: 400 });
     }
 
-    const vars = def.sample;
-    const finalSubject = `[Prueba] ${applyVariables(subject || def.subject, vars, { html: false })}`;
-    const port = parseInt(smtp.SMTP_PORT || '587');
-    const transporter = nodemailer.createTransport({
-      host: smtp.SMTP_HOST,
-      port,
-      secure: port === 465,
-      auth: { user: smtp.SMTP_USER, pass: smtp.SMTP_PASS },
-      tls: { rejectUnauthorized: false },
-      family: 4,
-    } as any);
+    let mail;
+    if (type) {
+      if (!EMAIL_TEMPLATE_TYPES.includes(type)) return NextResponse.json({ error: 'Tipo inválido' }, { status: 400 });
+      const def = EMAIL_TEMPLATES[type as keyof typeof EMAIL_TEMPLATES];
+      mail = {
+        to: user.email,
+        subject: `[Prueba] ${applyVariables(subject || def.subject, def.sample, { html: false })}`,
+        html: renderEmailHtml({ subject: subject || def.subject, body: body || def.body, variables: def.sample, ctaLabel: def.ctaLabel }),
+        text: renderEmailText(body || def.body, def.sample),
+      };
+    } else {
+      const testBody = `Hola ${user.nombre.split(' ')[0]}:\n\nEste es un correo de prueba de HDB Service. Si lo recibiste, el envío de notificaciones por correo está funcionando.`;
+      mail = {
+        to: user.email,
+        subject: 'Prueba de correo · HDB Service',
+        html: renderEmailHtml({ subject: 'Prueba de correo', body: testBody, variables: {} }),
+        text: testBody,
+      };
+    }
 
-    await transporter.sendMail({
-      from: `"${smtp.SMTP_FROM_NAME || 'HDB Service'}" <${smtp.SMTP_FROM_EMAIL || smtp.SMTP_USER}>`,
-      to: user.email,
-      subject: finalSubject,
-      html: renderEmailHtml({ subject: subject || def.subject, body: body || def.body, variables: vars, ctaLabel: def.ctaLabel }),
-      text: renderEmailText(body || def.body, vars),
-    });
-
-    return NextResponse.json({ ok: true, to: user.email });
+    const result = await deliverMail(config, [mail]);
+    if (result.sent === 0) {
+      return NextResponse.json({ error: result.error || 'No se pudo enviar el correo' }, { status: 502 });
+    }
+    return NextResponse.json({ ok: true, to: user.email, id: result.ids?.[0] });
   } catch (error: any) {
     console.error('[API] POST /api/email-templates/test:', error);
     return NextResponse.json({ error: error?.message || 'No se pudo enviar el correo de prueba' }, { status: 500 });
