@@ -26,7 +26,7 @@ type Location = {
   dispensers: { id: string; marca: string; modelo: string; status: string; equipmentType?: string }[];
 };
 
-type ActiveSection = 'clients' | 'plants' | 'sectors' | 'locations' | 'catalog' | 'emails' | 'smtp';
+type ActiveSection = 'clients' | 'plants' | 'sectors' | 'locations' | 'catalog' | 'emails' | 'mail';
 
 export default function ConfigPage() {
   const [section, setSection] = useState<ActiveSection>('plants');
@@ -47,7 +47,7 @@ export default function ConfigPage() {
     { key: 'locations', label: 'Ubicaciones', icon: MapPin },
     { key: 'catalog', label: 'Catálogo', icon: Package },
     { key: 'emails', label: 'Emails', icon: Mail },
-    { key: 'smtp', label: 'Servidor SMTP', icon: Server },
+    { key: 'mail', label: 'Correo (Resend)', icon: Server },
   ];
 
   return (
@@ -80,44 +80,52 @@ export default function ConfigPage() {
       {section === 'locations' && <LocationsSection />}
       {section === 'catalog' && <CatalogSection />}
       {section === 'emails' && <EmailsSection />}
-      {section === 'smtp' && <SmtpSection />}
+      {section === 'mail' && <MailSection />}
     </div>
   );
 }
 
 // ... (ClientsSection, PlantsSection, SectorsSection, LocationsSection remain unchanged)
 
-// ─── SMTP Section ─────────────────────────────────
-function SmtpSection() {
-  const [settings, setSettings] = useState<any>(null);
+// ─── Mail (Resend) Section ──────────────────────────
+function MailSection() {
+  const [settings, setSettings] = useState<Record<string, string> | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isTesting, setIsTesting] = useState(false);
 
-  useEffect(() => {
-    fetch('/api/settings?keys=SMTP_HOST,SMTP_PORT,SMTP_USER,SMTP_PASS,SMTP_FROM_NAME,SMTP_FROM_EMAIL,SMTP_SECURE,EMAIL_TEST_MODE,EMAIL_TEST_RECIPIENT')
+  const load = useCallback(() => {
+    fetch('/api/settings?keys=RESEND_API_KEY,EMAIL_FROM_NAME,EMAIL_FROM_ADDRESS,EMAIL_REPLY_TO,EMAIL_TEST_MODE,EMAIL_TEST_RECIPIENT')
       .then(res => res.json())
-      .then(data => {
-        setSettings(data);
-        setIsLoading(false);
-      })
-      .catch(() => setIsLoading(false));
+      .then(data => setSettings(data))
+      .finally(() => setIsLoading(false));
   }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const keyFromEnv = settings?.RESEND_API_KEY_FROM_ENV === 'true';
+  const hasKey = keyFromEnv || Boolean(settings?.RESEND_API_KEY);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsSaving(true);
     const formData = new FormData(e.currentTarget);
-    const data = {
-      SMTP_HOST: formData.get('SMTP_HOST'),
-      SMTP_PORT: formData.get('SMTP_PORT'),
-      SMTP_USER: formData.get('SMTP_USER'),
-      SMTP_PASS: formData.get('SMTP_PASS'),
-      SMTP_FROM_NAME: formData.get('SMTP_FROM_NAME'),
-      SMTP_FROM_EMAIL: formData.get('SMTP_FROM_EMAIL'),
-      SMTP_SECURE: formData.get('SMTP_SECURE') === 'on' ? 'true' : 'false',
+    const data: Record<string, string> = {
+      EMAIL_FROM_NAME: String(formData.get('EMAIL_FROM_NAME') || '').trim(),
+      EMAIL_FROM_ADDRESS: String(formData.get('EMAIL_FROM_ADDRESS') || '').trim(),
+      EMAIL_REPLY_TO: String(formData.get('EMAIL_REPLY_TO') || '').trim(),
       EMAIL_TEST_MODE: formData.get('EMAIL_TEST_MODE') === 'on' ? 'true' : 'false',
       EMAIL_TEST_RECIPIENT: String(formData.get('EMAIL_TEST_RECIPIENT') || '').trim(),
     };
+    const newKey = String(formData.get('RESEND_API_KEY') || '').trim();
+    if (newKey) {
+      if (!newKey.startsWith('re_')) {
+        toast.error('La clave de Resend debe empezar con "re_"');
+        setIsSaving(false);
+        return;
+      }
+      data.RESEND_API_KEY = newKey;
+    }
 
     try {
       const res = await fetch('/api/settings', {
@@ -126,7 +134,9 @@ function SmtpSection() {
         body: JSON.stringify(data),
       });
       if (!res.ok) throw new Error();
-      toast.success('Configuración SMTP guardada');
+      toast.success('Configuración de correo guardada');
+      (e.target as HTMLFormElement).reset();
+      load();
     } catch {
       toast.error('Error al guardar la configuración');
     } finally {
@@ -134,59 +144,74 @@ function SmtpSection() {
     }
   };
 
-  if (isLoading) return <LoadingSkeleton />;
+  const sendTest = async () => {
+    setIsTesting(true);
+    try {
+      const res = await fetch('/api/email-templates/test', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      toast.success(`Correo de prueba enviado a ${data.to}`);
+    } catch (e: any) {
+      toast.error(e?.message || 'No se pudo enviar la prueba', { duration: 8000 });
+    } finally {
+      setIsTesting(false);
+    }
+  };
+
+  if (isLoading || !settings) return <LoadingSkeleton />;
 
   return (
     <div className="glass-card max-w-3xl p-4 animate-fade-in sm:p-6">
-      <div className="mb-6">
-        <h2 className="panel-title">Servidor de correo (SMTP)</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Servidor de correo saliente usado para todas las notificaciones automáticas (tickets, claves de acceso, avisos).
-        </p>
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h2 className="panel-title">Correo (Resend)</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Servicio de envío usado para todas las notificaciones automáticas (tickets, claves de acceso, avisos).
+          </p>
+        </div>
+        <span className={hasKey ? 'badge-success' : 'badge-warning'}>{hasKey ? 'Conectado' : 'Sin configurar'}</span>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="space-y-1.5">
-            <label className="label">Servidor SMTP (host) *</label>
-            <input name="SMTP_HOST" defaultValue={settings?.SMTP_HOST || ''} className="input" placeholder="ej. smtp.gmail.com" required />
-          </div>
-          <div className="space-y-1.5">
-            <label className="label">Puerto *</label>
-            <input name="SMTP_PORT" type="number" defaultValue={settings?.SMTP_PORT || '587'} className="input" placeholder="ej. 587 o 465" required />
-          </div>
-          
-          <div className="space-y-1.5">
-            <label className="label">Usuario SMTP *</label>
-            <input name="SMTP_USER" defaultValue={settings?.SMTP_USER || ''} className="input" placeholder="ej. notificaciones@empresa.com" required />
-          </div>
-          <div className="space-y-1.5">
-            <label className="label">Contraseña SMTP *</label>
-            <input name="SMTP_PASS" type="password" defaultValue={settings?.SMTP_PASS || ''} className="input" placeholder="••••••••" required />
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="label">Nombre del remitente</label>
-            <input name="SMTP_FROM_NAME" defaultValue={settings?.SMTP_FROM_NAME || 'HDB Service'} className="input" placeholder="ej. HDB Service" />
-          </div>
-          <div className="space-y-1.5">
-            <label className="label">Email del remitente *</label>
-            <input name="SMTP_FROM_EMAIL" type="email" defaultValue={settings?.SMTP_FROM_EMAIL || ''} className="input" placeholder="ej. no-reply@empresa.com" required />
-          </div>
+        <div className="space-y-1.5">
+          <label className="label" htmlFor="RESEND_API_KEY">Clave de API</label>
+          {keyFromEnv ? (
+            <p className="rounded-md border border-border bg-muted/40 p-3 text-sm text-muted-foreground">
+              La clave está definida en el servidor (variable de entorno <code className="font-mono">RESEND_API_KEY</code>).
+            </p>
+          ) : (
+            <>
+              <input
+                id="RESEND_API_KEY"
+                name="RESEND_API_KEY"
+                type="password"
+                autoComplete="off"
+                className="input font-mono"
+                placeholder={settings.RESEND_API_KEY ? `Guardada (${settings.RESEND_API_KEY}). Dejar vacío para no cambiarla` : 're_…'}
+              />
+              <p className="field-hint">Una vez guardada no se vuelve a mostrar completa. Se obtiene en resend.com → API Keys.</p>
+            </>
+          )}
         </div>
 
-        <div className="flex items-center gap-3 p-4 bg-muted/20 border border-border rounded-lg">
-          <input 
-            type="checkbox" 
-            name="SMTP_SECURE" 
-            id="SMTP_SECURE" 
-            defaultChecked={settings?.SMTP_SECURE === 'true' || settings?.SMTP_SECURE === undefined}
-            className="w-4 h-4 text-primary bg-background border-border rounded focus:ring-primary" 
-          />
-          <label htmlFor="SMTP_SECURE" className="text-sm font-medium cursor-pointer">
-            Usar conexión segura (TLS/SSL)
-          </label>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="space-y-1.5">
+            <label className="label" htmlFor="EMAIL_FROM_NAME">Nombre del remitente</label>
+            <input id="EMAIL_FROM_NAME" name="EMAIL_FROM_NAME" defaultValue={settings.EMAIL_FROM_NAME || 'HDB Service'} className="input" placeholder="HDB Service" />
+          </div>
+          <div className="space-y-1.5">
+            <label className="label" htmlFor="EMAIL_FROM_ADDRESS">Email del remitente</label>
+            <input id="EMAIL_FROM_ADDRESS" name="EMAIL_FROM_ADDRESS" type="email" defaultValue={settings.EMAIL_FROM_ADDRESS || ''} className="input" placeholder="notificaciones@tudominio.com" />
+          </div>
+          <div className="space-y-1.5 sm:col-span-2">
+            <label className="label" htmlFor="EMAIL_REPLY_TO">Responder a (opcional)</label>
+            <input id="EMAIL_REPLY_TO" name="EMAIL_REPLY_TO" type="email" defaultValue={settings.EMAIL_REPLY_TO || ''} className="input sm:max-w-sm" placeholder="soporte@tudominio.com" />
+          </div>
         </div>
+        <p className="-mt-3 text-xs text-muted-foreground">
+          El remitente debe ser de un dominio verificado en Resend (resend.com → Domains). Si lo dejás vacío se usa
+          <code className="mx-1 font-mono">onboarding@resend.dev</code>, que sólo entrega a la casilla dueña de la cuenta de Resend.
+        </p>
 
         <div className="space-y-3 rounded-md border border-warning/30 bg-warning/[0.06] p-4">
           <div className="flex items-start gap-3">
@@ -194,7 +219,7 @@ function SmtpSection() {
               type="checkbox"
               name="EMAIL_TEST_MODE"
               id="EMAIL_TEST_MODE"
-              defaultChecked={settings?.EMAIL_TEST_MODE === undefined || settings?.EMAIL_TEST_MODE === 'true'}
+              defaultChecked={settings.EMAIL_TEST_MODE === undefined || settings.EMAIL_TEST_MODE === 'true'}
               className="mt-0.5 h-4 w-4 rounded border-input accent-[hsl(var(--primary))]"
             />
             <label htmlFor="EMAIL_TEST_MODE" className="cursor-pointer">
@@ -211,16 +236,20 @@ function SmtpSection() {
               id="EMAIL_TEST_RECIPIENT"
               name="EMAIL_TEST_RECIPIENT"
               type="email"
-              defaultValue={settings?.EMAIL_TEST_RECIPIENT ?? 'gbessone.hdb@gmail.com'}
+              defaultValue={settings.EMAIL_TEST_RECIPIENT ?? 'gbessone.hdb@gmail.com'}
               className="input"
               placeholder="pruebas@empresa.com"
             />
           </div>
         </div>
 
-        <div className="pt-4 flex justify-end">
-          <button type="submit" disabled={isSaving} className="btn-primary gap-2 w-full sm:w-auto">
-            {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+        <div className="flex flex-col-reverse gap-2 pt-2 sm:flex-row sm:justify-end">
+          <button type="button" onClick={sendTest} disabled={isTesting || !hasKey} className="btn-outline">
+            {isTesting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
+            Enviarme un correo de prueba
+          </button>
+          <button type="submit" disabled={isSaving} className="btn-primary">
+            {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
             {isSaving ? 'Guardando…' : 'Guardar configuración'}
           </button>
         </div>

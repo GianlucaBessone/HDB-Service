@@ -2,6 +2,13 @@
 
 ## Correos
 
+Se envían con **Resend** (API REST, `lib/mailer.ts`). Configuración en **Configuración → Correo (Resend)**:
+
+- **Clave de API**: la variable de entorno `RESEND_API_KEY` tiene prioridad; si no está, se usa la guardada en la app (nunca se devuelve completa al navegador).
+- **Remitente**: debe ser de un dominio verificado en Resend. Si queda vacío se usa `onboarding@resend.dev`, que sólo entrega a la casilla dueña de la cuenta de Resend.
+- **Responder a** (opcional) y botón **"Enviarme un correo de prueba"**.
+- Varios destinatarios se envían como correos individuales (endpoint batch), sin exponer direcciones.
+
 | Plantilla | Cuándo se envía | Destinatarios |
 |---|---|---|
 | Bienvenida (clave temporal) | Alta de usuario | El usuario creado |
@@ -17,7 +24,7 @@
 - Una plantilla desactivada no se envía.
 
 ### Modo prueba
-En **Configuración → Servidor SMTP**. Mientras está activo, **todos** los correos van a la casilla de prueba y el asunto indica a quién iban dirigidos. Viene activo por defecto (comportamiento anterior); desactivarlo para enviar a los usuarios reales.
+En **Configuración → Correo (Resend)**. Mientras está activo, **todos** los correos van a la casilla de prueba y el asunto indica a quién iban dirigidos. Viene activo por defecto (comportamiento anterior); desactivarlo para enviar a los usuarios reales.
 
 ### Enlaces
 Los botones de los correos y las notificaciones push usan `APP_URL`; si no está definida, se usa automáticamente el dominio de producción de Vercel (`VERCEL_PROJECT_PRODUCTION_URL`).
