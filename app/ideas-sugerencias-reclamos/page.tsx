@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Lightbulb, AlertTriangle, ShieldAlert, TrendingDown, Award, HelpCircle, Lock, Mail, Loader2, CheckCircle, Info } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { submitSugerencia } from './actions';
+import PageHeader from '@/components/ui/PageHeader';
 
 export default function IdeasSugerenciasReclamos() {
   const [presentacion, setPresentacion] = useState<'ANONIMA' | 'IDENTIFICADA'>('ANONIMA');
@@ -31,12 +32,11 @@ export default function IdeasSugerenciasReclamos() {
 
   if (submitted) {
     return (
-      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 relative overflow-hidden">
-        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/20 blur-[120px] rounded-full mix-blend-multiply dark:mix-blend-screen animate-pulse-soft" />
-        <div className="glass-card max-w-md w-full p-8 text-center z-10 relative">
-          <CheckCircle className="w-16 h-16 text-emerald-500 mx-auto mb-6" />
-          <h2 className="text-2xl font-bold text-foreground mb-2">¡Gracias por tu aporte!</h2>
-          <p className="text-muted-foreground mb-6">Tu registro ha sido enviado y será evaluado por nuestro equipo. Valoramos tu contribución a la mejora continua.</p>
+      <div className="flex min-h-[60dvh] items-center justify-center px-4 py-10">
+        <div className="glass-card w-full max-w-md p-6 text-center sm:p-8">
+          <CheckCircle className="mx-auto mb-4 h-8 w-8 text-success" />
+          <h2 className="mb-1 text-lg font-semibold text-foreground">Registro enviado</h2>
+          <p className="mb-6 text-sm text-muted-foreground">Gracias por tu aporte. El equipo lo evaluará como parte de la mejora continua.</p>
           <button onClick={() => setSubmitted(false)} className="btn-primary w-full">
             Enviar otro registro
           </button>
@@ -46,66 +46,54 @@ export default function IdeasSugerenciasReclamos() {
   }
 
   return (
-    <div className="min-h-screen bg-background relative overflow-hidden py-12 px-4 sm:px-6">
-      {/* Background decoration */}
-      <div className="absolute top-0 right-0 w-[50%] h-[50%] bg-primary/10 blur-[150px] rounded-full mix-blend-multiply dark:mix-blend-screen animate-pulse-soft pointer-events-none" />
-      <div className="absolute bottom-0 left-0 w-[50%] h-[50%] bg-cyan-500/10 blur-[150px] rounded-full mix-blend-multiply dark:mix-blend-screen pointer-events-none" />
+    <div className="mx-auto max-w-3xl px-0 py-2 sm:py-4">
+      <div>
+        <PageHeader
+          className="mb-6"
+          title="Ideas, sugerencias y reclamos"
+          description="Tu opinión aporta a la mejora continua. Completá el formulario; podés hacerlo de forma anónima."
+        />
 
-      <div className="max-w-3xl mx-auto z-10 relative">
-        <div className="text-center mb-10">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-cyan-400 text-white mb-6 shadow-lg shadow-primary/20 rotate-3 hover:rotate-0 transition-transform">
-            <Lightbulb className="w-8 h-8 fill-white/20" />
-          </div>
-          <h1 className="text-4xl font-extrabold tracking-tight text-foreground mb-3">
-            Ideas, Sugerencias y Reclamos
-          </h1>
-          <p className="text-muted-foreground text-lg max-w-xl mx-auto">
-            Tu opinión es fundamental para nuestra mejora continua. Completa el formulario y ayúdanos a crecer juntos.
-          </p>
-        </div>
-
-        <form onSubmit={handleSubmit} className="glass-card p-6 md:p-10 space-y-8 border-t border-l border-white/20 dark:border-white/5 shadow-2xl">
+        <form onSubmit={handleSubmit} className="glass-card space-y-8 p-4 sm:p-6 md:p-8">
           
           {/* SECCIÓN: Modalidad de Presentación */}
           <section className="space-y-4">
-            <h3 className="text-lg font-semibold text-foreground flex items-center gap-2 border-b border-border pb-2">
-              <ShieldAlert className="w-5 h-5 text-primary" /> Modalidad de Presentación
-            </h3>
+            <h3 className="border-b border-border pb-2 text-[15px] font-semibold text-foreground">Modalidad de presentación</h3>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <label className={`cursor-pointer rounded-xl border-2 p-4 transition-all duration-200 flex flex-col gap-2 ${presentacion === 'ANONIMA' ? 'border-primary bg-primary/5' : 'border-border bg-card hover:bg-accent'}`}>
+              <label className={`cursor-pointer flex flex-col gap-1.5 rounded-md border p-4 transition-colors ${presentacion === 'ANONIMA' ? 'border-primary bg-primary/[0.05]' : 'border-border bg-card hover:bg-accent'}`}>
                 <div className="flex items-center gap-3">
-                  <input type="radio" name="modalidad" className="hidden" checked={presentacion === 'ANONIMA'} onChange={() => setPresentacion('ANONIMA')} />
+                  <input type="radio" name="modalidad" className="sr-only" checked={presentacion === 'ANONIMA'} onChange={() => setPresentacion('ANONIMA')} />
                   <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${presentacion === 'ANONIMA' ? 'border-primary' : 'border-muted-foreground'}`}>
-                    {presentacion === 'ANONIMA' && <div className="w-2.5 h-2.5 bg-primary rounded-full" />}
+                    {presentacion === 'ANONIMA' && <div className="h-2 w-2 rounded-full bg-primary" />}
                   </div>
                   <span className="font-semibold text-foreground">Anónima</span>
                 </div>
-                <p className="text-sm text-muted-foreground pl-8">No se registrará tu identidad. Ideal para reportes confidenciales.</p>
+                <p className="pl-7 text-[13px] text-muted-foreground">No se registrará tu identidad. Ideal para reportes confidenciales.</p>
               </label>
 
-              <label className={`cursor-pointer rounded-xl border-2 p-4 transition-all duration-200 flex flex-col gap-2 ${presentacion === 'IDENTIFICADA' ? 'border-primary bg-primary/5' : 'border-border bg-card hover:bg-accent'}`}>
+              <label className={`cursor-pointer flex flex-col gap-1.5 rounded-md border p-4 transition-colors ${presentacion === 'IDENTIFICADA' ? 'border-primary bg-primary/[0.05]' : 'border-border bg-card hover:bg-accent'}`}>
                 <div className="flex items-center gap-3">
-                  <input type="radio" name="modalidad" className="hidden" checked={presentacion === 'IDENTIFICADA'} onChange={() => setPresentacion('IDENTIFICADA')} />
+                  <input type="radio" name="modalidad" className="sr-only" checked={presentacion === 'IDENTIFICADA'} onChange={() => setPresentacion('IDENTIFICADA')} />
                   <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${presentacion === 'IDENTIFICADA' ? 'border-primary' : 'border-muted-foreground'}`}>
-                    {presentacion === 'IDENTIFICADA' && <div className="w-2.5 h-2.5 bg-primary rounded-full" />}
+                    {presentacion === 'IDENTIFICADA' && <div className="h-2 w-2 rounded-full bg-primary" />}
                   </div>
                   <span className="font-semibold text-foreground">Identificada</span>
                 </div>
-                <p className="text-sm text-muted-foreground pl-8">Permite hacer seguimiento del caso y recibir notificaciones de estado.</p>
+                <p className="pl-7 text-[13px] text-muted-foreground">Permite hacer seguimiento del caso y recibir notificaciones de estado.</p>
               </label>
             </div>
 
             {presentacion === 'IDENTIFICADA' && (
-              <div className="mt-4 p-4 rounded-lg bg-secondary/50 border border-border animate-fade-in space-y-4">
-                <div className="flex items-start gap-3 mb-4 text-sm text-muted-foreground bg-primary/10 text-primary p-3 rounded-md">
-                  <Info className="w-5 h-5 shrink-0 mt-0.5" />
-                  <p>Para evitar suplantación de identidad, por favor ingresa tus credenciales del sistema.</p>
+              <div className="mt-4 space-y-4 rounded-md border border-border bg-muted/40 p-4 animate-fade-in">
+                <div className="flex items-start gap-2.5 text-[13px] text-muted-foreground">
+                  <Info className="mt-0.5 h-4 w-4 shrink-0" />
+                  <p>Para evitar suplantación de identidad, ingresá tus credenciales del sistema.</p>
                 </div>
                 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
-                    <label className="text-sm font-medium">Email</label>
+                    <label className="label">Email</label>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                         <Mail className="h-4 w-4 text-muted-foreground" />
@@ -114,7 +102,7 @@ export default function IdeasSugerenciasReclamos() {
                     </div>
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-sm font-medium">Contraseña</label>
+                    <label className="label">Contraseña</label>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                         <Lock className="h-4 w-4 text-muted-foreground" />
@@ -129,15 +117,13 @@ export default function IdeasSugerenciasReclamos() {
 
           {/* SECCIÓN: Detalles */}
           <section className="space-y-5">
-            <h3 className="text-lg font-semibold text-foreground flex items-center gap-2 border-b border-border pb-2">
-              <AlertTriangle className="w-5 h-5 text-primary" /> Detalles del Registro
-            </h3>
+            <h3 className="border-b border-border pb-2 text-[15px] font-semibold text-foreground">Detalles del registro</h3>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-foreground">Tipo de Registro <span className="text-destructive">*</span></label>
+                <label className="label">Tipo de registro <span className="text-destructive">*</span></label>
                 <select name="tipo_registro" required className="select">
-                  <option value="">Seleccione una opción</option>
+                  <option value="">Seleccionar…</option>
                   <option value="IDEA">Idea de mejora</option>
                   <option value="SUGERENCIA">Sugerencia</option>
                   <option value="RECLAMO">Reclamo</option>
@@ -149,18 +135,18 @@ export default function IdeasSugerenciasReclamos() {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-foreground">Área Involucrada <span className="text-destructive">*</span></label>
+                <label className="label">Área involucrada <span className="text-destructive">*</span></label>
                 <select name="area_involucrada" required className="select">
-                  <option value="">Seleccione una opción</option>
+                  <option value="">Seleccionar…</option>
                   <option value="PRODUCCION">Producción</option>
                   <option value="MANTENIMIENTO">Mantenimiento</option>
                   <option value="CALIDAD">Calidad</option>
-                  <option value="SEGURIDAD">Seguridad e Higiene</option>
+                  <option value="SEGURIDAD">Seguridad e higiene</option>
                   <option value="LOGISTICA">Logística</option>
                   <option value="COMPRAS">Compras</option>
                   <option value="ADMINISTRACION">Administración</option>
                   <option value="SISTEMAS">Sistemas</option>
-                  <option value="RRHH">Recursos Humanos</option>
+                  <option value="RRHH">Recursos humanos</option>
                   <option value="DIRECCION">Dirección</option>
                   <option value="OTRA">Otra</option>
                 </select>
@@ -168,24 +154,22 @@ export default function IdeasSugerenciasReclamos() {
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-foreground">Título <span className="text-destructive">*</span></label>
-              <input type="text" name="titulo" maxLength={150} required className="input" placeholder="Breve descripción del asunto (máx 150 caract.)" />
+              <label className="label">Título <span className="text-destructive">*</span></label>
+              <input type="text" name="titulo" maxLength={150} required className="input" placeholder="Resumen del asunto (máx. 150 caracteres)" />
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-foreground">Descripción <span className="text-destructive">*</span></label>
-              <textarea name="descripcion" required className="textarea min-h-[120px]" placeholder="Detalla la situación observada, problema u oportunidad..."></textarea>
+              <label className="label">Descripción <span className="text-destructive">*</span></label>
+              <textarea name="descripcion" required className="textarea min-h-[120px]" placeholder="Situación observada, problema u oportunidad…"></textarea>
             </div>
           </section>
 
           {/* SECCIÓN: Impacto y Solución */}
           <section className="space-y-5">
-            <h3 className="text-lg font-semibold text-foreground flex items-center gap-2 border-b border-border pb-2">
-              <TrendingDown className="w-5 h-5 text-primary" /> Impacto y Frecuencia
-            </h3>
+            <h3 className="border-b border-border pb-2 text-[15px] font-semibold text-foreground">Impacto y frecuencia</h3>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">Beneficios Esperados (Múltiple elección)</label>
+              <label className="label">Beneficios esperados (múltiple elección)</label>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 mt-2">
                 {[
                   { id: 'Mayor seguridad', label: 'Mayor seguridad' },
@@ -199,7 +183,7 @@ export default function IdeasSugerenciasReclamos() {
                   { id: 'Otro', label: 'Otro' },
                 ].map((ben) => (
                   <label key={ben.id} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-accent/50 p-2 rounded-md transition-colors">
-                    <input type="checkbox" name="beneficios" value={ben.id} className="rounded border-input text-primary focus:ring-primary" />
+                    <input type="checkbox" name="beneficios" value={ben.id} className="h-4 w-4 rounded border-input accent-[hsl(var(--primary))]" />
                     {ben.label}
                   </label>
                 ))}
@@ -208,9 +192,9 @@ export default function IdeasSugerenciasReclamos() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-foreground">Impacto Estimado <span className="text-destructive">*</span></label>
+                <label className="label">Impacto estimado <span className="text-destructive">*</span></label>
                 <select name="impacto_estimado" required className="select">
-                  <option value="">Seleccione una opción</option>
+                  <option value="">Seleccionar…</option>
                   <option value="BAJO">Bajo</option>
                   <option value="MEDIO">Medio</option>
                   <option value="ALTO">Alto</option>
@@ -218,7 +202,7 @@ export default function IdeasSugerenciasReclamos() {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-foreground flex items-center gap-1">Frecuencia <span className="text-xs text-muted-foreground font-normal">(Opcional)</span></label>
+                <label className="label">Frecuencia <span className="font-normal text-muted-foreground">(opcional)</span></label>
                 <select name="frecuencia_problema" className="select">
                   <option value="">¿Con qué frecuencia ocurre?</option>
                   <option value="UNA_VEZ">Ocurrió una sola vez</option>
@@ -231,8 +215,8 @@ export default function IdeasSugerenciasReclamos() {
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-foreground flex items-center gap-1">Propuesta de Solución <span className="text-xs text-muted-foreground font-normal">(Opcional)</span></label>
-              <textarea name="propuesta_solucion" className="textarea min-h-[80px]" placeholder="¿Cómo considera que podría resolverse o mejorarse?"></textarea>
+              <label className="label">Propuesta de solución <span className="font-normal text-muted-foreground">(opcional)</span></label>
+              <textarea name="propuesta_solucion" className="textarea min-h-[80px]" placeholder="¿Cómo podría resolverse o mejorarse?"></textarea>
             </div>
           </section>
 
@@ -240,16 +224,9 @@ export default function IdeasSugerenciasReclamos() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full md:w-auto min-w-[200px] h-12 btn-primary shadow-lg shadow-primary/25 relative overflow-hidden group text-base"
+              className="btn-primary btn-lg w-full md:w-auto"
             >
-              {isSubmitting ? (
-                <Loader2 className="w-5 h-5 animate-spin mx-auto" />
-              ) : (
-                <span className="relative z-10 flex items-center justify-center gap-2">
-                  Enviar Registro
-                </span>
-              )}
-              <div className="absolute inset-0 h-full w-full bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]" />
+              {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Enviar registro'}
             </button>
           </div>
         </form>

@@ -163,49 +163,39 @@ export default function ChecklistModal({ schedule, onClose, onSuccess }: Checkli
   const allFailures = Array.from(new Set([...commonFailures, ...fallas]));
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="w-full max-w-3xl bg-card border border-border rounded-xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 max-h-[92vh] flex flex-col">
+    <div className="modal-overlay">
+      <div className="modal-content max-w-3xl flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between p-5 border-b border-border bg-muted/30">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-primary/10 rounded-xl text-primary shrink-0">
-              <AssetIcon className="w-6 h-6" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-xl font-bold">
-                  {isReadOnly ? 'Reporte Técnico de Servicio' : 'Protocolo de Mantenimiento Preventivo'}
-                </h2>
-                <span className="badge badge-outline text-[11px] font-semibold">
-                  {assetTypeLabel}
-                </span>
+        <div className="modal-header">
+          <div className="flex min-w-0 items-start gap-3">
+            <AssetIcon className="mt-0.5 hidden h-5 w-5 shrink-0 text-muted-foreground sm:block" />
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <h2>{isReadOnly ? 'Reporte técnico de servicio' : 'Checklist de mantenimiento preventivo'}</h2>
+                <span className="badge-neutral">{assetTypeLabel}</span>
               </div>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Activo: <span className="font-bold text-foreground">{schedule.dispenserId}</span> · {schedule.dispenser?.marca} {schedule.dispenser?.modelo}
-                {schedule.dispenser?.location?.plant?.nombre && (
-                  <span className="ml-2 font-medium">({schedule.dispenser.location.plant.nombre})</span>
-                )}
+              <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                <span className="font-mono font-medium text-foreground">{schedule.dispenserId}</span> · {schedule.dispenser?.marca} {schedule.dispenser?.modelo}
+                {schedule.dispenser?.location?.plant?.nombre && <> · {schedule.dispenser.location.plant.nombre}</>}
               </p>
             </div>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-accent rounded-full transition-colors text-muted-foreground">
-            <X className="w-5 h-5" />
+          <button type="button" onClick={onClose} className="modal-close" aria-label="Cerrar">
+            <X className="h-4 w-4" />
           </button>
         </div>
         
-        <div className="p-6 space-y-6 overflow-y-auto flex-1 text-sm">
+        <div className="modal-body flex-1 space-y-6 overflow-y-auto text-sm">
           {/* 1. Condición General */}
           <div>
-            <label className="text-sm font-semibold mb-3 flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-primary" />
-              Condición General del Activo
+            <label className="mb-2.5 block text-sm font-semibold">Condición general del activo
             </label>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {[
-                { val: 'GOOD', label: 'Buena', desc: 'Operativo normal', color: 'border-emerald-500 text-emerald-700 bg-emerald-50 dark:bg-emerald-950/20' },
-                { val: 'FAIR', label: 'Regular', desc: 'Detalles leves', color: 'border-sky-500 text-sky-700 bg-sky-50 dark:bg-sky-950/20' },
-                { val: 'POOR', label: 'Mala', desc: 'Riesgo inminente', color: 'border-amber-500 text-amber-700 bg-amber-50 dark:bg-amber-950/20' },
-                { val: 'CRITICAL', label: 'Crítica', desc: 'Fuera de servicio', color: 'border-red-500 text-red-700 bg-red-50 dark:bg-red-950/20' },
+                { val: 'GOOD', label: 'Buena', desc: 'Operativo normal', color: 'border-success text-success bg-success/10' },
+                { val: 'FAIR', label: 'Regular', desc: 'Detalles leves', color: 'border-info text-info bg-info/10' },
+                { val: 'POOR', label: 'Mala', desc: 'Riesgo inminente', color: 'border-warning text-warning bg-warning/10' },
+                { val: 'CRITICAL', label: 'Crítica', desc: 'Fuera de servicio', color: 'border-destructive text-destructive bg-destructive/10' },
               ].map(c => (
                 <button
                   key={c.val}
@@ -213,12 +203,12 @@ export default function ChecklistModal({ schedule, onClose, onSuccess }: Checkli
                   disabled={isReadOnly}
                   onClick={() => setCondicionGeneral(c.val)}
                   className={clsx(
-                    'p-3 rounded-xl border-2 text-sm font-bold transition-all flex flex-col items-center gap-0.5',
-                    condicionGeneral === c.val ? c.color : 'border-border bg-muted/30 text-muted-foreground hover:bg-muted'
+                    'flex min-h-[56px] flex-col items-center justify-center gap-0.5 rounded-md border p-2.5 text-sm font-medium transition-colors',
+                    condicionGeneral === c.val ? c.color : 'border-border bg-card text-muted-foreground hover:bg-accent'
                   )}
                 >
                   <span>{c.label}</span>
-                  <span className="text-[10px] font-normal opacity-80">{c.desc}</span>
+                  <span className="text-2xs font-normal opacity-80">{c.desc}</span>
                 </button>
               ))}
             </div>
@@ -226,13 +216,10 @@ export default function ChecklistModal({ schedule, onClose, onSuccess }: Checkli
 
           {/* 2. Mediciones Técnicas e Instrumentales */}
           {measurementFields.length > 0 && (
-            <div className="space-y-3 p-4 rounded-xl border border-border bg-muted/20">
+            <div className="space-y-3 rounded-md border border-border bg-muted/30 p-4">
               <div className="flex items-center justify-between">
-                <label className="font-semibold flex items-center gap-2 text-foreground">
-                  <Gauge className="w-4 h-4 text-primary" />
-                  Mediciones Técnicas Instrumentales ({assetTypeLabel})
-                </label>
-                <span className="text-[11px] text-muted-foreground">
+                <label className="text-sm font-semibold text-foreground">Mediciones técnicas</label>
+                <span className="text-2xs text-muted-foreground">
                   {isReadOnly ? 'Registrado por instrumental' : 'Lecturas de manómetros, pinza y termómetro'}
                 </span>
               </div>
@@ -244,7 +231,7 @@ export default function ChecklistModal({ schedule, onClose, onSuccess }: Checkli
                     <div key={field.key} className="space-y-1">
                       <label className="text-xs font-medium text-muted-foreground flex items-center justify-between">
                         <span>{field.label}</span>
-                        {field.unit && <span className="font-mono text-[10px] font-bold text-primary">{field.unit}</span>}
+                        {field.unit && <span className="font-mono text-2xs text-muted-foreground">{field.unit}</span>}
                       </label>
 
                       {field.type === 'select' ? (
@@ -278,7 +265,7 @@ export default function ChecklistModal({ schedule, onClose, onSuccess }: Checkli
                         </div>
                       )}
                       {field.helper && (
-                        <p className="text-[10px] text-muted-foreground italic">{field.helper}</p>
+                        <p className="text-2xs text-muted-foreground italic">{field.helper}</p>
                       )}
                     </div>
                   );
@@ -291,17 +278,16 @@ export default function ChecklistModal({ schedule, onClose, onSuccess }: Checkli
           {inspectionPoints.length > 0 && (
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <label className="font-semibold flex items-center gap-2 text-foreground">
-                  <ClipboardCheck className="w-4 h-4 text-primary" />
-                  Puntos de Control del Protocolo ({inspectionPoints.length})
+                <label className="text-sm font-semibold text-foreground">
+                  Puntos de control <span className="font-normal text-muted-foreground tabular">({inspectionPoints.length})</span>
                 </label>
                 {!isReadOnly && (
                   <button
                     type="button"
                     onClick={markAllChecklistItems}
-                    className="text-xs text-primary hover:underline font-medium"
+                    className="btn-ghost btn-sm text-primary"
                   >
-                    Marcar todos como verificados
+                    Marcar todos
                   </button>
                 )}
               </div>
@@ -316,7 +302,7 @@ export default function ChecklistModal({ schedule, onClose, onSuccess }: Checkli
                       disabled={isReadOnly}
                       onClick={() => toggleChecklistItem(item.id)}
                       className={clsx(
-                        'p-2.5 rounded-lg border text-left flex items-start gap-2.5 transition-all',
+                        'flex min-h-[44px] items-start gap-2.5 rounded-md border p-2.5 text-left transition-colors',
                         isChecked 
                           ? 'bg-primary/5 border-primary/30 text-foreground' 
                           : 'bg-muted/10 border-border text-muted-foreground hover:bg-muted/30'
@@ -342,9 +328,8 @@ export default function ChecklistModal({ schedule, onClose, onSuccess }: Checkli
           {/* 4. Consumibles Utilizados */}
           {!isReadOnly && consumablesOptions.length > 0 && (
             <div className="space-y-3">
-              <label className="text-sm font-semibold flex items-center gap-2 text-foreground">
-                <Package className="w-4 h-4 text-primary" />
-                Consumibles e Insumos Utilizados
+              <label className="text-sm font-semibold text-foreground">
+                Consumibles e insumos utilizados
               </label>
               
               <div className="flex gap-2">
@@ -371,10 +356,10 @@ export default function ChecklistModal({ schedule, onClose, onSuccess }: Checkli
               {consumablesUsed.length > 0 && (
                 <div className="space-y-2">
                   {consumablesUsed.map((item, index) => (
-                    <div key={index} className="flex items-center gap-3 p-3 bg-primary/5 border border-primary/20 rounded-xl">
+                    <div key={index} className="flex items-center gap-3 rounded-md border border-border bg-muted/30 p-3">
                       <div className="flex-1">
-                        <p className="text-sm font-bold">{item.nombre}</p>
-                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                        <p className="text-sm font-medium">{item.nombre}</p>
+                        <p className="text-2xs text-muted-foreground uppercase tracking-wider">
                           {item.type === 'SERIALIZED' ? `S/N: ${item.uniqueId}` : `Código: ${item.materialCode}`}
                         </p>
                       </div>
@@ -395,9 +380,9 @@ export default function ChecklistModal({ schedule, onClose, onSuccess }: Checkli
                             />
                           </div>
                         ) : (
-                          <span className="text-[10px] font-bold px-2 py-1 bg-primary/10 text-primary rounded-md border border-primary/20 uppercase">Serializado</span>
+                          <span className="badge-neutral">Serializado</span>
                         )}
-                        <button type="button" onClick={() => removeConsumable(index)} className="p-1.5 hover:bg-red-50 text-red-500 rounded-lg transition-colors shrink-0">
+                        <button type="button" onClick={() => removeConsumable(index)} className="p-1.5 hover:bg-destructive/10 text-destructive rounded-lg transition-colors shrink-0">
                           <X className="w-4 h-4" />
                         </button>
                       </div>
@@ -410,9 +395,7 @@ export default function ChecklistModal({ schedule, onClose, onSuccess }: Checkli
 
           {/* 5. Fallas y Anomalías Detectadas */}
           <div>
-            <label className="text-sm font-semibold mb-3 flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 text-primary" />
-              Checklist de Anomalías / Reparaciones Requeridas
+            <label className="mb-2.5 block text-sm font-semibold">Checklist de anomalías / reparaciones requeridas
             </label>
             <div className="flex flex-wrap gap-2">
               {allFailures.map(f => (
@@ -424,7 +407,7 @@ export default function ChecklistModal({ schedule, onClose, onSuccess }: Checkli
                   className={clsx(
                     'px-3.5 py-1.5 rounded-xl border text-xs transition-all',
                     fallas.includes(f) 
-                      ? 'bg-red-500/10 border-red-500/40 text-red-600 dark:text-red-400 font-bold shadow-sm' 
+                      ? 'bg-destructive/10 border-destructive/40 text-destructive font-bold shadow-sm' 
                       : 'bg-muted/30 border-border hover:border-primary/30 text-muted-foreground'
                   )}
                 >
@@ -449,7 +432,7 @@ export default function ChecklistModal({ schedule, onClose, onSuccess }: Checkli
 
           {/* 6. Observaciones del Técnico */}
           <div>
-            <label className="text-sm font-semibold mb-2 block">Observaciones y Recomendaciones</label>
+            <label className="label mb-1.5">Observaciones y recomendaciones</label>
             <textarea
               className="textarea text-xs"
               rows={3}
@@ -462,16 +445,16 @@ export default function ChecklistModal({ schedule, onClose, onSuccess }: Checkli
         </div>
         
         {/* Footer */}
-        <div className="p-5 border-t border-border bg-muted/30 flex items-center justify-end gap-3">
-          <button onClick={onClose} className="btn-outline min-w-[100px]">{isReadOnly ? 'Cerrar' : 'Cancelar'}</button>
+        <div className="modal-footer">
+          <button onClick={onClose} className="btn-outline">{isReadOnly ? 'Cerrar' : 'Cancelar'}</button>
           {!isReadOnly && (
             <button 
               onClick={handleSave} 
               disabled={saving} 
-              className="btn-primary min-w-[160px] gap-2 shadow-lg shadow-primary/20"
+              className="btn-primary"
             >
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
-              Completar Mantenimiento
+              Completar mantenimiento
             </button>
           )}
         </div>

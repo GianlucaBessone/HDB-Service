@@ -21,8 +21,13 @@ import {
   Clock,
   Sun,
   Moon,
-  Search
+  Monitor,
+  Search,
+  ChevronDown,
 } from 'lucide-react';
+import { usePathname } from 'next/navigation';
+import clsx from 'clsx';
+import { getNavItemForPath } from '@/lib/rbac';
 import { useTheme } from 'next-themes';
 import { UserRole } from '@prisma/client';
 import { t } from '@/lib/translations';
@@ -54,11 +59,57 @@ export default function TopBar({ user }: { user: { nombre: string; email: string
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
 
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const pathname = usePathname();
+  const sectionTitle = (() => {
+    const item = getNavItemForPath(pathname);
+    if (!item) return 'HDB Service';
+    return item.title || item.label;
+  })();
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Ctrl/⌘ + K abre/cierra la búsqueda global
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setIsCommandPaletteOpen(open => !open);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
+  // Cerrar menú de usuario al hacer clic fuera / Escape
+  useEffect(() => {
+    if (!isUserMenuOpen) return;
+    const onClick = (e: MouseEvent) => {
+      if (!(e.target as HTMLElement).closest('#user-menu-container')) setIsUserMenuOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setIsUserMenuOpen(false);
+    document.addEventListener('click', onClick);
+    window.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('click', onClick);
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [isUserMenuOpen]);
+
+  const roleLabel =
+    user.role === 'CLIENT_REQUESTER' ? 'Referente' :
+    user.role === 'CLIENT_RESPONSIBLE' ? 'Responsable' :
+    t(user.role);
+
+  const initials = user.nombre
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map(p => p.charAt(0).toUpperCase())
+    .join('');
 
   // Fetch notifications
   const fetchNotifications = async () => {
@@ -205,187 +256,150 @@ export default function TopBar({ user }: { user: { nombre: string; email: string
   function getNotificationIcon(type: string) {
     switch (type) {
       case 'TICKET_ASSIGNED':
-        return <Wrench className="w-4 h-4 text-blue-500" />;
+        return <Wrench className="w-4 h-4 text-muted-foreground" />;
       case 'SLA_NEAR_BREACH':
-        return <AlertCircle className="w-4 h-4 text-amber-500 animate-pulse" />;
+        return <AlertCircle className="w-4 h-4 text-warning" />;
       case 'SLA_BREACHED':
-        return <AlertCircle className="w-4 h-4 text-red-500 animate-pulse" />;
+        return <AlertCircle className="w-4 h-4 text-destructive" />;
       case 'MAINTENANCE_DUE':
-        return <Clock className="w-4 h-4 text-emerald-500" />;
+        return <Clock className="w-4 h-4 text-muted-foreground" />;
       case 'STOCK_LOW':
-        return <Package className="w-4 h-4 text-orange-500" />;
+        return <Package className="w-4 h-4 text-warning" />;
       case 'DEBT_CREATED':
-        return <Landmark className="w-4 h-4 text-purple-500" />;
+        return <Landmark className="w-4 h-4 text-muted-foreground" />;
       default:
-        return <BellRing className="w-4 h-4 text-primary" />;
+        return <BellRing className="w-4 h-4 text-muted-foreground" />;
     }
   }
 
   return (
-    <header className="h-16 bg-card border-b border-border flex items-center justify-between px-3 md:px-6 sticky top-0 z-40 max-w-full">
-      
-      {/* Left side: Command Palette Trigger */}
-      <div className="flex items-center flex-1 min-w-0 mr-2 md:mr-4">
-        {/* Mobile Search Icon Button */}
-        <button
-          onClick={() => setIsCommandPaletteOpen(true)}
-          className="md:hidden p-2 text-muted-foreground hover:bg-accent hover:text-foreground rounded-full transition-colors flex items-center justify-center w-9 h-9 shrink-0"
-          title="Buscar activos, tickets, clientes (Ctrl + K)"
-          aria-label="Buscar"
-        >
-          <Search className="w-5 h-5" />
-        </button>
+    <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-2 border-b border-border bg-card/95 px-3 supports-[backdrop-filter]:bg-card/90 supports-[backdrop-filter]:backdrop-blur sm:px-4 lg:px-6 pt-safe">
+      {/* Menú (tablet) */}
+      <button
+        onClick={toggleSidebar}
+        className="btn-icon btn-ghost hidden md:inline-flex lg:hidden"
+        aria-label="Abrir menú"
+        title="Menú"
+      >
+        <Menu className="h-5 w-5" />
+      </button>
 
-        {/* Desktop Command Palette Input Pill */}
-        <div className="hidden md:flex flex-1 max-w-xs lg:max-w-md">
-          <button
-            onClick={() => setIsCommandPaletteOpen(true)}
-            className="w-full flex items-center justify-between px-3.5 py-1.5 text-xs md:text-sm text-muted-foreground bg-muted/50 hover:bg-muted/90 border border-border/80 rounded-xl transition-all shadow-xs group"
-            title="Buscar activos, tickets, clientes (Ctrl + K)"
-          >
-            <div className="flex items-center gap-2 truncate">
-              <Search className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
-              <span className="truncate">Buscar activos, tickets, clientes...</span>
-            </div>
-            <kbd className="hidden sm:inline-flex items-center gap-0.5 px-2 py-0.5 text-[10px] font-mono font-medium text-muted-foreground bg-card rounded border border-border shadow-xs shrink-0">
-              <span>Ctrl</span>
-              <span>K</span>
-            </kbd>
-          </button>
-        </div>
+      {/* Título de sección */}
+      <div className="min-w-0 flex-1 lg:flex-none lg:w-56 xl:w-64">
+        <p className="truncate text-[15px] font-semibold text-foreground">{sectionTitle}</p>
       </div>
 
-      {/* Right side actions */}
-      <div className="flex items-center gap-1.5 sm:gap-3 md:gap-4 shrink-0">
-        
-        {/* Theme Toggle */}
-        <button 
-          onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-          className="p-2 text-muted-foreground hover:bg-accent hover:text-foreground rounded-full transition-colors flex items-center justify-center w-9 h-9"
-          title={mounted ? (theme === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro') : 'Cambiar tema'}
+      {/* Búsqueda (desktop) */}
+      <div className="hidden flex-1 justify-center md:flex">
+        <button
+          onClick={() => setIsCommandPaletteOpen(true)}
+          className="group flex h-9 w-full max-w-md items-center gap-2 rounded-md border border-input bg-background px-3 text-sm text-muted-foreground transition-colors hover:border-foreground/30"
+          title="Buscar (Ctrl + K)"
         >
-          {mounted ? (
-            theme === 'dark' ? (
-              <Sun className="w-5 h-5" />
-            ) : (
-              <Moon className="w-5 h-5" />
-            )
-          ) : (
-            <div className="w-5 h-5 opacity-0" />
-          )}
+          <Search className="h-4 w-4 shrink-0" />
+          <span className="flex-1 truncate text-left">Buscar activo, ticket o cliente…</span>
+          <kbd className="hidden shrink-0 rounded border border-border bg-card px-1.5 py-0.5 font-mono text-2xs lg:inline-block">Ctrl K</kbd>
+        </button>
+      </div>
+
+      {/* Acciones */}
+      <div className="flex shrink-0 items-center gap-0.5 sm:gap-1">
+        <button
+          onClick={() => setIsCommandPaletteOpen(true)}
+          className="btn-icon btn-ghost md:hidden"
+          aria-label="Buscar"
+          title="Buscar"
+        >
+          <Search className="h-5 w-5" />
         </button>
 
-        {/* Notifications Dropdown Toggle */}
+        {/* Notificaciones */}
         <div id="notification-bell-container" className="relative">
-          <button 
-            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-            className={`relative p-2 rounded-full transition-colors ${
-              isDropdownOpen ? 'bg-accent text-foreground' : 'text-muted-foreground hover:bg-accent'
-            }`}
+          <button
+            onClick={() => { setIsDropdownOpen(!isDropdownOpen); setIsUserMenuOpen(false); }}
+            className={clsx('btn-icon btn-ghost relative', isDropdownOpen && 'bg-accent text-foreground')}
+            aria-label={unreadCount > 0 ? `Notificaciones (${unreadCount} sin leer)` : 'Notificaciones'}
+            aria-expanded={isDropdownOpen}
             title="Notificaciones"
           >
-            <Bell className="w-5 h-5" />
+            <Bell className="h-5 w-5" />
             {unreadCount > 0 && (
-              <span 
-                className="absolute top-1 right-1 min-w-[18px] h-[18px] px-1 bg-red-500 text-[9px] font-bold text-white rounded-full flex items-center justify-center border-2 border-card animate-pulse-soft"
-                style={{ transform: 'translate(25%, -25%)' }}
-              >
-                {unreadCount}
+              <span className="absolute right-1 top-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-destructive px-1 text-2xs font-semibold leading-none text-destructive-foreground ring-2 ring-card tabular">
+                {unreadCount > 99 ? '99+' : unreadCount}
               </span>
             )}
           </button>
 
           {isDropdownOpen && (
-            <div className="fixed left-3 right-3 mt-2 md:left-auto md:absolute md:right-0 md:w-96 bg-card border border-border rounded-2xl shadow-xl z-50 overflow-hidden animate-fade-in" style={{ top: '3.5rem' }}>
-              {/* Dropdown Header */}
-              <div className="px-4 py-3 border-b border-border/60 flex items-center justify-between bg-accent/20">
-                <span className="font-semibold text-xs text-foreground">Notificaciones</span>
-                <div className="flex items-center gap-3">
+            <div className="fixed inset-x-2 top-[calc(3.5rem+env(safe-area-inset-top))] z-50 overflow-hidden rounded-lg border border-border bg-popover shadow-lg animate-fade-in sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-2 sm:w-96">
+              <div className="flex items-center justify-between border-b border-border px-4 py-2.5">
+                <span className="text-sm font-semibold text-foreground">Notificaciones</span>
+                <div className="flex items-center gap-1">
                   {unreadCount > 0 && (
-                    <button
-                      onClick={markAllAsRead}
-                      className="text-[10px] text-primary hover:underline font-semibold"
-                    >
+                    <button onClick={markAllAsRead} className="btn-ghost btn-sm text-primary">
                       Marcar leídas
                     </button>
                   )}
                   {notifications.length > 0 && (
                     <button
                       onClick={deleteAllNotifications}
-                      className="p-1 text-muted-foreground hover:text-red-500 rounded-md hover:bg-red-500/10 transition-colors"
+                      className="btn-icon btn-ghost h-8 w-8 sm:h-8 sm:w-8 hover:text-destructive"
+                      aria-label="Eliminar todas"
                       title="Eliminar todas"
                     >
-                      <Trash2 className="w-3.5 h-3.5" />
+                      <Trash2 className="h-4 w-4" />
                     </button>
                   )}
                 </div>
               </div>
 
-              {/* Dropdown List (Preview top 5) */}
-              <div className="max-h-80 overflow-y-auto divide-y divide-border/40">
+              <div className="max-h-[60dvh] divide-y divide-border overflow-y-auto sm:max-h-96">
                 {notifications.slice(0, 5).length > 0 ? (
                   notifications.slice(0, 5).map((n) => (
-                    <div 
-                      key={n.id} 
-                      className={`p-3 flex items-start gap-3 transition-colors hover:bg-accent/40 ${
-                        !n.read ? 'bg-primary/[0.02]' : ''
-                      }`}
+                    <div
+                      key={n.id}
+                      className={clsx('flex items-start gap-3 px-4 py-3 transition-colors hover:bg-accent/50', !n.read && 'bg-primary/[0.04]')}
                     >
-                      <div className="mt-0.5 p-1.5 rounded-lg bg-accent/60 flex-shrink-0">
-                        {getNotificationIcon(n.type)}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between gap-1 mb-0.5">
-                          <p className={`text-xs truncate ${!n.read ? 'font-bold text-foreground' : 'text-muted-foreground font-medium'}`}>
+                      <div className="mt-0.5 shrink-0">{getNotificationIcon(n.type)}</div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-start justify-between gap-2">
+                          <p className={clsx('text-[13px] leading-5', !n.read ? 'font-semibold text-foreground' : 'text-muted-foreground')}>
                             {n.title}
                           </p>
-                          <span className="text-[9px] text-muted-foreground whitespace-nowrap">
+                          <span className="shrink-0 pt-0.5 text-2xs text-muted-foreground tabular">
                             {formatRelativeTime(n.createdAt)}
                           </span>
                         </div>
-                        <p className="text-[11px] text-muted-foreground line-clamp-2 leading-relaxed">
-                          {n.message}
-                        </p>
-                        
-                        {/* Actions */}
-                        <div className="flex items-center justify-end gap-3 mt-1.5 pt-1 border-t border-border/10">
+                        <p className="mt-0.5 line-clamp-2 text-xs leading-5 text-muted-foreground">{n.message}</p>
+                        <div className="mt-1.5 flex items-center gap-3">
                           {!n.read && (
-                            <button
-                              onClick={() => markAsRead(n.id)}
-                              className="text-[10px] text-primary hover:underline font-semibold flex items-center gap-1"
-                            >
-                              <Check className="w-3 h-3" /> Leída
+                            <button onClick={() => markAsRead(n.id)} className="flex items-center gap-1 text-xs font-medium text-primary hover:underline">
+                              <Check className="h-3.5 w-3.5" /> Marcar leída
                             </button>
                           )}
-                          <button
-                            onClick={() => deleteNotification(n.id)}
-                            className="text-[10px] text-muted-foreground hover:text-red-500 font-semibold flex items-center gap-1"
-                          >
-                            <Trash2 className="w-3 h-3" /> Eliminar
+                          <button onClick={() => deleteNotification(n.id)} className="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-destructive">
+                            <Trash2 className="h-3.5 w-3.5" /> Eliminar
                           </button>
                         </div>
                       </div>
+                      {!n.read && <span className="status-dot mt-2 bg-primary" aria-hidden="true" />}
                     </div>
                   ))
                 ) : (
-                  <div className="p-8 text-center text-muted-foreground flex flex-col items-center gap-2">
-                    <Inbox className="w-8 h-8 opacity-40" />
-                    <p className="text-xs">No tienes notificaciones</p>
+                  <div className="flex flex-col items-center gap-2 px-6 py-10 text-center text-muted-foreground">
+                    <Inbox className="h-6 w-6" />
+                    <p className="text-sm">No hay notificaciones</p>
                   </div>
                 )}
               </div>
 
-              {/* Dropdown Footer */}
               {notifications.length > 0 && (
-                <div className="p-2 bg-accent/10 border-t border-border/50 text-center">
+                <div className="border-t border-border p-1.5">
                   <button
-                    onClick={() => {
-                      setIsDropdownOpen(false);
-                      setIsHistoryModalOpen(true);
-                    }}
-                    className="w-full py-1.5 text-xs text-primary hover:text-primary-hover font-semibold flex items-center justify-center gap-1 bg-primary/5 hover:bg-primary/10 rounded-lg transition-colors"
+                    onClick={() => { setIsDropdownOpen(false); setIsHistoryModalOpen(true); }}
+                    className="btn-ghost w-full text-[13px] text-foreground"
                   >
-                    Ver historial completo <ArrowRight className="w-3.5 h-3.5" />
+                    Ver historial completo <ArrowRight className="h-4 w-4" />
                   </button>
                 </div>
               )}
@@ -393,158 +407,138 @@ export default function TopBar({ user }: { user: { nombre: string; email: string
           )}
         </div>
 
-        <div className="w-px h-6 bg-border mx-0.5 sm:mx-1 shrink-0" />
-
-        {/* User Dropdown Toggle (Visual) */}
-        <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
-          <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs sm:text-sm shrink-0">
-            {user.nombre.charAt(0).toUpperCase()}
-          </div>
-          <div className="hidden md:flex flex-col items-start">
-            <span className="text-sm font-semibold leading-none text-left">{user.nombre}</span>
-            <span className="text-xs text-muted-foreground mt-1 text-left">
-              {user.role === 'CLIENT_REQUESTER' 
-                ? 'Referente' 
-                : user.role === 'CLIENT_RESPONSIBLE' 
-                ? 'Responsable' 
-                : t(user.role)}
-            </span>
-          </div>
-          <button 
-            onClick={handleSignOut}
-            className="p-1.5 sm:p-2 text-muted-foreground hover:bg-red-500/10 hover:text-red-500 rounded-full transition-colors shrink-0"
-            title="Cerrar sesión"
+        {/* Menú de usuario */}
+        <div id="user-menu-container" className="relative ml-1">
+          <button
+            onClick={() => { setIsUserMenuOpen(o => !o); setIsDropdownOpen(false); }}
+            className="flex items-center gap-2 rounded-md p-1 transition-colors hover:bg-accent sm:pr-2"
+            aria-label="Menú de usuario"
+            aria-expanded={isUserMenuOpen}
           >
-            <LogOut className="w-4 h-4 sm:w-5 sm:h-5" />
+            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
+              {initials || 'U'}
+            </span>
+            <span className="hidden min-w-0 flex-col items-start text-left xl:flex">
+              <span className="max-w-[160px] truncate text-[13px] font-semibold leading-4 text-foreground">{user.nombre}</span>
+              <span className="text-2xs text-muted-foreground">{roleLabel}</span>
+            </span>
+            <ChevronDown className="hidden h-4 w-4 text-muted-foreground sm:block" />
           </button>
-        </div>
 
+          {isUserMenuOpen && (
+            <div className="absolute right-0 top-full z-50 mt-2 w-64 overflow-hidden rounded-lg border border-border bg-popover shadow-lg animate-fade-in">
+              <div className="border-b border-border px-4 py-3">
+                <p className="truncate text-sm font-semibold text-foreground">{user.nombre}</p>
+                <p className="truncate text-xs text-muted-foreground">{user.email}</p>
+                <span className="badge-neutral mt-2">{roleLabel}</span>
+              </div>
+              <div className="px-4 py-3">
+                <p className="eyebrow mb-2">Apariencia</p>
+                <div className="segmented w-full">
+                  {([
+                    { value: 'light', label: 'Claro', icon: Sun },
+                    { value: 'dark', label: 'Oscuro', icon: Moon },
+                    { value: 'system', label: 'Sistema', icon: Monitor },
+                  ] as const).map(opt => (
+                    <button
+                      key={opt.value}
+                      onClick={() => setTheme(opt.value)}
+                      className={clsx('flex-1 justify-center', mounted && theme === opt.value ? 'segmented-item-active' : 'segmented-item')}
+                    >
+                      <opt.icon className="h-3.5 w-3.5" />
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="border-t border-border p-1.5">
+                <button onClick={handleSignOut} className="btn-ghost w-full justify-start text-[13px] text-destructive hover:bg-destructive/10 hover:text-destructive">
+                  <LogOut className="h-4 w-4" />
+                  Cerrar sesión
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Historial Completo Modal */}
+      {/* Historial completo */}
       {isHistoryModalOpen && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
-          <div className="bg-card border border-border rounded-2xl shadow-2xl w-full max-w-2xl flex flex-col max-h-[80vh] overflow-hidden">
-            {/* Modal Header */}
-            <div className="px-6 py-4 border-b border-border flex items-center justify-between bg-accent/10">
-              <div className="flex items-center gap-2">
-                <Bell className="w-5 h-5 text-primary" />
-                <h2 className="font-bold text-base text-foreground">Historial de Notificaciones</h2>
-              </div>
-              <button
-                onClick={() => setIsHistoryModalOpen(false)}
-                className="p-1.5 hover:bg-accent rounded-lg text-muted-foreground transition-colors"
-              >
-                <X className="w-5 h-5" />
+        <div className="modal-overlay" onMouseDown={e => e.target === e.currentTarget && setIsHistoryModalOpen(false)}>
+          <div className="modal-content flex max-w-2xl flex-col">
+            <div className="modal-header">
+              <h2>Historial de notificaciones</h2>
+              <button onClick={() => setIsHistoryModalOpen(false)} className="modal-close" aria-label="Cerrar">
+                <X className="h-4 w-4" />
               </button>
             </div>
 
-            {/* Modal Toolbar */}
             {notifications.length > 0 && (
-              <div className="px-6 py-2.5 border-b border-border/60 bg-accent/5 flex items-center justify-between text-xs">
-                <span className="text-muted-foreground font-medium">
-                  Total: {notifications.length} notificaciones
-                </span>
-                <div className="flex items-center gap-4">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border bg-muted/40 px-4 py-2 text-xs sm:px-6">
+                <span className="text-muted-foreground tabular">{notifications.length} notificaciones</span>
+                <div className="flex items-center gap-3">
                   {unreadCount > 0 && (
-                    <button
-                      onClick={markAllAsRead}
-                      className="text-primary hover:underline font-semibold flex items-center gap-1"
-                    >
-                      <CheckCheck className="w-3.5 h-3.5" /> Marcar todas leídas
+                    <button onClick={markAllAsRead} className="flex items-center gap-1 font-medium text-primary hover:underline">
+                      <CheckCheck className="h-3.5 w-3.5" /> Marcar todas leídas
                     </button>
                   )}
-                  <button
-                    onClick={deleteAllNotifications}
-                    className="text-red-500 hover:underline font-semibold flex items-center gap-1"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" /> Eliminar todo
+                  <button onClick={deleteAllNotifications} className="flex items-center gap-1 font-medium text-destructive hover:underline">
+                    <Trash2 className="h-3.5 w-3.5" /> Eliminar todo
                   </button>
                 </div>
               </div>
             )}
 
-            {/* Modal Body / Scroll Area */}
-            <div className="flex-1 overflow-y-auto divide-y divide-border/60">
+            <div className="flex-1 divide-y divide-border">
               {notifications.length > 0 ? (
                 notifications.map((n) => (
-                  <div
-                    key={n.id}
-                    className={`px-6 py-4 flex items-start gap-4 transition-colors hover:bg-accent/30 ${
-                      !n.read ? 'bg-primary/[0.01]' : ''
-                    }`}
-                  >
-                    <div className="p-2 rounded-xl bg-accent flex-shrink-0">
-                      {getNotificationIcon(n.type)}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-2 mb-1">
-                        <div>
-                          <h4 className={`text-xs ${!n.read ? 'font-bold text-foreground' : 'font-semibold text-muted-foreground'}`}>
+                  <div key={n.id} className={clsx('flex items-start gap-3 px-4 py-3.5 sm:px-6', !n.read && 'bg-primary/[0.04]')}>
+                    <div className="mt-0.5 shrink-0">{getNotificationIcon(n.type)}</div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <h4 className={clsx('text-[13px]', !n.read ? 'font-semibold text-foreground' : 'font-medium text-muted-foreground')}>
                             {n.title}
                           </h4>
-                          <span className="text-[10px] text-muted-foreground mt-0.5 block">
-                            {new Date(n.createdAt).toLocaleString('es-ES', {
-                              dateStyle: 'medium',
-                              timeStyle: 'short',
-                            })}
+                          <span className="mt-0.5 block text-2xs text-muted-foreground tabular">
+                            {new Date(n.createdAt).toLocaleString('es-AR', { dateStyle: 'medium', timeStyle: 'short' })}
                           </span>
                         </div>
-                        <div className="flex items-center gap-1 flex-shrink-0">
+                        <div className="flex shrink-0 items-center gap-0.5">
                           {!n.read && (
-                            <button
-                              onClick={() => markAsRead(n.id)}
-                              className="p-1.5 hover:bg-primary/10 hover:text-primary text-muted-foreground rounded-lg transition-colors"
-                              title="Marcar como leída"
-                            >
-                              <Check className="w-4 h-4" />
+                            <button onClick={() => markAsRead(n.id)} className="btn-icon btn-ghost h-8 w-8 sm:h-8 sm:w-8" aria-label="Marcar como leída" title="Marcar como leída">
+                              <Check className="h-4 w-4" />
                             </button>
                           )}
-                          <button
-                            onClick={() => deleteNotification(n.id)}
-                            className="p-1.5 hover:bg-red-500/10 hover:text-red-500 text-muted-foreground rounded-lg transition-colors"
-                            title="Eliminar"
-                          >
-                            <Trash2 className="w-4 h-4" />
+                          <button onClick={() => deleteNotification(n.id)} className="btn-icon btn-ghost h-8 w-8 sm:h-8 sm:w-8 hover:text-destructive" aria-label="Eliminar" title="Eliminar">
+                            <Trash2 className="h-4 w-4" />
                           </button>
                         </div>
                       </div>
-                      <p className="text-xs text-muted-foreground leading-relaxed">
-                        {n.message}
-                      </p>
+                      <p className="mt-1 text-xs leading-5 text-muted-foreground">{n.message}</p>
                     </div>
                   </div>
                 ))
               ) : (
-                <div className="p-16 text-center text-muted-foreground flex flex-col items-center gap-3">
-                  <Inbox className="w-12 h-12 opacity-30" />
-                  <p className="font-semibold text-sm">Historial vacío</p>
-                  <p className="text-xs text-muted-foreground max-w-[280px]">
-                    No tienes notificaciones registradas en este momento.
-                  </p>
+                <div className="flex flex-col items-center gap-2 p-12 text-center text-muted-foreground">
+                  <Inbox className="h-8 w-8" />
+                  <p className="text-sm font-medium">Sin notificaciones</p>
                 </div>
               )}
             </div>
 
-            {/* Modal Footer */}
-            <div className="px-6 py-4 border-t border-border bg-accent/5 flex justify-end">
-              <button
-                onClick={() => setIsHistoryModalOpen(false)}
-                className="px-4 py-2 text-xs font-semibold bg-accent hover:bg-accent/80 text-foreground rounded-lg transition-colors"
-              >
-                Cerrar
-              </button>
+            <div className="modal-footer">
+              <button onClick={() => setIsHistoryModalOpen(false)} className="btn-outline">Cerrar</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Universal Command Palette */}
-      <CommandPalette 
-        isOpen={isCommandPaletteOpen} 
-        onClose={() => setIsCommandPaletteOpen(false)} 
+      <CommandPalette
+        isOpen={isCommandPaletteOpen}
+        onClose={() => setIsCommandPaletteOpen(false)}
+        userRole={user.role}
       />
     </header>
   );
 }
-

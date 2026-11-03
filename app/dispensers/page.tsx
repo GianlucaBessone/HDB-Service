@@ -12,6 +12,10 @@ import clsx from 'clsx';
 import toast from 'react-hot-toast';
 import { t, getStatusColor } from '@/lib/translations';
 import InitConsumablesModal from '@/components/InitConsumablesModal';
+import PageHeader from '@/components/ui/PageHeader';
+import StatCard from '@/components/ui/StatCard';
+import FilterBar, { FieldIcon } from '@/components/ui/FilterBar';
+import EmptyState from '@/components/ui/EmptyState';
 import { useAuthStore } from '@/lib/store/useAuthStore';
 import { 
   EquipmentType, 
@@ -151,164 +155,166 @@ export default function DispensersPage() {
   };
 
   const categoryOptions: { key: string; label: string; icon: React.ElementType }[] = [
-    { key: '', label: 'Todos los Activos', icon: SlidersHorizontal },
-    { key: 'AIR_CONDITIONER', label: 'Aires Acondicionados', icon: Wind },
-    { key: 'COLD_ROOM', label: 'Cámaras Frigoríficas', icon: Snowflake },
+    { key: '', label: 'Todos', icon: SlidersHorizontal },
+    { key: 'AIR_CONDITIONER', label: 'Aires acondicionados', icon: Wind },
+    { key: 'COLD_ROOM', label: 'Cámaras frigoríficas', icon: Snowflake },
     { key: 'DISPENSER', label: 'Dispensers', icon: GlassWater },
-    { key: 'REFRIGERATOR', label: 'Heladeras / Freezers', icon: Layers },
+    { key: 'REFRIGERATOR', label: 'Heladeras / freezers', icon: Layers },
     { key: 'VENTILATION', label: 'Ventilación', icon: Fan },
     { key: 'OTHER', label: 'Otros', icon: Cpu },
   ];
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3">
-            <div className="p-2 bg-primary/10 rounded-lg">
-              <Cpu className="w-7 h-7 text-primary" />
-            </div>
-            Gestión de Activos y Equipos
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            Inventario integral de aires acondicionados, cámaras frigoríficas, dispensers y maquinaria
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          {(role === 'ADMIN' || role === 'SUPERVISOR' || role === 'TECHNICIAN') && (
+      <PageHeader
+        title="Activos"
+        description="Parque instalado: climatización, refrigeración, ventilación, dispensers y otros equipos."
+        actions={
+          (role === 'ADMIN' || role === 'SUPERVISOR' || role === 'TECHNICIAN') && (
             <>
               {sorted.length > 0 ? (
                 <Link
                   href={`/dispensers/print-qr?ids=${sorted.map(d => d.id).join(',')}`}
                   target="_blank"
-                  className="btn-outline btn-lg gap-2 shrink-0 hidden sm:flex"
+                  className="btn-outline hidden sm:inline-flex"
                 >
-                  <QrCode className="w-5 h-5" />
-                  Imprimir QRs
+                  <QrCode className="h-4 w-4" />
+                  Imprimir QR ({sorted.length})
                 </Link>
               ) : (
-                <button 
-                  className="btn-outline btn-lg gap-2 shrink-0 hidden sm:flex"
-                  disabled
-                >
-                  <QrCode className="w-5 h-5" />
-                  Imprimir QRs
+                <button className="btn-outline hidden sm:inline-flex" disabled>
+                  <QrCode className="h-4 w-4" />
+                  Imprimir QR
                 </button>
               )}
-              <button onClick={() => setShowCreateModal(true)} className="btn-primary btn-lg gap-2 shrink-0 shadow-lg shadow-primary/20">
-                <Plus className="w-5 h-5" />
-                Nuevo Activo
+              <button onClick={() => setShowCreateModal(true)} className="btn-primary">
+                <Plus className="h-4 w-4" />
+                Nuevo activo
               </button>
             </>
-          )}
-        </div>
-      </div>
+          )
+        }
+      />
 
-      {/* Category Pills */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-thin">
+      {/* Tipo de activo */}
+      <div className="-mx-4 flex items-center gap-1.5 overflow-x-auto px-4 pb-1 scrollbar-none sm:mx-0 sm:flex-wrap sm:px-0" role="tablist" aria-label="Tipo de activo">
         {categoryOptions.map(cat => {
           const Icon = cat.icon;
           const isSelected = typeFilter === cat.key;
           return (
             <button
               key={cat.key}
+              role="tab"
+              aria-selected={isSelected}
               onClick={() => setTypeFilter(cat.key)}
               className={clsx(
-                'flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all border shrink-0',
+                'inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md border px-3 py-1.5 text-[13px] font-medium transition-colors',
                 isSelected
-                  ? 'bg-primary text-primary-foreground border-primary shadow-sm'
-                  : 'bg-card border-border hover:bg-muted/50 text-muted-foreground hover:text-foreground'
+                  ? 'border-primary bg-primary/10 text-primary'
+                  : 'border-border bg-card text-muted-foreground hover:bg-accent hover:text-foreground'
               )}
             >
-              <Icon className="w-4 h-4" />
+              <Icon className="h-4 w-4" />
               {cat.label}
             </button>
           );
         })}
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        <KpiCard label="Total Activos" value={kpis.total} color="primary" />
-        <KpiCard label="En Servicio" value={kpis.inService} color="emerald" />
-        <KpiCard label="En Reparación" value={kpis.repair} color="amber" />
-        <KpiCard label="Bloqueados / OC" value={kpis.blocked} color="red" />
-        <KpiCard label="Reserva / Backup" value={kpis.backup} color="sky" />
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-5">
+        <StatCard label="Total" value={kpis.total} />
+        <StatCard label="En servicio" value={kpis.inService} tone="success" />
+        <StatCard label="En reparación" value={kpis.repair} tone="warning" />
+        <StatCard label="Bloqueados / OC" value={kpis.blocked} tone="danger" emphasize={kpis.blocked > 0} />
+        <StatCard label="Reserva / backup" value={kpis.backup} tone="info" />
       </div>
 
-      {/* Filters */}
-      <div className="glass-card p-4 flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+      <FilterBar>
+        <FieldIcon icon={Search} className="sm:col-span-2 lg:min-w-[240px] lg:flex-1">
           <input
-            type="text"
-            placeholder="Buscar por ID, marca, modelo, serie..."
+            type="search"
+            placeholder="Buscar por ID, marca, modelo o serie…"
+            aria-label="Buscar activos"
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="input pl-10"
+            className="input pl-9"
           />
-        </div>
-        <div className="relative">
-          <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <select
-            value={clientFilter}
-            onChange={e => setClientFilter(e.target.value)}
-            className="select pl-10 min-w-[180px]"
-          >
-            <option value="">Todas las Empresas</option>
+        </FieldIcon>
+        <FieldIcon icon={Building2} className="lg:w-52">
+          <select value={clientFilter} onChange={e => setClientFilter(e.target.value)} className="select pl-9" aria-label="Empresa">
+            <option value="">Todas las empresas</option>
             {clients.map((c: any) => (
               <option key={c.id} value={c.id}>{c.nombre}</option>
             ))}
           </select>
-        </div>
-        <div className="relative">
-          <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <select
-            value={statusFilter}
-            onChange={e => setStatusFilter(e.target.value)}
-            className="select pl-10 min-w-[170px]"
-          >
+        </FieldIcon>
+        <FieldIcon icon={Filter} className="lg:w-52">
+          <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="select pl-9" aria-label="Estado">
             <option value="">Todos los estados</option>
-            <option value="IN_SERVICE">En Servicio</option>
-            <option value="UNDER_REPAIR">En Reparación</option>
-            <option value="IN_TECHNICAL_SERVICE">En Servicio Técnico</option>
+            <option value="IN_SERVICE">En servicio</option>
+            <option value="UNDER_REPAIR">En reparación</option>
+            <option value="IN_TECHNICAL_SERVICE">En servicio técnico</option>
             <option value="BLOCKED">Bloqueado</option>
-            <option value="BLOCKED_WAITING_OC">Bloqueado (Esperando OC)</option>
-            <option value="OUT_OF_SERVICE">Fuera de Servicio</option>
-            <option value="BACKUP">Backup / Reserva</option>
+            <option value="BLOCKED_WAITING_OC">Bloqueado (esperando OC)</option>
+            <option value="OUT_OF_SERVICE">Fuera de servicio</option>
+            <option value="BACKUP">Backup / reserva</option>
           </select>
-        </div>
-        <div className="relative">
-          <select
-            value={criticalityFilter}
-            onChange={e => setCriticalityFilter(e.target.value)}
-            className="select min-w-[150px]"
-          >
-            <option value="">Cualquier criticidad</option>
-            <option value="CRITICAL">Crítica</option>
-            <option value="HIGH">Alta</option>
-            <option value="MEDIUM">Media</option>
-            <option value="LOW">Baja</option>
-          </select>
-        </div>
-      </div>
+        </FieldIcon>
+        <select value={criticalityFilter} onChange={e => setCriticalityFilter(e.target.value)} className="select lg:w-44" aria-label="Criticidad">
+          <option value="">Toda criticidad</option>
+          <option value="CRITICAL">Crítica</option>
+          <option value="HIGH">Alta</option>
+          <option value="MEDIUM">Media</option>
+          <option value="LOW">Baja</option>
+        </select>
+      </FilterBar>
 
       {/* Table */}
       {isLoading ? (
-        <div className="space-y-3">
-          {[...Array(5)].map((_, i) => (
-            <div key={i} className="h-16 skeleton rounded-lg" />
+        <div className="glass-card divide-y divide-border">
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className="flex items-center gap-4 p-4">
+              <div className="skeleton h-4 w-24" />
+              <div className="skeleton h-4 flex-1" />
+              <div className="skeleton h-4 w-20" />
+            </div>
           ))}
         </div>
       ) : sorted.length === 0 ? (
-        <div className="glass-card p-12 flex flex-col items-center justify-center text-center">
-          <Cpu className="w-16 h-16 text-muted-foreground/20 mb-4" />
-          <p className="text-muted-foreground font-medium text-lg">No se encontraron activos</p>
-          <p className="text-muted-foreground text-sm mt-1">Intenta con otros filtros o registra uno nuevo</p>
-        </div>
+        <EmptyState icon={Cpu} title="No se encontraron activos" description="Probá con otros filtros o registrá un activo nuevo." />
       ) : (
-        <div className="table-container">
+        <>
+        {/* Móvil: tarjetas */}
+        <ul className="glass-card divide-y divide-border overflow-hidden md:hidden">
+          {sorted.map(d => {
+            const TypeIcon = getEquipmentIcon(d.equipmentType);
+            const clientName = d.client?.nombre || d.plant?.client?.nombre || d.location?.plant?.client?.nombre;
+            return (
+              <li key={d.id}>
+                <Link href={`/dispensers/${d.id}`} className="flex items-start gap-3 px-4 py-3.5 active:bg-muted/60">
+                  <TypeIcon className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground" />
+                  <div className="min-w-0 flex-1 space-y-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-mono text-sm font-semibold">{d.id}</span>
+                      <span className={clsx('badge', getStatusColor(d.status))}>{t(d.status)}</span>
+                    </div>
+                    <p className="truncate text-[13px] text-foreground">{d.marca} {d.modelo}</p>
+                    <p className="truncate text-xs text-muted-foreground">
+                      {[clientName, d.location ? `${d.location.plant.nombre} · ${d.location.nombre}` : 'Sin ubicación'].filter(Boolean).join(' · ')}
+                    </p>
+                    <div className="flex items-center gap-2 pt-0.5">
+                      <span className={clsx('badge', getCriticalityColor(d.criticality))}>{getCriticalityLabel(d.criticality)}</span>
+                      <span className="text-2xs text-muted-foreground tabular">{d._count.tickets} tickets</span>
+                    </div>
+                  </div>
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+
+        {/* Desktop: tabla */}
+        <div className="table-container hidden md:block">
           <table className="table">
             <thead>
               <tr>
@@ -328,10 +334,10 @@ export default function DispensersPage() {
                   Criticidad
                 </th>
                 <th className="cursor-pointer select-none text-center" onClick={() => toggleSort('planta_duena')}>
-                  Planta Dueña <SortIcon field="planta_duena" />
+                  Planta dueña <SortIcon field="planta_duena" />
                 </th>
                 <th className="cursor-pointer select-none text-center" onClick={() => toggleSort('planta')}>
-                  Ubicación Actual <SortIcon field="planta" />
+                  Ubicación actual <SortIcon field="planta" />
                 </th>
                 <th className="cursor-pointer select-none text-center" onClick={() => toggleSort('status')}>
                   Estado <SortIcon field="status" />
@@ -348,28 +354,26 @@ export default function DispensersPage() {
                   <tr key={d.id} className="hover:bg-muted/40 transition-colors">
                     <td>
                       <div className="flex items-center gap-2">
-                        <div className="p-2 rounded-lg bg-primary/10 text-primary shrink-0">
-                          <TypeIcon className="w-4 h-4" />
-                        </div>
-                        <span className="text-xs font-semibold text-foreground/80">
+                        <TypeIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
+                        <span className="text-xs font-medium text-foreground">
                           {getEquipmentTypeLabel(d.equipmentType)}
                         </span>
                       </div>
                     </td>
                     <td>
-                      <div className="font-mono font-bold text-sm text-foreground">{d.id}</div>
+                      <div className="font-mono text-sm font-semibold text-foreground">{d.id}</div>
                       {d.numeroSerie && d.numeroSerie !== d.id && (
-                        <div className="text-[10px] text-muted-foreground font-mono">S/N: {d.numeroSerie}</div>
+                        <div className="text-2xs text-muted-foreground font-mono">S/N: {d.numeroSerie}</div>
                       )}
                     </td>
                     <td>
-                      <div className="font-semibold text-sm">{d.marca}</div>
+                      <div className="text-sm font-medium">{d.marca}</div>
                       <div className="text-xs text-muted-foreground">{d.modelo}</div>
                     </td>
                     <td>
                       {clientName ? (
                         <div className="flex items-center gap-1.5">
-                          <Building2 className="w-3.5 h-3.5 text-primary shrink-0" />
+                          <Building2 className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                           <span className="font-medium text-xs text-foreground/90 truncate max-w-[130px]" title={clientName}>
                             {clientName}
                           </span>
@@ -379,13 +383,13 @@ export default function DispensersPage() {
                       )}
                     </td>
                     <td className="text-center">
-                      <span className={clsx('text-[10px] font-bold px-2 py-0.5 rounded-full border', getCriticalityColor(d.criticality))}>
+                      <span className={clsx('badge', getCriticalityColor(d.criticality))}>
                         {getCriticalityLabel(d.criticality)}
                       </span>
                     </td>
                     <td className="text-center">
                       {d.plant ? (
-                        <div className="font-medium text-xs text-primary">{d.plant.nombre}</div>
+                        <div className="text-xs font-medium">{d.plant.nombre}</div>
                       ) : (
                         <span className="text-muted-foreground text-xs italic">No definida</span>
                       )}
@@ -396,17 +400,12 @@ export default function DispensersPage() {
                           <div className="flex items-center gap-1.5">
                             <div className="font-medium text-xs">{d.location.plant.nombre}</div>
                             {d.plant && d.location.plant.id !== d.plant.id && (
-                              <span className={clsx(
-                                "text-[9px] px-1.5 py-0.5 rounded-full font-bold border",
-                                plantIds?.includes(d.location.plant.id) 
-                                  ? "bg-blue-100 text-blue-700 border-blue-200" 
-                                  : "bg-purple-100 text-purple-700 border-purple-200"
-                              )}>
-                                {plantIds?.includes(d.location.plant.id) ? 'PRESTADO' : 'PRESTADO A OTRO'}
+                              <span className="badge-info">
+                                {plantIds?.includes(d.location.plant.id) ? 'Prestado' : 'Prestado a otra planta'}
                               </span>
                             )}
                           </div>
-                          <div className="text-[11px] text-muted-foreground">
+                          <div className="text-2xs text-muted-foreground">
                             {d.location.sector?.nombre} — {d.location.nombre}
                           </div>
                         </div>
@@ -416,25 +415,25 @@ export default function DispensersPage() {
                     </td>
                     <td className="text-center">
                       <div className="flex justify-center">
-                        <span className={clsx('badge gap-1.5 border text-xs', getStatusColor(d.status))}>
-                          {d.status === 'IN_SERVICE' ? <CheckCircle2 className="w-3.5 h-3.5" /> :
-                           d.status === 'BLOCKED' || d.status === 'BLOCKED_WAITING_OC' ? <AlertTriangle className="w-3.5 h-3.5" /> :
-                           d.status === 'UNDER_REPAIR' || d.status === 'IN_TECHNICAL_SERVICE' ? <Wrench className="w-3.5 h-3.5" /> :
-                           <Archive className="w-3.5 h-3.5" />}
+                        <span className={clsx('badge', getStatusColor(d.status))}>
+                          {d.status === 'IN_SERVICE' ? <CheckCircle2 className="h-3 w-3" /> :
+                           d.status === 'BLOCKED' || d.status === 'BLOCKED_WAITING_OC' ? <AlertTriangle className="h-3 w-3" /> :
+                           d.status === 'UNDER_REPAIR' || d.status === 'IN_TECHNICAL_SERVICE' ? <Wrench className="h-3 w-3" /> :
+                           <Archive className="h-3 w-3" />}
                           {t(d.status)}
                         </span>
                       </div>
                     </td>
                     <td className="text-center">
-                      <span className="text-xs font-semibold text-muted-foreground">{d._count.tickets}</span>
+                      <span className="text-xs text-muted-foreground tabular">{d._count.tickets}</span>
                     </td>
                     <td className="text-center">
                       <div className="flex justify-center">
                         <Link
                           href={`/dispensers/${d.id}`}
-                          className="btn-ghost btn-sm gap-1.5 text-primary hover:text-primary/80 font-semibold"
+                          className="btn-ghost btn-sm text-primary"
                         >
-                          <Eye className="w-4 h-4" />
+                          <Eye className="h-4 w-4" />
                           Ver
                         </Link>
                       </div>
@@ -445,6 +444,7 @@ export default function DispensersPage() {
             </tbody>
           </table>
         </div>
+        </>
       )}
 
       {/* Modals */}
@@ -471,23 +471,6 @@ export default function DispensersPage() {
           }}
         />
       )}
-    </div>
-  );
-}
-
-// ─── KPI Card ───────────────────────────────────────
-function KpiCard({ label, value, color }: { label: string; value: number; color: string }) {
-  const colorMap: Record<string, string> = {
-    primary: 'border-t-primary text-primary',
-    emerald: 'border-t-emerald-500 text-emerald-600 dark:text-emerald-400',
-    amber: 'border-t-amber-500 text-amber-600 dark:text-amber-400',
-    red: 'border-t-red-500 text-red-600 dark:text-red-400',
-    sky: 'border-t-sky-500 text-sky-600 dark:text-sky-400',
-  };
-  return (
-    <div className={`glass-card p-4 border-t-4 ${colorMap[color]?.split(' ')[0]}`}>
-      <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">{label}</p>
-      <p className={`text-2xl font-bold mt-1 ${colorMap[color]?.split(' ').slice(1).join(' ')}`}>{value}</p>
     </div>
   );
 }
@@ -558,11 +541,11 @@ function CreateAssetModal({ onClose, onCreated }: { onClose: () => void; onCreat
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.id.trim() || !form.marca.trim() || !form.modelo.trim()) {
-      toast.error('ID, Marca y Modelo son obligatorios');
+      toast.error('ID, marca y modelo son obligatorios');
       return;
     }
     if (!form.clientId && !form.plantId) {
-      toast.error('Debe seleccionar Empresa / Cliente o Planta Dueña');
+      toast.error('Seleccioná la empresa o la planta dueña');
       return;
     }
 
@@ -592,7 +575,7 @@ function CreateAssetModal({ onClose, onCreated }: { onClose: () => void; onCreat
         return;
       }
       const newAsset = await res.json();
-      toast.success('Equipo registrado exitosamente');
+      toast.success('Activo registrado');
       onCreated(initConsumablesNow ? newAsset : undefined);
     } catch {
       toast.error('Error de conexión');
@@ -604,36 +587,31 @@ function CreateAssetModal({ onClose, onCreated }: { onClose: () => void; onCreat
   const activeSpecFields = SPEC_FIELDS_BY_TYPE[form.equipmentType] || [];
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content max-w-2xl max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+    <div className="modal-overlay" onMouseDown={e => e.target === e.currentTarget && onClose()}>
+      <div className="modal-content max-w-2xl flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
         <div className="modal-header shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-primary/10 rounded-lg">
-              <Plus className="w-5 h-5 text-primary" />
-            </div>
-            <div>
-              <h2 className="text-lg font-bold">Nuevo Activo / Equipo</h2>
-              <p className="text-xs text-muted-foreground">Registre un nuevo activo para mantenimiento</p>
-            </div>
+          <div className="min-w-0">
+            <h2>Nuevo activo</h2>
+            <p className="text-xs text-muted-foreground">Registrá un activo para su seguimiento y mantenimiento.</p>
           </div>
-          <button onClick={onClose} className="btn-ghost btn-icon"><X className="w-5 h-5" /></button>
+          <button type="button" onClick={onClose} className="modal-close" aria-label="Cerrar"><X className="h-4 w-4" /></button>
         </div>
 
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto pr-1">
           <div className="modal-body space-y-6">
             {/* Type & Criticality Selector */}
             <section className="space-y-3">
-              <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest block">
-                1. Tipo de Activo y Criticidad
+              <label className="eyebrow block">
+                1. Tipo y criticidad
               </label>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 {[
-                  { id: 'AIR_CONDITIONER', label: 'Aire Acondicionado', icon: Wind },
-                  { id: 'COLD_ROOM', label: 'Cámara Frigorífica', icon: Snowflake },
-                  { id: 'DISPENSER', label: 'Dispenser de Agua', icon: GlassWater },
-                  { id: 'REFRIGERATOR', label: 'Heladera Comercial', icon: Layers },
-                  { id: 'VENTILATION', label: 'Ventilación / Extrac.', icon: Fan },
-                  { id: 'OTHER', label: 'Otro Activo', icon: Cpu },
+                  { id: 'AIR_CONDITIONER', label: 'Aire acondicionado', icon: Wind },
+                  { id: 'COLD_ROOM', label: 'Cámara frigorífica', icon: Snowflake },
+                  { id: 'DISPENSER', label: 'Dispenser de agua', icon: GlassWater },
+                  { id: 'REFRIGERATOR', label: 'Heladera comercial', icon: Layers },
+                  { id: 'VENTILATION', label: 'Ventilación / extracción', icon: Fan },
+                  { id: 'OTHER', label: 'Otro activo', icon: Cpu },
                 ].map(item => {
                   const Icon = item.icon;
                   const isSelected = form.equipmentType === item.id;
@@ -643,10 +621,10 @@ function CreateAssetModal({ onClose, onCreated }: { onClose: () => void; onCreat
                       type="button"
                       onClick={() => setForm(p => ({ ...p, equipmentType: item.id as EquipmentType }))}
                       className={clsx(
-                        'flex flex-col items-center gap-1.5 p-3 rounded-xl border text-center transition-all',
-                        isSelected 
-                          ? 'bg-primary/10 border-primary text-primary font-bold ring-2 ring-primary/20 shadow-sm'
-                          : 'bg-card border-border hover:bg-muted/40 text-muted-foreground'
+                        'flex flex-col items-center gap-1.5 rounded-md border p-3 text-center transition-colors',
+                        isSelected
+                          ? 'border-primary bg-primary/10 font-medium text-primary'
+                          : 'border-border bg-card text-muted-foreground hover:bg-accent hover:text-foreground'
                       )}
                     >
                       <Icon className="w-5 h-5" />
@@ -657,7 +635,7 @@ function CreateAssetModal({ onClose, onCreated }: { onClose: () => void; onCreat
               </div>
 
               <div className="pt-2">
-                <label className="text-xs font-semibold text-muted-foreground mb-1 block">Nivel de Criticidad Operativa</label>
+                <label className="label mb-1.5">Criticidad operativa</label>
                 <div className="grid grid-cols-4 gap-2">
                   {(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'] as AssetCriticality[]).map(crit => (
                     <button
@@ -665,10 +643,10 @@ function CreateAssetModal({ onClose, onCreated }: { onClose: () => void; onCreat
                       type="button"
                       onClick={() => setForm(p => ({ ...p, criticality: crit }))}
                       className={clsx(
-                        'py-2 px-1 text-xs font-bold rounded-lg border transition-all text-center',
-                        form.criticality === crit 
-                          ? getCriticalityColor(crit) + ' ring-2 ring-primary/30 shadow-sm'
-                          : 'border-border text-muted-foreground hover:bg-muted/30'
+                        'min-h-[40px] rounded-md border px-1 text-center text-xs font-medium transition-colors sm:min-h-[36px]',
+                        form.criticality === crit
+                          ? getCriticalityColor(crit) + ' ring-1 ring-current'
+                          : 'border-border text-muted-foreground hover:bg-accent'
                       )}
                     >
                       {CRITICALITY_LABELS[crit]}
@@ -680,12 +658,12 @@ function CreateAssetModal({ onClose, onCreated }: { onClose: () => void; onCreat
 
             {/* General Info */}
             <section className="space-y-4 border-t pt-4">
-              <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
-                2. Identificación y Ubicación
+              <h3 className="eyebrow">
+                2. Identificación y ubicación
               </h3>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
-                  <label className="label">Código / ID del Activo *</label>
+                  <label className="label">ID del activo *</label>
                   <input
                     className="input mt-1 font-mono font-bold uppercase"
                     placeholder={getPlaceholderId()}
@@ -695,7 +673,7 @@ function CreateAssetModal({ onClose, onCreated }: { onClose: () => void; onCreat
                   />
                 </div>
                 <div>
-                  <label className="label">N° de Serie de Fábrica</label>
+                  <label className="label">N.º de serie</label>
                   <input
                     className="input mt-1"
                     placeholder="S/N en placa..."
@@ -705,7 +683,7 @@ function CreateAssetModal({ onClose, onCreated }: { onClose: () => void; onCreat
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <label className="label">Marca *</label>
                   <input
@@ -731,8 +709,8 @@ function CreateAssetModal({ onClose, onCreated }: { onClose: () => void; onCreat
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="label flex items-center gap-1">
-                    <Building2 className="w-3.5 h-3.5 text-primary" />
-                    Empresa / Cliente *
+                    <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
+                    Empresa / cliente *
                   </label>
                   <select
                     className="select mt-1 w-full"
@@ -747,14 +725,14 @@ function CreateAssetModal({ onClose, onCreated }: { onClose: () => void; onCreat
                     }}
                     required
                   >
-                    <option value="">Seleccionar Empresa...</option>
+                    <option value="">Seleccionar empresa…</option>
                     {clients.map(c => (
                       <option key={c.id} value={c.id}>{c.nombre}</option>
                     ))}
                   </select>
                 </div>
                 <div>
-                  <label className="label">Planta Dueña (Propiedad) *</label>
+                  <label className="label">Planta dueña *</label>
                   <select
                     className="select mt-1 w-full"
                     value={form.plantId}
@@ -769,7 +747,7 @@ function CreateAssetModal({ onClose, onCreated }: { onClose: () => void; onCreat
                     required
                   >
                     <option value="">
-                      {form.clientId ? 'Seleccionar Planta del Cliente...' : 'Seleccionar Planta...'}
+                      {form.clientId ? 'Seleccionar planta del cliente…' : 'Seleccionar planta…'}
                     </option>
                     {plants
                       .filter(p => !form.clientId || p.clientId === form.clientId)
@@ -781,7 +759,7 @@ function CreateAssetModal({ onClose, onCreated }: { onClose: () => void; onCreat
               </div>
 
               <div>
-                <label className="label">Fecha de Compra / Instalación</label>
+                <label className="label">Fecha de compra / instalación</label>
                 <input
                   type="date"
                   className="input mt-1"
@@ -793,13 +771,12 @@ function CreateAssetModal({ onClose, onCreated }: { onClose: () => void; onCreat
 
             {/* Dynamic Technical Specs */}
             {activeSpecFields.length > 0 && (
-              <section className="space-y-4 border-t pt-4 bg-muted/20 p-4 rounded-xl border-dashed">
+              <section className="space-y-4 rounded-md border border-border bg-muted/30 p-4">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-xs font-bold text-primary uppercase tracking-widest flex items-center gap-1.5">
-                    <SlidersHorizontal className="w-3.5 h-3.5" />
-                    3. Ficha Técnica ({getEquipmentTypeLabel(form.equipmentType)})
+                  <h3 className="eyebrow">
+                    3. Ficha técnica ({getEquipmentTypeLabel(form.equipmentType)})
                   </h3>
-                  <span className="text-[10px] text-muted-foreground italic">Específico de este tipo</span>
+                  <span className="text-2xs text-muted-foreground">Según tipo de activo</span>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -808,13 +785,13 @@ function CreateAssetModal({ onClose, onCreated }: { onClose: () => void; onCreat
                     if (field.type === 'select') {
                       return (
                         <div key={field.key}>
-                          <label className="text-xs font-semibold text-foreground/80 mb-1 block">{field.label}</label>
+                          <label className="label mb-1.5">{field.label}</label>
                           <select
-                            className="select text-xs w-full"
+                            className="select"
                             value={value}
                             onChange={e => handleSpecChange(field.key, e.target.value)}
                           >
-                            <option value="">Seleccionar...</option>
+                            <option value="">Seleccionar…</option>
                             {field.options?.map(opt => (
                               <option key={opt} value={opt}>{opt}</option>
                             ))}
@@ -824,12 +801,12 @@ function CreateAssetModal({ onClose, onCreated }: { onClose: () => void; onCreat
                     }
                     return (
                       <div key={field.key}>
-                        <label className="text-xs font-semibold text-foreground/80 mb-1 block">
+                        <label className="label mb-1.5">
                           {field.label} {field.unit && <span className="text-muted-foreground font-normal">({field.unit})</span>}
                         </label>
                         <input
                           type={field.type === 'number' ? 'number' : 'text'}
-                          className="input text-xs w-full"
+                          className="input"
                           placeholder={field.placeholder || ''}
                           value={value}
                           onChange={e => handleSpecChange(field.key, e.target.value)}
@@ -843,25 +820,25 @@ function CreateAssetModal({ onClose, onCreated }: { onClose: () => void; onCreat
 
             {/* Consumables / Initial Supplies */}
             <section className="space-y-4 border-t pt-4">
-              <div className="flex items-center gap-3 p-4 bg-primary/5 rounded-xl border border-primary/20">
+              <div className="flex items-center gap-3 rounded-md border border-border bg-muted/30 p-3">
                 <input
                   type="checkbox"
                   id="initConsumables"
-                  className="w-5 h-5 rounded text-primary focus:ring-primary"
+                  className="h-4 w-4 rounded border-input accent-[hsl(var(--primary))]"
                   checked={initConsumablesNow}
                   onChange={e => setInitConsumablesNow(e.target.checked)}
                 />
-                <label htmlFor="initConsumables" className="text-sm font-bold cursor-pointer select-none">
-                  ¿Desea inicializar insumos / consumibles instalados ahora?
+                <label htmlFor="initConsumables" className="cursor-pointer select-none text-sm font-medium">
+                  Registrar ahora los insumos instalados
                 </label>
               </div>
             </section>
 
             {/* Other Info */}
             <section className="space-y-4 border-t pt-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
-                  <label className="label">Vida Útil Estimada (meses)</label>
+                  <label className="label">Vida útil estimada (meses)</label>
                   <input
                     type="number"
                     className="input mt-1"
@@ -882,9 +859,9 @@ function CreateAssetModal({ onClose, onCreated }: { onClose: () => void; onCreat
             </section>
           </div>
 
-          <div className="modal-footer bg-muted/30 border-t mt-4 sticky bottom-0 p-4">
+          <div className="modal-footer">
             <button type="button" onClick={onClose} className="btn-outline">Cancelar</button>
-            <button type="submit" disabled={saving} className="btn-primary px-8 gap-2 shadow-lg shadow-primary/20">
+            <button type="submit" disabled={saving} className="btn-primary px-8 gap-2">
               {saving && <Loader2 className="w-4 h-4 animate-spin" />}
               Registrar Activo
             </button>

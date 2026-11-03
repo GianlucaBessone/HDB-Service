@@ -140,43 +140,40 @@ export default function InitConsumablesModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-card rounded-2xl shadow-2xl border border-border w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-muted/30 shrink-0">
-          <h2 className="text-lg font-bold flex items-center gap-2">
-            <Package className="w-5 h-5 text-primary" />
-            Inicializar Consumibles
-          </h2>
-          <button onClick={onClose} className="p-2 hover:bg-accent rounded-full transition-colors text-muted-foreground">
-            <X className="w-5 h-5" />
+    <div className="modal-overlay">
+      <div className="modal-content max-w-2xl flex flex-col overflow-hidden">
+        <div className="modal-header shrink-0">
+          <h2>Inicializar consumibles</h2>
+          <button type="button" onClick={onClose} className="modal-close" aria-label="Cerrar">
+            <X className="h-4 w-4" />
           </button>
         </div>
         
-        <div className="overflow-y-auto p-6 space-y-6 flex-1">
+        <div className="modal-body flex-1 space-y-6 overflow-y-auto">
           {dispenser.plantId && (
-            <div className="flex bg-muted p-1 rounded-lg">
-              <button 
-                className={clsx("flex-1 py-1.5 text-sm font-semibold rounded-md transition-colors", mode === 'SELECT' ? "bg-background shadow text-foreground" : "text-muted-foreground hover:text-foreground")}
+            <div className="segmented flex w-full">
+              <button
+                className={clsx('flex-1 justify-center py-1.5 text-sm', mode === 'SELECT' ? 'segmented-item-active' : 'segmented-item')}
                 onClick={() => setMode('SELECT')}
               >
-                Desde Inventario
+                Desde inventario
               </button>
-              <button 
-                className={clsx("flex-1 py-1.5 text-sm font-semibold rounded-md transition-colors", mode === 'CREATE' ? "bg-background shadow text-foreground" : "text-muted-foreground hover:text-foreground")}
+              <button
+                className={clsx('flex-1 justify-center py-1.5 text-sm', mode === 'CREATE' ? 'segmented-item-active' : 'segmented-item')}
                 onClick={() => setMode('CREATE')}
               >
-                Crear Nuevo
+                Crear nuevo
               </button>
             </div>
           )}
 
           <form onSubmit={handleAddItem} className="bg-muted/30 p-4 rounded-xl border border-border">
-            <h3 className="text-sm font-bold mb-3">Agregar Consumible</h3>
+            <h3 className="text-sm font-bold mb-3">Agregar consumible</h3>
             
             {mode === 'SELECT' ? (
               <div className="space-y-3">
                 <div>
-                  <label className="text-xs font-semibold mb-1 block">Seleccionar del Inventario de la Planta</label>
+                  <label className="label mb-1.5">Seleccionar del inventario de la planta</label>
                   <select 
                     className="select" 
                     value={selectedStockId} 
@@ -189,13 +186,13 @@ export default function InitConsumablesModal({
                     ))}
                   </select>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <div>
-                    <label className="text-xs font-semibold mb-1 block">N° Serie (Si aplica)</label>
+                    <label className="label mb-1.5">N° serie (si aplica)</label>
                     <input className="input" placeholder="Opcional" value={form.uniqueId} onChange={e => setForm({...form, uniqueId: e.target.value})} />
                   </div>
                   <div>
-                    <label className="text-xs font-semibold mb-1 block">Cantidad</label>
+                    <label className="label mb-1.5">Cantidad</label>
                     <input type="number" className="input" min="1" value={form.uniqueId ? 1 : form.cantidad} onChange={e => setForm({...form, cantidad: e.target.value})} disabled={!!form.uniqueId} />
                   </div>
                 </div>
@@ -204,7 +201,7 @@ export default function InitConsumablesModal({
               <div className="space-y-3">
                 {!dispenser.plantId && (
                   <div>
-                    <label className="text-xs font-semibold mb-1 block">Cliente (Para filtrar catálogo) *</label>
+                    <label className="label mb-1.5">Cliente (para filtrar catálogo) *</label>
                     <select 
                       className="select"
                       value={selectedClientId}
@@ -220,7 +217,7 @@ export default function InitConsumablesModal({
                   </div>
                 )}
                 <div>
-                  <label className="text-xs font-semibold mb-1 block">Repuesto / Consumible *</label>
+                  <label className="label mb-1.5">Repuesto / consumible *</label>
                   <MaterialCombobox 
                     items={catalogItems}
                     value={form.materialCode}
@@ -229,21 +226,21 @@ export default function InitConsumablesModal({
                     autoFocus={!!dispenser.plantId || !!selectedClientId}
                   />
                   {((dispenser.plantId || selectedClientId) && catalogItems.length === 0) && (
-                    <p className="text-xs text-amber-600 mt-1">Este cliente no tiene consumibles en su catálogo.</p>
+                    <p className="text-xs text-warning mt-1">Este cliente no tiene consumibles en su catálogo.</p>
                   )}
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <div>
-                    <label className="text-xs font-semibold mb-1 block">N° Serie (Opcional)</label>
+                    <label className="label mb-1.5">N° serie (opcional)</label>
                     <input className="input" placeholder="Ej: SN-123" value={form.uniqueId} onChange={e => setForm({...form, uniqueId: e.target.value})} />
                   </div>
                   <div>
-                    <label className="text-xs font-semibold mb-1 block">Cantidad</label>
+                    <label className="label mb-1.5">Cantidad</label>
                     <input type="number" className="input" min="1" value={form.uniqueId ? 1 : form.cantidad} onChange={e => setForm({...form, cantidad: e.target.value})} disabled={!!form.uniqueId} />
                   </div>
                 </div>
                 {dispenser.plantId && (
-                  <p className="text-[10px] text-amber-600 bg-amber-50 p-2 rounded italic">
+                  <p className="text-2xs text-warning bg-warning/10 p-2 rounded italic">
                     Al crear un ítem nuevo, se registrará en el inventario de la planta e inmediatamente se consumirá.
                   </p>
                 )}
@@ -261,19 +258,19 @@ export default function InitConsumablesModal({
           {/* List to Add */}
           {items.length > 0 && (
             <div>
-              <h3 className="text-sm font-bold mb-2">Ítems a Inicializar</h3>
+              <h3 className="text-sm font-bold mb-2">Ítems a inicializar</h3>
               <div className="space-y-2">
                 {items.map((item, idx) => (
                   <div key={idx} className="flex items-center justify-between p-3 bg-muted/20 border border-border rounded-lg">
                     <div>
                       <p className="text-sm font-bold">{item.nombre} <span className="text-xs font-normal text-muted-foreground ml-1">({item.materialCode})</span></p>
                       <div className="flex gap-2 mt-1">
-                        {item.uniqueId && <span className="badge text-[10px]">S/N: {item.uniqueId}</span>}
-                        {item.isNew && <span className="badge text-[10px] badge-warning">NUEVO</span>}
-                        <span className="badge text-[10px]">Cant: {item.cantidad}</span>
+                        {item.uniqueId && <span className="badge text-2xs">S/N: {item.uniqueId}</span>}
+                        {item.isNew && <span className="badge text-2xs badge-warning">NUEVO</span>}
+                        <span className="badge text-2xs">Cant: {item.cantidad}</span>
                       </div>
                     </div>
-                    <button onClick={() => handleRemoveItem(idx)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg">
+                    <button onClick={() => handleRemoveItem(idx)} className="p-2 text-destructive hover:bg-destructive/10 rounded-lg">
                       <X className="w-4 h-4" />
                     </button>
                   </div>
@@ -283,7 +280,7 @@ export default function InitConsumablesModal({
           )}
         </div>
 
-        <div className="px-6 py-4 border-t border-border bg-muted/30 flex justify-end gap-3 shrink-0">
+        <div className="modal-footer shrink-0">
           <button onClick={onClose} className="btn-outline">Cancelar</button>
           <button onClick={handleSubmit} disabled={items.length === 0 || saving} className="btn-primary gap-2">
             {saving && <Loader2 className="w-4 h-4 animate-spin" />}

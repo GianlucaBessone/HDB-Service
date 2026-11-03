@@ -46,28 +46,26 @@ export default function ForcePasswordChangeModal() {
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-background/90 backdrop-blur-md">
-      <div className="w-full max-w-md bg-card border border-border rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
-        <div className="p-8 text-center border-b border-border bg-muted/30">
-          <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4 text-primary">
-            <Lock className="w-8 h-8" />
+    <div className="modal-overlay z-[100]">
+      <div className="modal-content max-w-md">
+        <div className="modal-header">
+          <div className="flex min-w-0 items-start gap-3">
+            <Lock className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+            <div>
+              <h2>Actualizar contraseña</h2>
+              <p className="mt-0.5 text-xs text-muted-foreground">Por seguridad, cambiá la contraseña temporal antes de continuar.</p>
+            </div>
           </div>
-          <h2 className="text-2xl font-bold text-foreground">Actualizar Contraseña</h2>
-          <p className="text-sm text-muted-foreground mt-2">
-            Por seguridad, debes cambiar tu contraseña temporal antes de continuar.
-          </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-8 space-y-6">
+        <form onSubmit={handleSubmit} className="modal-body space-y-5">
           <div className="space-y-1.5">
-            <label className="text-sm font-semibold flex items-center gap-2">
-              Nueva Contraseña
-            </label>
+            <label className="label">Nueva contraseña</label>
             <div className="relative">
               <input
                 type={showPassword ? 'text' : 'password'}
                 required
-                className="input pr-10 h-12"
+                className="input pr-10"
                 placeholder="Mínimo 6 caracteres"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
@@ -75,46 +73,44 @@ export default function ForcePasswordChangeModal() {
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                className="absolute right-1 top-1/2 inline-flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground hover:text-foreground"
+                aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
               >
-                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
             </div>
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-sm font-semibold flex items-center gap-2">
-              Confirmar Nueva Contraseña
-            </label>
+            <label className="label">Confirmar nueva contraseña</label>
             <div className="relative">
               <input
                 type={showPassword ? 'text' : 'password'}
                 required
-                className="input pr-10 h-12"
-                placeholder="Repite la contraseña"
+                className="input pr-10"
+                placeholder="Repetí la contraseña"
                 value={confirmPassword}
                 onChange={e => setConfirmPassword(e.target.value)}
               />
             </div>
           </div>
 
-          <div className="flex items-start gap-3 p-4 bg-primary/5 rounded-xl border border-primary/10">
-            <ShieldCheck className="w-5 h-5 text-primary shrink-0 mt-0.5" />
-            <p className="text-[11px] text-muted-foreground leading-relaxed">
-              Usa una combinación de letras, números y símbolos para una mayor seguridad. 
-              No compartas tu contraseña con nadie.
+          <div className="flex items-start gap-2.5 rounded-md border border-border bg-muted/40 p-3">
+            <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+            <p className="text-xs leading-relaxed text-muted-foreground">
+              Combiná letras, números y símbolos. No compartas tu contraseña.
             </p>
           </div>
 
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full h-12 btn-primary shadow-lg shadow-primary/20 flex items-center justify-center gap-2 text-base font-bold"
+            className="btn-primary w-full"
           >
             {isLoading ? (
               <Loader2 className="w-5 h-5 animate-spin" />
             ) : (
-              'Guardar y Continuar'
+              'Guardar y continuar'
             )}
           </button>
         </form>

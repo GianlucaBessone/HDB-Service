@@ -17,6 +17,11 @@ import {
   HeartPulse,
   LayoutDashboard
 } from 'lucide-react';
+import PageHeader from '@/components/ui/PageHeader';
+import StatCard from '@/components/ui/StatCard';
+import Panel from '@/components/ui/Panel';
+import FilterBar, { FieldIcon } from '@/components/ui/FilterBar';
+import EmptyState from '@/components/ui/EmptyState';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
 
@@ -82,203 +87,141 @@ export default function AnalyticsDashboard() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'BUENO': return 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20';
-      case 'MEDIO': return 'text-amber-500 bg-amber-500/10 border-amber-500/20';
-      case 'MALO': return 'text-red-500 bg-red-500/10 border-red-500/20';
-      default: return 'text-slate-500 bg-slate-500/10';
+      case 'BUENO': return 'text-success bg-success/10 border-success/20';
+      case 'MEDIO': return 'text-warning bg-warning/10 border-warning/20';
+      case 'MALO': return 'text-destructive bg-destructive/10 border-destructive/20';
+      default: return 'text-muted-foreground bg-muted-foreground/10';
     }
   };
 
   return (
-    <div className="space-y-6 animate-fade-in pb-20">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3">
-            <BarChart3 className="w-8 h-8 text-primary" />
-            Análisis de Performance & KPIs
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            Métricas operacionales y salud del parque de equipos y activos.
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <Link href="/dashboard" className="btn-outline flex items-center gap-2">
-            <LayoutDashboard className="w-4 h-4" />
-            Vista General
-          </Link>
-          <button onClick={fetchAnalytics} className="btn-ghost p-2 rounded-full">
-            <RefreshCw className={`w-5 h-5 ${isLoading ? 'animate-spin' : ''}`} />
+    <div className="space-y-6 animate-fade-in">
+      <PageHeader
+        backHref="/dashboard"
+        backLabel="Dashboard"
+        title="Análisis de performance"
+        description="Métricas operativas y salud del parque de activos."
+        actions={
+          <button onClick={fetchAnalytics} className="btn-outline" aria-label="Actualizar">
+            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+            Actualizar
           </button>
-        </div>
-      </div>
+        }
+      />
 
-      {/* Filters */}
-      <div className="glass-card p-4 flex flex-wrap gap-4 items-end">
-        <div className="space-y-1.5 flex-1 min-w-[200px]">
-          <label className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-2">
-            <Building2 className="w-3 h-3" /> Cliente
-          </label>
-          <select 
-            className="select h-10"
+      <FilterBar>
+        <FieldIcon icon={Building2} className="lg:w-60">
+          <select
+            className="select pl-9"
+            aria-label="Cliente"
             value={selectedClient}
             onChange={(e) => { setSelectedClient(e.target.value); setSelectedPlant(''); }}
           >
-            <option value="">Todos los Clientes</option>
+            <option value="">Todos los clientes</option>
             {clients.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
           </select>
-        </div>
-        <div className="space-y-1.5 flex-1 min-w-[200px]">
-          <label className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-2">
-            <MapPin className="w-3 h-3" /> Planta
-          </label>
-          <select 
-            className="select h-10"
-            value={selectedPlant}
-            onChange={(e) => setSelectedPlant(e.target.value)}
-          >
-            <option value="">Todas las Plantas</option>
+        </FieldIcon>
+        <FieldIcon icon={MapPin} className="lg:w-60">
+          <select className="select pl-9" aria-label="Planta" value={selectedPlant} onChange={(e) => setSelectedPlant(e.target.value)}>
+            <option value="">Todas las plantas</option>
             {plants.filter(p => !selectedClient || p.clientId === selectedClient).map(p => (
               <option key={p.id} value={p.id}>{p.nombre}</option>
             ))}
           </select>
-        </div>
-        <button 
-          onClick={fetchAnalytics}
-          className="btn-primary h-10 px-6 gap-2"
-        >
-          <Filter className="w-4 h-4" />
-          Filtrar
+        </FieldIcon>
+        <button onClick={fetchAnalytics} className="btn-primary lg:ml-auto">
+          <Filter className="h-4 w-4" />
+          Aplicar filtros
         </button>
-      </div>
+      </FilterBar>
 
       {isLoading ? (
-        <div className="flex flex-col items-center justify-center py-20 gap-4">
-          <Loader2 className="w-10 h-10 animate-spin text-primary" />
-          <p className="text-muted-foreground">Calculando algoritmos de salud...</p>
+        <div className="space-y-4" aria-busy="true">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            {[0, 1, 2].map(i => <div key={i} className="skeleton h-[120px] rounded-lg" />)}
+          </div>
+          <div className="skeleton h-72 rounded-lg" />
         </div>
       ) : data ? (
         <>
-          {/* Main KPIs */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="glass-card p-6 border-l-4 border-l-primary">
-              <div className="flex items-center justify-between mb-4">
-                <span className="text-sm font-bold text-muted-foreground uppercase">SLA (Respuesta)</span>
-                <TrendingUp className="w-5 h-5 text-primary" />
-              </div>
-              <div className="flex items-end gap-2">
-                <span className="text-4xl font-bold">{data.kpis.sla}</span>
-                <span className="text-sm text-muted-foreground mb-1">horas</span>
-              </div>
-              <p className="text-xs text-muted-foreground mt-3 italic">
-                Tiempo promedio desde Ticket hasta Acción.
-              </p>
-            </div>
-
-            <div className="glass-card p-6 border-l-4 border-l-cyan-500">
-              <div className="flex items-center justify-between mb-4">
-                <span className="text-sm font-bold text-muted-foreground uppercase">MTTR (Reparación)</span>
-                <Wrench className="w-5 h-5 text-cyan-500" />
-              </div>
-              <div className="flex items-end gap-2">
-                <span className="text-4xl font-bold">{data.kpis.mttr}</span>
-                <span className="text-sm text-muted-foreground mb-1">horas</span>
-              </div>
-              <p className="text-xs text-muted-foreground mt-3 italic">
-                Mean Time To Repair (Resolución completa).
-              </p>
-            </div>
-
-            <div className="glass-card p-6 border-l-4 border-l-emerald-500">
-              <div className="flex items-center justify-between mb-4">
-                <span className="text-sm font-bold text-muted-foreground uppercase">MTBF (Disponibilidad)</span>
-                <Activity className="w-5 h-5 text-emerald-500" />
-              </div>
-              <div className="flex items-end gap-2">
-                <span className="text-4xl font-bold">{data.kpis.mtbf}</span>
-                <span className="text-sm text-muted-foreground mb-1">días</span>
-              </div>
-              <p className="text-xs text-muted-foreground mt-3 italic">
-                Tiempo medio entre fallas reportadas.
-              </p>
-            </div>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
+            <StatCard label="SLA · respuesta" icon={TrendingUp} tone="primary"
+              value={<>{data.kpis.sla}<span className="ml-1 text-sm font-normal text-muted-foreground">h</span></>}
+              hint="Promedio desde el ticket hasta la primera acción." />
+            <StatCard label="MTTR · reparación" icon={Wrench} tone="primary"
+              value={<>{data.kpis.mttr}<span className="ml-1 text-sm font-normal text-muted-foreground">h</span></>}
+              hint="Tiempo medio hasta la resolución completa." />
+            <StatCard label="MTBF · entre fallas" icon={Activity} tone="success"
+              value={<>{data.kpis.mtbf}<span className="ml-1 text-sm font-normal text-muted-foreground">días</span></>}
+              hint="Tiempo medio entre fallas reportadas." />
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Failure Analysis */}
             <div className="glass-card overflow-hidden">
-              <div className="p-4 border-b border-border bg-muted/30 flex items-center justify-between">
-                <h3 className="font-bold flex items-center gap-2">
-                  <AlertTriangle className="w-5 h-5 text-amber-500" />
-                  Top 5 Fallas Recurrentes
-                </h3>
+              <div className="panel-header">
+                <h3 className="panel-title">Fallas más recurrentes</h3>
               </div>
-              <div className="p-4 space-y-4">
+              <div className="panel-body space-y-4">
                 {data.failures.top.length > 0 ? data.failures.top.map((f, i) => (
                   <div key={i} className="space-y-1">
                     <div className="flex justify-between text-sm">
                       <span className="font-medium">{f.name}</span>
-                      <span className="text-muted-foreground">{f.count} reincidencias</span>
+                      <span className="text-muted-foreground tabular">{f.count} reincidencias</span>
                     </div>
                     <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
                       <div 
-                        className="h-full bg-amber-500" 
+                        className="h-full bg-warning" 
                         style={{ width: `${(f.count / data.failures.top[0].count) * 100}%` }}
                       />
                     </div>
-                    <div className="flex justify-between text-[10px] text-muted-foreground">
+                    <div className="flex justify-between text-2xs text-muted-foreground">
                       <span>Promedio reparación: {Math.round(f.avgRepairTime)}h</span>
-                      <span className={f.count > 5 ? 'text-red-500 font-bold' : ''}>
-                        {f.count > 5 ? 'GRAVE' : 'MODERADA'}
+                      <span className={f.count > 5 ? 'font-semibold text-destructive' : ''}>
+                        {f.count > 5 ? 'Grave' : 'Moderada'}
                       </span>
                     </div>
                   </div>
                 )) : (
-                  <p className="text-center py-10 text-muted-foreground italic text-sm">
-                    No hay fallas registradas en este periodo.
-                  </p>
+                  <EmptyState bare icon={AlertTriangle} title="Sin fallas en el período" />
                 )}
               </div>
             </div>
 
             {/* Health Distribution */}
             <div className="glass-card overflow-hidden">
-              <div className="p-4 border-b border-border bg-muted/30 flex items-center justify-between">
-                <h3 className="font-bold flex items-center gap-2">
-                  <HeartPulse className="w-5 h-5 text-primary" />
-                  Distribución de Salud del Parque
-                </h3>
+              <div className="panel-header">
+                <h3 className="panel-title">Distribución de salud del parque</h3>
               </div>
-              <div className="p-8">
-                <div className="flex h-12 w-full rounded-2xl overflow-hidden shadow-inner bg-muted">
+              <div className="panel-body">
+                <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-muted">
                   <div 
-                    className="h-full bg-emerald-500 transition-all duration-500" 
+                    className="h-full bg-success transition-all duration-500" 
                     style={{ width: `${(data.health.distribution.bueno / (data.health.distribution.bueno + data.health.distribution.medio + data.health.distribution.malo || 1)) * 100}%` }}
                     title={`Bueno: ${data.health.distribution.bueno}`}
                   />
                   <div 
-                    className="h-full bg-amber-500 transition-all duration-500" 
+                    className="h-full bg-warning transition-all duration-500" 
                     style={{ width: `${(data.health.distribution.medio / (data.health.distribution.bueno + data.health.distribution.medio + data.health.distribution.malo || 1)) * 100}%` }}
                     title={`Medio: ${data.health.distribution.medio}`}
                   />
                   <div 
-                    className="h-full bg-red-500 transition-all duration-500" 
+                    className="h-full bg-destructive transition-all duration-500" 
                     style={{ width: `${(data.health.distribution.malo / (data.health.distribution.bueno + data.health.distribution.medio + data.health.distribution.malo || 1)) * 100}%` }}
                     title={`Malo: ${data.health.distribution.malo}`}
                   />
                 </div>
-                <div className="grid grid-cols-3 mt-6 gap-4">
-                  <div className="text-center">
-                    <p className="text-2xl font-bold text-emerald-500">{data.health.distribution.bueno}</p>
-                    <p className="text-xs font-bold uppercase text-muted-foreground">Buenos</p>
-                  </div>
-                  <div className="text-center border-x border-border">
-                    <p className="text-2xl font-bold text-amber-500">{data.health.distribution.medio}</p>
-                    <p className="text-xs font-bold uppercase text-muted-foreground">Medios</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-2xl font-bold text-red-500">{data.health.distribution.malo}</p>
-                    <p className="text-xs font-bold uppercase text-muted-foreground">Malos</p>
-                  </div>
+                <div className="mt-5 grid grid-cols-3 divide-x divide-border">
+                  {[
+                    { label: 'Buenos', value: data.health.distribution.bueno, dot: 'bg-success' },
+                    { label: 'Medios', value: data.health.distribution.medio, dot: 'bg-warning' },
+                    { label: 'Malos', value: data.health.distribution.malo, dot: 'bg-destructive' },
+                  ].map(item => (
+                    <div key={item.label} className="px-3 first:pl-0">
+                      <p className="text-2xl font-semibold tabular">{item.value}</p>
+                      <p className="mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground"><span className={`status-dot ${item.dot}`} />{item.label}</p>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
@@ -286,21 +229,20 @@ export default function AnalyticsDashboard() {
 
           {/* Critical Ranking */}
           <div className="glass-card overflow-hidden">
-            <div className="p-4 border-b border-border bg-muted/30 flex items-center justify-between">
-              <h3 className="font-bold flex items-center gap-2">
-                <AlertTriangle className="w-5 h-5 text-red-500" />
-                Equipos Críticos (Peor Estado de Salud)
-              </h3>
-              <span className="text-xs text-muted-foreground">Top 10 unidades que requieren atención prioritaria</span>
+            <div className="panel-header">
+              <div>
+                <h3 className="panel-title">Activos críticos</h3>
+                <p className="mt-0.5 text-xs text-muted-foreground">Las 10 unidades con peor score de salud.</p>
+              </div>
             </div>
             <div className="overflow-x-auto">
               <table className="table">
                 <thead>
                   <tr>
-                    <th>Equipo / Activo</th>
-                    <th className="text-center">Score Salud</th>
-                    <th className="text-center">Estado</th>
-                    <th className="text-center">KPI Alerta</th>
+                    <th>Activo</th>
+                    <th className="text-center">Score</th>
+                    <th className="hidden text-center sm:table-cell">Estado</th>
+                    <th className="hidden text-center md:table-cell">Alerta</th>
                     <th className="text-right">Acción</th>
                   </tr>
                 </thead>
@@ -308,30 +250,30 @@ export default function AnalyticsDashboard() {
                   {data.health.ranking.map((h, i) => (
                     <tr key={h.id}>
                       <td>
-                        <div className="font-bold">{h.id}</div>
+                        <div className="font-mono font-medium">{h.id}</div>
                         <div className="text-xs text-muted-foreground">{h.marca} {h.modelo}</div>
                       </td>
                       <td className="text-center">
                         <div className="flex items-center justify-center gap-2">
                           <div className="w-12 h-2 bg-muted rounded-full overflow-hidden">
                             <div 
-                              className={`h-full ${h.score > 80 ? 'bg-emerald-500' : h.score > 50 ? 'bg-amber-500' : 'bg-red-500'}`}
+                              className={`h-full ${h.score > 80 ? 'bg-success' : h.score > 50 ? 'bg-warning' : 'bg-destructive'}`}
                               style={{ width: `${h.score}%` }}
                             />
                           </div>
-                          <span className="text-sm font-mono">{h.score}</span>
+                          <span className="text-sm font-medium tabular">{h.score}</span>
                         </div>
                       </td>
-                      <td className="text-center">
-                        <span className={`badge border ${getStatusColor(h.status)}`}>
+                      <td className="hidden text-center sm:table-cell">
+                        <span className={`badge ${getStatusColor(h.status)}`}>
                           {h.status}
                         </span>
                       </td>
-                      <td className="text-center text-xs italic text-muted-foreground">
-                        {h.score < 50 ? 'MTTR Alto / MTBF Bajo' : 'Normal'}
+                      <td className="hidden text-center text-xs text-muted-foreground md:table-cell">
+                        {h.score < 50 ? 'MTTR alto / MTBF bajo' : 'Normal'}
                       </td>
                       <td className="text-right">
-                        <Link href={`/dispensers/${h.id}`} className="btn-ghost btn-sm text-primary">Ver Detalle</Link>
+                        <Link href={`/dispensers/${h.id}`} className="btn-ghost btn-sm text-primary">Ver ficha</Link>
                       </td>
                     </tr>
                   ))}
@@ -341,9 +283,7 @@ export default function AnalyticsDashboard() {
           </div>
         </>
       ) : (
-        <div className="text-center py-20 glass-card">
-          <p className="text-muted-foreground">No hay datos suficientes para generar analíticas.</p>
-        </div>
+        <EmptyState icon={HeartPulse} title="Sin datos suficientes" description="No hay información para calcular analíticas con los filtros aplicados." />
       )}
     </div>
   );

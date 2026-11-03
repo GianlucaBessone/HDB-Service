@@ -9,6 +9,12 @@ import Link from 'next/link';
 import { DashboardFilterProvider, useDashboardFilters } from '@/components/dashboard/FilterContext';
 import { useAuthStore } from '@/lib/store/useAuthStore';
 import clsx from 'clsx';
+import PageHeader from '@/components/ui/PageHeader';
+import Panel from '@/components/ui/Panel';
+import FilterBar, { FieldIcon } from '@/components/ui/FilterBar';
+import EmptyState from '@/components/ui/EmptyState';
+import ConfirmModal from '@/components/ConfirmModal';
+import { CHART, chartTooltip, chartAxis, areaFill } from '@/lib/chartTheme';
 import ReactECharts from 'echarts-for-react';
 import { useQuery } from '@tanstack/react-query';
 
@@ -19,6 +25,8 @@ function SaludContent() {
   const [isExporting, setIsExporting] = useState(false);
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [toDelete, setToDelete] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const { role } = useAuthStore();
 
   useEffect(() => {
@@ -58,21 +66,28 @@ function SaludContent() {
     }
   });
 
-  const handleDeleteDispenser = async (id: string, e: React.MouseEvent) => {
+  const handleDeleteDispenser = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!confirm('¿Está seguro de eliminar permanentemente este equipo?')) return;
+    setToDelete(id);
+  };
 
+  const confirmDelete = async () => {
+    if (!toDelete) return;
+    setIsDeleting(true);
     try {
-      const res = await fetch(`/api/dispensers/${id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/dispensers/${toDelete}`, { method: 'DELETE' });
       if (res.ok) {
-        toast.success('Equipo eliminado exitosamente');
+        toast.success('Activo eliminado');
         fetchAnalytics();
       } else {
-        const err = await res.json();
+        const err = await res.json().catch(() => ({}));
         toast.error(err.error || 'Error al eliminar');
       }
-    } catch (error) {
+    } catch {
       toast.error('Error de red al eliminar');
+    } finally {
+      setIsDeleting(false);
+      setToDelete(null);
     }
   };
 
@@ -109,180 +124,162 @@ function SaludContent() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'ÓPTIMO': return 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20';
-      case 'ESTABLE': return 'text-amber-500 bg-amber-500/10 border-amber-500/20';
-      case 'CRÍTICO': return 'text-red-500 bg-red-500/10 border-red-500/20';
-      default: return 'text-slate-500 bg-slate-500/10';
+      case 'ÓPTIMO': return 'text-success bg-success/10 border-success/20';
+      case 'ESTABLE': return 'text-warning bg-warning/10 border-warning/20';
+      case 'CRÍTICO': return 'text-destructive bg-destructive/10 border-destructive/20';
+      default: return 'text-muted-foreground bg-muted-foreground/10';
     }
   };
 
+  const STATUS_LABEL: Record<string, string> = { 'ÓPTIMO': 'Óptimo', 'ESTABLE': 'Estable', 'CRÍTICO': 'Crítico' };
+
+  const isStaff = role === 'ADMIN' || role === 'SUPERVISOR' || role === 'TECHNICIAN';
+
   return (
-    <div className="space-y-6 animate-fade-in pb-20">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3">
-            <HeartPulse className="w-8 h-8 text-emerald-500" />
-            Salud del Parque
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            Evaluación integral del estado, confiabilidad y ciclo de vida de los equipos.
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          {(role === 'ADMIN' || role === 'SUPERVISOR' || role === 'TECHNICIAN') && (
-            <button
-              onClick={exportReport}
-              disabled={isExporting}
-              className="btn-outline border-emerald-500/20 text-emerald-600 hover:bg-emerald-500/10 gap-2"
-            >
-              {isExporting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+    <div className="space-y-6 animate-fade-in">
+      <PageHeader
+        backHref="/dashboard"
+        backLabel="Dashboard"
+        title="Salud del parque"
+        description="Estado, confiabilidad y ciclo de vida de los activos."
+        actions={
+          isStaff && (
+            <button onClick={exportReport} disabled={isExporting} className="btn-outline">
+              {isExporting ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
               Exportar PDF
             </button>
-          )}
-          <Link href="/dashboard" className="btn-outline flex items-center gap-2">
-            <LayoutDashboard className="w-4 h-4" />
-            General
-          </Link>
-        </div>
-      </div>
+          )
+        }
+      />
 
-      {/* Dynamic Filters */}
-      <div className="glass-card p-4 flex flex-wrap gap-4 items-end">
-        {(role === 'ADMIN' || role === 'SUPERVISOR' || role === 'TECHNICIAN') && (
-          <div className="space-y-1.5 flex-1 min-w-[200px]">
-            <label className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-2">
-              <Building2 className="w-3 h-3" /> Cliente
-            </label>
+      <FilterBar>
+        {isStaff && (
+          <FieldIcon icon={Building2} className="lg:w-60">
             <select
-              className="select h-10"
+              className="select pl-9"
+              aria-label="Cliente"
               value={filters.clientId}
               onChange={(e) => { setFilter('clientId', e.target.value); setFilter('plantId', ''); }}
             >
-              <option value="">Todos los Clientes</option>
+              <option value="">Todos los clientes</option>
               {clients.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
             </select>
-          </div>
+          </FieldIcon>
         )}
-        <div className="space-y-1.5 flex-1 min-w-[200px]">
-          <label className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-2">
-            <MapPin className="w-3 h-3" /> Planta
-          </label>
-          <select
-            className="select h-10"
-            value={filters.plantId}
-            onChange={(e) => setFilter('plantId', e.target.value)}
-          >
-            <option value="">Todas las Plantas</option>
+        <FieldIcon icon={MapPin} className="lg:w-60">
+          <select className="select pl-9" aria-label="Planta" value={filters.plantId} onChange={(e) => setFilter('plantId', e.target.value)}>
+            <option value="">Todas las plantas</option>
             {plants.filter(p => !filters.clientId || p.clientId === filters.clientId).map(p => (
               <option key={p.id} value={p.id}>{p.nombre}</option>
             ))}
           </select>
-        </div>
-        <button onClick={clearFilters} className="btn-ghost text-muted-foreground h-10 text-xs font-bold uppercase">
-          Limpiar
-        </button>
-      </div>
+        </FieldIcon>
+        <button onClick={clearFilters} className="btn-ghost lg:ml-auto">Limpiar filtros</button>
+      </FilterBar>
 
       {isLoading ? (
-        <div className="flex flex-col items-center justify-center py-20 gap-4">
-          <RefreshCw className="w-10 h-10 animate-spin text-emerald-500" />
+        <div className="space-y-4" aria-busy="true">
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+            <div className="skeleton h-[200px] rounded-lg" />
+            <div className="skeleton h-[200px] rounded-lg lg:col-span-2" />
+          </div>
+          <div className="skeleton h-80 rounded-lg" />
         </div>
       ) : data ? (
         <>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-            <div className="glass-card p-8 flex flex-col justify-center">
-              <div className="flex h-12 w-full rounded-2xl overflow-hidden shadow-inner bg-muted">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+            <Panel title="Distribución por estado" bodyClassName="flex flex-col justify-center">
+              <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-muted">
                 <div
-                  className="h-full bg-emerald-500 transition-all duration-500"
+                  className="h-full bg-success transition-all duration-500"
                   style={{ width: `${(data.distribution.optimo / Math.max(1, data.distribution.optimo + data.distribution.estable + data.distribution.critico)) * 100}%` }}
                 />
                 <div
-                  className="h-full bg-amber-500 transition-all duration-500"
+                  className="h-full bg-warning transition-all duration-500"
                   style={{ width: `${(data.distribution.estable / Math.max(1, data.distribution.optimo + data.distribution.estable + data.distribution.critico)) * 100}%` }}
                 />
                 <div
-                  className="h-full bg-red-500 transition-all duration-500"
+                  className="h-full bg-destructive transition-all duration-500"
                   style={{ width: `${(data.distribution.critico / Math.max(1, data.distribution.optimo + data.distribution.estable + data.distribution.critico)) * 100}%` }}
                 />
               </div>
-              <div className="grid grid-cols-3 mt-6 gap-4">
-                <div className="text-center">
-                  <p className="text-3xl font-bold text-emerald-500">{data.distribution.optimo}</p>
-                  <p className="text-xs font-bold uppercase text-muted-foreground tracking-widest mt-1">Óptimos</p>
-                </div>
-                <div className="text-center border-x border-border">
-                  <p className="text-3xl font-bold text-amber-500">{data.distribution.estable}</p>
-                  <p className="text-xs font-bold uppercase text-muted-foreground tracking-widest mt-1">Estables</p>
-                </div>
-                <div className="text-center">
-                  <p className="text-3xl font-bold text-red-500">{data.distribution.critico}</p>
-                  <p className="text-xs font-bold uppercase text-muted-foreground tracking-widest mt-1">Críticos</p>
-                </div>
+              <div className="mt-5 grid grid-cols-3 divide-x divide-border">
+                {[
+                  { label: 'Óptimos', value: data.distribution.optimo, dot: 'bg-success' },
+                  { label: 'Estables', value: data.distribution.estable, dot: 'bg-warning' },
+                  { label: 'Críticos', value: data.distribution.critico, dot: 'bg-destructive' },
+                ].map(item => (
+                  <div key={item.label} className="px-3 first:pl-0">
+                    <p className="text-2xl font-semibold tabular">{item.value}</p>
+                    <p className="mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <span className={`status-dot ${item.dot}`} />{item.label}
+                    </p>
+                  </div>
+                ))}
               </div>
-            </div>
+            </Panel>
 
-            <div className="lg:col-span-2 glass-card p-4 flex flex-col h-[200px]">
-              <h3 className="font-bold mb-2 ml-2 text-sm text-muted-foreground uppercase">Evolución Score Global</h3>
-              <div className="flex-1 w-full min-h-0">
-                <ReactECharts 
-                  option={{
-                    tooltip: {
-                      trigger: 'axis',
-                      backgroundColor: 'rgba(15, 23, 42, 0.9)',
-                      borderColor: 'rgba(30, 41, 59, 1)',
-                      textStyle: { color: '#f8fafc', fontWeight: 'bold' },
+            <Panel
+              title="Evolución del score global"
+              description="Promedio de la flota al cierre de cada mes (últimos 6 meses)."
+              className="lg:col-span-2"
+              bodyClassName="h-[200px]"
+            >
+              <ReactECharts
+                option={{
+                  textStyle: { fontFamily: CHART.font },
+                  tooltip: {
+                    trigger: 'axis',
+                    ...chartTooltip,
+                    formatter: (params: any) => {
+                      const p = Array.isArray(params) ? params[0] : params;
+                      const point = data.timeline[p.dataIndex] || {};
+                      if (point.score === null || point.score === undefined) return `${p.name}<br/>Sin activos registrados`;
+                      return `${p.name}<br/>Score: <b>${point.score}</b><br/>Activos evaluados: ${point.assets ?? '—'}`;
                     },
-                    grid: { top: 10, right: 30, left: 30, bottom: 20 },
-                    xAxis: {
-                      type: 'category',
-                      data: data.timeline.map((d: any) => d.month),
-                      axisLine: { show: false },
-                      axisTick: { show: false },
-                      axisLabel: { color: '#94a3b8', fontSize: 12, margin: 10 },
-                    },
-                    yAxis: {
-                      type: 'value',
-                      min: 0,
-                      max: 100,
-                      splitLine: { lineStyle: { type: 'dashed', color: 'rgba(148, 163, 184, 0.2)' } },
-                      axisLabel: { color: '#94a3b8', fontSize: 12 },
-                    },
-                    series: [
-                      {
-                        name: 'Score',
-                        data: data.timeline.map((d: any) => d.score),
-                        type: 'line',
-                        smooth: true,
+                  },
+                  grid: { top: 8, right: 8, left: 4, bottom: 4, containLabel: true },
+                  xAxis: { type: 'category', data: data.timeline.map((d: any) => d.month), ...chartAxis, splitLine: { show: false } },
+                  yAxis: { type: 'value', min: 0, max: 100, ...chartAxis },
+                  series: [
+                    {
+                      name: 'Score',
+                      data: data.timeline.map((d: any) => d.score),
+                      type: 'line',
+                      symbol: 'circle',
+                      symbolSize: 5,
+                      connectNulls: false,
+                      itemStyle: { color: CHART.primary },
+                      lineStyle: { width: 2 },
+                      areaStyle: { color: areaFill(CHART.primary) },
+                      markLine: {
+                        silent: true,
                         symbol: 'none',
-                        itemStyle: { color: '#10b981' },
-                        lineStyle: { width: 3 },
-                        areaStyle: {
-                          color: {
-                            type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
-                            colorStops: [
-                              { offset: 0, color: 'rgba(16, 185, 129, 0.3)' },
-                              { offset: 1, color: 'rgba(16, 185, 129, 0)' }
-                            ],
-                          }
-                        }
-                      }
-                    ]
-                  }}
-                  style={{ height: '100%', width: '100%' }}
-                />
-              </div>
-            </div>
+                        label: { show: false },
+                        lineStyle: { type: 'dashed', width: 1, color: CHART.axis },
+                        data: [{ yAxis: 80 }, { yAxis: 50 }],
+                      },
+                    },
+                  ],
+                }}
+                style={{ height: '100%', width: '100%' }}
+              />
+            </Panel>
           </div>
 
           <div className="glass-card overflow-hidden">
-            <div className="p-4 border-b border-border bg-muted/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <h3 className="font-bold">Ranking de Salud de Equipos (Peor a Mejor)</h3>
-              <div className="relative w-full sm:w-auto min-w-[250px]">
+            <div className="panel-header">
+              <div>
+                <h3 className="panel-title">Ranking de salud</h3>
+                <p className="mt-0.5 text-xs text-muted-foreground">Ordenado de peor a mejor.</p>
+              </div>
+              <div className="relative w-full sm:w-72">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <input
-                  type="text"
-                  placeholder="Buscar ID, Marca, Modelo, Planta..."
-                  className="input pl-9 h-9 text-sm"
+                  type="search"
+                  aria-label="Buscar en el ranking"
+                  placeholder="Buscar ID, marca, modelo o planta…"
+                  className="input pl-9"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
@@ -293,10 +290,10 @@ function SaludContent() {
                 <thead>
                   <tr>
                     <th className="w-10"></th>
-                    <th className="text-left">ID / Serial</th>
-                    <th className="text-left">Modelo / Planta</th>
+                    <th className="text-left">ID / serial</th>
+                    <th className="hidden text-left md:table-cell">Modelo / planta</th>
                     <th className="text-center">Score</th>
-                    <th className="text-center">Estado</th>
+                    <th className="hidden text-center sm:table-cell">Estado</th>
                     <th className="text-right">Acción</th>
                   </tr>
                 </thead>
@@ -310,53 +307,48 @@ function SaludContent() {
                     <React.Fragment key={h.id}>
                       <tr className={`hover:bg-muted/30 transition-colors ${expandedRow === h.id ? 'bg-muted/20' : ''}`}>
                         <td className="w-10 text-center">
-                          <button onClick={() => setExpandedRow(expandedRow === h.id ? null : h.id)} className="p-2 hover:bg-muted rounded-lg">
+                          <button onClick={() => setExpandedRow(expandedRow === h.id ? null : h.id)} className="btn-icon btn-ghost h-8 w-8 sm:h-8 sm:w-8" aria-label="Ver indicadores">
                             {expandedRow === h.id ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
                           </button>
                         </td>
                         <td className="text-left">
                           <div className="flex items-center gap-2">
-                            <div className="font-bold">{h.id}</div>
+                            <div className="font-mono font-medium">{h.id}</div>
                             {h.equipmentType && (
-                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-semibold">
-                                {h.equipmentType === 'AIR_CONDITIONER' ? 'Aire Acond.' :
-                                 h.equipmentType === 'COLD_ROOM' ? 'Cámara Frig.' :
+                              <span className="badge-neutral">
+                                {h.equipmentType === 'AIR_CONDITIONER' ? 'Aire acond.' :
+                                 h.equipmentType === 'COLD_ROOM' ? 'Cámara frig.' :
                                  h.equipmentType === 'DISPENSER' ? 'Dispenser' :
                                  h.equipmentType === 'REFRIGERATOR' ? 'Heladera' :
                                  h.equipmentType === 'VENTILATION' ? 'Ventilación' : 'Equipo'}
                               </span>
                             )}
                             {h.details.ownerPlantId && h.details.currentPlantId && h.details.ownerPlantId !== h.details.currentPlantId && (
-                              <span className={clsx(
-                                "text-[8px] px-1.5 py-0.5 rounded-full font-bold border",
-                                session?.user?.plantIds?.includes(h.details.currentPlantId)
-                                  ? "bg-blue-100 text-blue-700 border-blue-200"
-                                  : "bg-purple-100 text-purple-700 border-purple-200"
-                              )}>
-                                {session?.user?.plantIds?.includes(h.details.currentPlantId) ? 'PRESTADO' : 'PRESTADO A OTRO'}
+                              <span className="badge-info">
+                                {session?.user?.plantIds?.includes(h.details.currentPlantId) ? 'Prestado' : 'Prestado a otra planta'}
                               </span>
                             )}
                           </div>
                           <div className="text-xs text-muted-foreground">{h.serial || 'S/N'}</div>
                         </td>
-                        <td className="text-left">
+                        <td className="hidden text-left md:table-cell">
                           <div className="font-medium text-sm">{h.marca} {h.modelo}</div>
                           <div className="text-xs text-muted-foreground">{h.planta}</div>
                         </td>
                         <td className="text-center">
                           <div className="flex items-center justify-center gap-3">
-                            <div className="w-16 h-2.5 bg-background rounded-full overflow-hidden border border-border/50 shadow-inner">
+                            <div className="hidden h-1.5 w-16 overflow-hidden rounded-full bg-muted sm:block">
                               <div
-                                className={`h-full transition-all duration-700 ${h.score > 80 ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : h.score >= 50 ? 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]' : 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]'}`}
+                                className={`h-full rounded-full ${h.score > 80 ? 'bg-success' : h.score >= 50 ? 'bg-warning' : 'bg-destructive'}`}
                                 style={{ width: `${h.score}%` }}
                               />
                             </div>
-                            <span className="font-mono font-bold text-sm min-w-[30px]">{h.score}</span>
+                            <span className="min-w-[30px] text-sm font-semibold tabular">{h.score}</span>
                           </div>
                         </td>
-                        <td className="text-center">
-                          <span className={`badge border text-xs px-2.5 py-0.5 ${getStatusColor(h.status)}`}>
-                            {h.status}
+                        <td className="hidden text-center sm:table-cell">
+                          <span className={`badge ${getStatusColor(h.status)}`}>
+                            {STATUS_LABEL[h.status] || h.status}
                           </span>
                         </td>
                         <td className="text-right">
@@ -364,32 +356,33 @@ function SaludContent() {
                             {role === 'ADMIN' && (
                               <button
                                 onClick={(e) => handleDeleteDispenser(h.id, e)}
-                                title="Eliminar Equipo"
-                                className="btn-ghost btn-sm text-red-500 hover:bg-red-500/10 p-2"
+                                title="Eliminar activo"
+                                aria-label="Eliminar activo"
+                                className="btn-ghost btn-sm text-destructive hover:bg-destructive/10 hover:text-destructive"
                               >
                                 <Trash2 className="w-4 h-4" />
                               </button>
                             )}
-                            <Link href={`/dispensers/${h.id}`} className="btn-ghost btn-sm text-emerald-600 font-medium">Ver Ficha</Link>
+                            <Link href={`/dispensers/${h.id}`} className="btn-ghost btn-sm text-primary">Ver ficha</Link>
                           </div>
                         </td>
                       </tr>
                       {expandedRow === h.id && (
-                        <tr className="bg-muted/10 border-b border-border shadow-inner">
+                        <tr className="bg-muted/30">
                           <td colSpan={6} className="p-0">
-                            <div className="p-6 grid grid-cols-2 md:grid-cols-5 gap-4">
+                            <div className="grid grid-cols-2 gap-4 p-4 sm:p-5 md:grid-cols-5">
                               <div className="space-y-1">
                                 <div className="relative group inline-flex items-center gap-1">
-                                  <span className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest">
+                                  <span className="eyebrow">
                                     MTBF
                                   </span>
                                   <Info className="w-3 h-3 text-muted-foreground/70 cursor-pointer" />
-                                  <div className="absolute bottom-full left-0 mb-2 w-48 p-2.5 bg-background/90 backdrop-blur-md border border-border rounded-xl shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 text-xs font-normal text-foreground normal-case tracking-normal">
+                                  <div className="absolute bottom-full left-0 mb-2 w-48 p-2.5 bg-popover border border-border rounded-md shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 text-xs font-normal text-foreground normal-case tracking-normal">
                                     Tiempo promedio entre fallas (Mean Time Between Failures).<br /><br />
                                     <span className="text-muted-foreground">Un número mayor indica mayor confiabilidad.</span>
                                   </div>
                                 </div>
-                                <p className="text-lg font-bold">
+                                <p className="text-lg font-semibold tabular">
                                   {h.details.mtbfDays > 30 ? (
                                     <>{h.details.mtbfMonths} <span className="text-xs text-muted-foreground font-normal">meses</span></>
                                   ) : (
@@ -400,58 +393,58 @@ function SaludContent() {
 
                               <div className="space-y-1">
                                 <div className="relative group inline-flex items-center gap-1">
-                                  <span className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest">
+                                  <span className="eyebrow">
                                     MTTR
                                   </span>
                                   <Info className="w-3 h-3 text-muted-foreground/70 cursor-pointer" />
-                                  <div className="absolute bottom-full left-0 mb-2 w-48 p-2.5 bg-background/90 backdrop-blur-md border border-border rounded-xl shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 text-xs font-normal text-foreground normal-case tracking-normal">
+                                  <div className="absolute bottom-full left-0 mb-2 w-48 p-2.5 bg-popover border border-border rounded-md shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 text-xs font-normal text-foreground normal-case tracking-normal">
                                     Tiempo promedio de reparación (Mean Time To Repair).<br /><br />
                                     <span className="text-muted-foreground">Calculado desde la creación hasta la resolución del ticket.</span>
                                   </div>
                                 </div>
-                                <p className="text-lg font-bold">{h.details.mttrHours} <span className="text-xs text-muted-foreground font-normal">hs</span></p>
+                                <p className="text-lg font-semibold tabular">{h.details.mttrHours} <span className="text-xs text-muted-foreground font-normal">hs</span></p>
                               </div>
 
                               <div className="space-y-1">
                                 <div className="relative group inline-flex items-center gap-1">
-                                  <span className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest">
+                                  <span className="eyebrow">
                                     Reincidencias
                                   </span>
                                   <Info className="w-3 h-3 text-muted-foreground/70 cursor-pointer" />
-                                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2.5 bg-background/90 backdrop-blur-md border border-border rounded-xl shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 text-xs font-normal text-foreground normal-case tracking-normal">
+                                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2.5 bg-popover border border-border rounded-md shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 text-xs font-normal text-foreground normal-case tracking-normal">
                                     Fallas reportadas y reparadas en los últimos 6 meses.<br /><br />
                                     <span className="text-muted-foreground">Se asocia a la estabilidad a corto plazo.</span>
                                   </div>
                                 </div>
-                                <p className="text-lg font-bold">{h.details.recurrences}</p>
+                                <p className="text-lg font-semibold tabular">{h.details.recurrences}</p>
                               </div>
 
                               <div className="space-y-1">
                                 <div className="relative group inline-flex items-center gap-1">
-                                  <span className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest">
+                                  <span className="eyebrow">
                                     Cond. Gral
                                   </span>
                                   <Info className="w-3 h-3 text-muted-foreground/70 cursor-pointer" />
-                                  <div className="absolute bottom-full right-0 mb-2 w-48 p-2.5 bg-background/90 backdrop-blur-md border border-border rounded-xl shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 text-xs font-normal text-foreground normal-case tracking-normal">
+                                  <div className="absolute bottom-full right-0 mb-2 w-48 p-2.5 bg-popover border border-border rounded-md shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 text-xs font-normal text-foreground normal-case tracking-normal">
                                     Promedio de condición (1-100%).<br /><br />
                                     <span className="text-muted-foreground">Recolectado por técnicos durante rutinas de mantenimiento preventivo.</span>
                                   </div>
                                 </div>
-                                <p className="text-lg font-bold">{h.details.condition}%</p>
+                                <p className="text-lg font-semibold tabular">{h.details.condition}%</p>
                               </div>
 
                               <div className="space-y-1">
                                 <div className="relative group inline-flex items-center gap-1">
-                                  <span className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest">
-                                    Vida Útil Cons.
+                                  <span className="eyebrow">
+                                    Vida útil cons.
                                   </span>
                                   <Info className="w-3 h-3 text-muted-foreground/70 cursor-pointer" />
-                                  <div className="absolute bottom-full right-0 mb-2 w-48 p-2.5 bg-background/90 backdrop-blur-md border border-border rounded-xl shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 text-xs font-normal text-foreground normal-case tracking-normal">
+                                  <div className="absolute bottom-full right-0 mb-2 w-48 p-2.5 bg-popover border border-border rounded-md shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 text-xs font-normal text-foreground normal-case tracking-normal">
                                     Porcentaje de la vida teórica total consumida.<br /><br />
                                     <span className="text-muted-foreground">Calculado según meses de uso vs vida teórica del equipo.</span>
                                   </div>
                                 </div>
-                                <p className="text-lg font-bold">{h.details.progress}%</p>
+                                <p className="text-lg font-semibold tabular">{h.details.progress}%</p>
                               </div>
                             </div>
                           </td>
@@ -464,7 +457,21 @@ function SaludContent() {
             </div>
           </div>
         </>
-      ) : null}
+      ) : (
+        <EmptyState icon={HeartPulse} title="No se pudieron cargar los datos" description="Intentá nuevamente en unos minutos." />
+      )}
+
+      {toDelete && (
+        <ConfirmModal
+          title="Eliminar activo"
+          description={`¿Eliminar el activo ${toDelete}? Esta acción no se puede deshacer.`}
+          confirmLabel="Eliminar"
+          onConfirm={confirmDelete}
+          onClose={() => setToDelete(null)}
+          isLoading={isDeleting}
+          variant="danger"
+        />
+      )}
     </div>
   );
 }

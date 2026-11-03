@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { X, Loader2, QrCode, Ticket, AlertTriangle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import clsx from 'clsx';
+import Switch from '@/components/ui/Switch';
 import ReasonCombobox from './ReasonCombobox';
 import { extractDispenserId } from '@/lib/qr';
 
@@ -119,21 +120,18 @@ export default function CreateTicketModal({ initialDispenserId = '', onClose, on
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-card rounded-2xl shadow-2xl border border-border w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-muted/30">
-          <h2 className="text-lg font-bold flex items-center gap-2">
-            <Ticket className="w-5 h-5 text-primary" />
-            Nuevo Ticket de Soporte
-          </h2>
-          <button onClick={onClose} className="p-2 hover:bg-accent rounded-full transition-colors text-muted-foreground">
-            <X className="w-5 h-5" />
+    <div className="modal-overlay">
+      <div className="modal-content max-w-md" onClick={e => e.stopPropagation()}>
+        <div className="modal-header">
+          <h2>Nuevo ticket</h2>
+          <button type="button" onClick={onClose} className="modal-close" aria-label="Cerrar">
+            <X className="h-4 w-4" />
           </button>
         </div>
         <form onSubmit={handleSubmit}>
-          <div className="px-6 py-4 space-y-4">
+          <div className="modal-body space-y-4">
             <div>
-              <label className="text-sm font-semibold mb-1 block">Identificador del Activo / Equipo *</label>
+              <label className="label mb-1.5">ID del activo <span className="text-destructive">*</span></label>
               <div className="flex gap-2">
                 <input
                   className="input uppercase flex-1 font-mono font-bold"
@@ -146,19 +144,21 @@ export default function CreateTicketModal({ initialDispenserId = '', onClose, on
                   <button 
                     type="button" 
                     onClick={() => setIsScanning(!isScanning)}
-                    className={clsx('p-2 h-10 w-10 rounded-lg border flex items-center justify-center transition-all', isScanning ? 'bg-primary/10 text-primary border-primary/50' : 'btn-outline')}
+                    className={clsx('btn-icon border', isScanning ? 'bg-primary/10 text-primary border-primary/40' : 'btn-outline')}
+                    aria-label="Escanear QR"
+                    title="Escanear QR"
                   >
                     <QrCode className="w-5 h-5" />
                   </button>
                 )}
               </div>
               {isScanning && (
-                <div className="mt-3 border rounded-xl overflow-hidden bg-black aspect-square max-w-[250px] mx-auto">
+                <div className="mx-auto mt-3 aspect-square max-w-[260px] overflow-hidden rounded-lg border border-border bg-black">
                   <div id="reader" className="w-full"></div>
                 </div>
               )}
               {detectedAsset && (
-                <div className="mt-2 p-2.5 rounded-lg border border-primary/20 bg-primary/5 flex items-center justify-between text-xs animate-in fade-in">
+                <div className="mt-2 flex items-center justify-between gap-2 rounded-md border border-border bg-muted/50 p-2.5 text-xs">
                   <div className="flex items-center gap-2">
                     {(() => {
                       const Icon = getEquipmentTypeIcon(detectedAsset.equipmentType);
@@ -172,7 +172,7 @@ export default function CreateTicketModal({ initialDispenserId = '', onClose, on
                         {detectedAsset.marca} {detectedAsset.modelo}
                       </span>
                       {detectedAsset.location?.nombre && (
-                        <p className="text-[11px] text-muted-foreground">
+                        <p className="text-2xs text-muted-foreground">
                           {detectedAsset.location.plant?.nombre} — {detectedAsset.location.nombre}
                         </p>
                       )}
@@ -180,9 +180,9 @@ export default function CreateTicketModal({ initialDispenserId = '', onClose, on
                   </div>
                   {detectedAsset.criticality && (
                     <span className={clsx(
-                      'px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider',
-                      detectedAsset.criticality === 'CRITICAL' ? 'bg-red-100 text-red-700 dark:bg-red-950/40 dark:text-red-400' :
-                      detectedAsset.criticality === 'HIGH' ? 'bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400' :
+                      'badge',
+                      detectedAsset.criticality === 'CRITICAL' ? 'bg-destructive/10 text-destructive' :
+                      detectedAsset.criticality === 'HIGH' ? 'bg-warning/10 text-warning' :
                       'bg-muted text-muted-foreground'
                     )}>
                       {detectedAsset.criticality}
@@ -192,7 +192,7 @@ export default function CreateTicketModal({ initialDispenserId = '', onClose, on
               )}
             </div>
             <div>
-              <label className="text-sm font-semibold mb-1 block">Motivo *</label>
+              <label className="label mb-1.5">Motivo <span className="text-destructive">*</span></label>
               <ReasonCombobox
                 value={form.reason}
                 onChange={(val: string) => setForm(p => ({ ...p, reason: val }))}
@@ -200,28 +200,29 @@ export default function CreateTicketModal({ initialDispenserId = '', onClose, on
               />
             </div>
             <div>
-              <label className="text-sm font-semibold mb-1 block">Descripción</label>
+              <label className="label mb-1.5">Descripción</label>
               <textarea
                 className="textarea"
                 rows={3}
-                placeholder="Detalles adicionales del problema..."
+                placeholder="Detalle del problema, síntomas, horario…"
                 value={form.description}
                 onChange={e => setForm(p => ({ ...p, description: e.target.value }))}
               />
             </div>
             <div>
-              <label className="text-sm font-semibold mb-1 block">Prioridad</label>
-              <div className="grid grid-cols-2 gap-2">
+              <label className="label mb-1.5">Prioridad</label>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                 {['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'].map(p => (
                   <button
                     key={p}
                     type="button"
                     onClick={() => setForm(f => ({ ...f, priority: p }))}
+                    aria-pressed={form.priority === p}
                     className={clsx(
-                      'px-3 py-2 rounded-lg border text-xs font-bold transition-all',
-                      form.priority === p 
-                        ? 'bg-primary/10 border-primary text-primary' 
-                        : 'border-border bg-muted/20 text-muted-foreground hover:bg-muted'
+                      'min-h-[40px] rounded-md border px-3 text-sm font-medium transition-colors sm:min-h-[36px]',
+                      form.priority === p
+                        ? 'border-primary bg-primary/10 text-primary'
+                        : 'border-input bg-card text-muted-foreground hover:bg-accent hover:text-foreground'
                     )}
                   >
                     {p === 'LOW' ? 'Baja' : p === 'MEDIUM' ? 'Media' : p === 'HIGH' ? 'Alta' : 'Crítica'}
@@ -230,67 +231,46 @@ export default function CreateTicketModal({ initialDispenserId = '', onClose, on
               </div>
             </div>
 
-            {/* Notification Preferences */}
-            <div className="pt-2 pb-1 border-t border-border mt-4">
-              <label className="flex items-center justify-between cursor-pointer">
-                <span className="text-sm font-semibold">Recibir notificaciones al respecto</span>
-                <div className="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
-                  <input 
-                    type="checkbox" 
-                    name="toggle" 
-                    id="toggle-push" 
-                    className="toggle-checkbox absolute block w-5 h-5 rounded-full bg-white border-4 border-muted appearance-none cursor-pointer transition-transform duration-200 ease-in-out"
-                    style={{ transform: form.wantsPushNotifications ? 'translateX(100%)' : 'translateX(0)', borderColor: form.wantsPushNotifications ? '#0b8296' : '' }}
-                    checked={form.wantsPushNotifications}
-                    onChange={(e) => {
-                      const checked = e.target.checked;
-                      setForm(p => ({ ...p, wantsPushNotifications: checked }));
-                      // Note: OneSignal subscription check will be handled fully later, 
-                      // but we can prompt the browser permission now if needed.
-                      if (checked && typeof window !== 'undefined' && window.OneSignal) {
-                        window.OneSignal.Slidedown.promptPush();
-                      }
-                    }}
-                  />
-                  <label htmlFor="toggle-push" className={`toggle-label block overflow-hidden h-5 rounded-full cursor-pointer transition-colors duration-200 ease-in-out ${form.wantsPushNotifications ? 'bg-primary' : 'bg-muted'}`}></label>
-                </div>
-              </label>
+            {/* Preferencias de notificación */}
+            <div className="space-y-3 border-t border-border pt-4">
+              <Switch
+                id="toggle-push"
+                label="Recibir notificaciones de este ticket"
+                checked={form.wantsPushNotifications}
+                onChange={(checked) => {
+                  setForm(p => ({ ...p, wantsPushNotifications: checked }));
+                  if (checked && typeof window !== 'undefined' && window.OneSignal) {
+                    window.OneSignal.Slidedown.promptPush();
+                  }
+                }}
+              />
 
               {form.wantsPushNotifications && (
-                <div className="mt-4 pl-4 border-l-2 border-primary/30 animate-in fade-in slide-in-from-top-2">
-                  <label className="flex items-center justify-between cursor-pointer">
-                    <span className="text-sm">También en mi email</span>
-                    <div className="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
-                      <input 
-                        type="checkbox" 
-                        name="toggle-email" 
-                        id="toggle-email" 
-                        className="toggle-checkbox absolute block w-5 h-5 rounded-full bg-white border-4 border-muted appearance-none cursor-pointer transition-transform duration-200 ease-in-out"
-                        style={{ transform: form.wantsEmailNotifications ? 'translateX(100%)' : 'translateX(0)', borderColor: form.wantsEmailNotifications ? '#0b8296' : '' }}
-                        checked={form.wantsEmailNotifications}
-                        onChange={(e) => setForm(p => ({ ...p, wantsEmailNotifications: e.target.checked }))}
-                      />
-                      <label htmlFor="toggle-email" className={`toggle-label block overflow-hidden h-5 rounded-full cursor-pointer transition-colors duration-200 ease-in-out ${form.wantsEmailNotifications ? 'bg-primary' : 'bg-muted'}`}></label>
-                    </div>
-                  </label>
-                  
-                  {/* Warning if OneSignal is not active (basic check for now) */}
-                  <div className="mt-3 flex items-start gap-2 text-xs text-amber-600 bg-amber-50 p-2 rounded-md border border-amber-200">
-                    <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                <div className="space-y-3 border-l-2 border-border pl-4">
+                  <Switch
+                    id="toggle-email"
+                    label="También por correo electrónico"
+                    checked={form.wantsEmailNotifications}
+                    onChange={(checked) => setForm(p => ({ ...p, wantsEmailNotifications: checked }))}
+                  />
+                  <div className="flex items-start gap-2 rounded-md border border-border bg-muted/50 p-2.5 text-xs text-muted-foreground">
+                    <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
                     <p>
-                      Asegúrate de haber permitido las notificaciones en tu navegador. Si no estás seguro, 
-                      <button type="button" onClick={() => window.OneSignal?.Slidedown.promptPush()} className="font-bold underline ml-1">actívalas aquí</button>.
+                      Verificá que el navegador tenga permitidas las notificaciones.{' '}
+                      <button type="button" onClick={() => window.OneSignal?.Slidedown.promptPush()} className="font-medium text-primary underline-offset-2 hover:underline">
+                        Activar permisos
+                      </button>
                     </p>
                   </div>
                 </div>
               )}
             </div>
           </div>
-          <div className="px-6 py-4 border-t border-border bg-muted/30 flex items-center justify-end gap-3">
+          <div className="modal-footer">
             <button type="button" onClick={onClose} className="btn-outline">Cancelar</button>
             <button type="submit" disabled={saving} className="btn-primary gap-2 px-6">
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Ticket className="w-4 h-4" />}
-              Crear Ticket
+              Crear ticket
             </button>
           </div>
         </form>

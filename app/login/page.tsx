@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react';
 import { createClient, isSupabaseConfigured } from '@/utils/supabase/client';
 import { useRouter } from 'next/navigation';
-import { Layers, Lock, Mail, Loader2, AlertTriangle } from 'lucide-react';
+import { Lock, Mail, Loader2, AlertTriangle, Eye, EyeOff } from 'lucide-react';
+import AuthLayout from '@/components/AuthLayout';
 import toast from 'react-hot-toast';
 
 export default function LoginScreen() {
@@ -13,6 +14,7 @@ export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     if (!isConfigured) return;
@@ -58,7 +60,7 @@ export default function LoginScreen() {
         if (res.ok) {
           const sessionData = await res.json();
           if (sessionData?.user) {
-            toast.success('¡Bienvenido!');
+            toast.success('Sesión iniciada');
             router.push('/');
             router.refresh();
           } else {
@@ -79,94 +81,83 @@ export default function LoginScreen() {
   };
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-background relative overflow-hidden">
-      {/* Background decoration */}
-      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/20 blur-[120px] rounded-full mix-blend-multiply dark:mix-blend-screen animate-pulse-soft" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-cyan-500/20 blur-[120px] rounded-full mix-blend-multiply dark:mix-blend-screen animate-pulse-soft" style={{ animationDelay: '1s' }} />
+    <AuthLayout>
+      <div className="mb-8">
+        <h1 className="text-2xl font-semibold text-foreground">Iniciar sesión</h1>
+        <p className="mt-1.5 text-sm text-muted-foreground">
+          Ingresá con el usuario provisto por tu administrador.
+        </p>
+      </div>
 
-      <div className="w-full max-w-md p-8 glass-card z-10 relative border-t border-l border-white/20 dark:border-white/5">
-        <div className="flex flex-col items-center mb-8">
-          <div className="w-16 h-16 bg-gradient-to-br from-primary to-cyan-400 rounded-2xl flex items-center justify-center shadow-lg mb-6 rotate-3 hover:rotate-0 transition-transform">
-            <Layers className="w-8 h-8 text-white fill-white/20" />
+      {!isConfigured && (
+        <div className="mb-6 flex items-start gap-3 rounded-lg border border-warning/30 bg-warning/10 p-4 text-sm">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
+          <div className="min-w-0 space-y-1.5">
+            <p className="font-semibold text-foreground">Configuración de Supabase requerida</p>
+            <p className="text-xs leading-relaxed text-muted-foreground">
+              Creá un archivo <code className="rounded bg-muted px-1 py-0.5">.env.local</code> con las credenciales:
+            </p>
+            <pre className="overflow-x-auto rounded-md border border-border bg-card p-2 text-2xs text-foreground">
+NEXT_PUBLIC_SUPABASE_URL=&quot;https://[id].supabase.co&quot;{'\n'}NEXT_PUBLIC_SUPABASE_ANON_KEY=&quot;[clave-anon]&quot;
+            </pre>
           </div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">HDB Service</h1>
-          <p className="text-muted-foreground mt-2 text-center text-sm">
-            Gestión Integral de Servicios y Activos
-          </p>
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} className="space-y-5" noValidate={false}>
+        <div className="space-y-1.5">
+          <label htmlFor="email" className="label">Correo electrónico</label>
+          <div className="relative">
+            <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="input h-11 pl-10 sm:h-10"
+              placeholder="usuario@empresa.com"
+              required
+              autoComplete="email"
+              inputMode="email"
+              disabled={isLoading}
+            />
+          </div>
         </div>
 
-        {!isConfigured && (
-          <div className="p-4 mb-6 rounded-2xl bg-amber-500/10 border border-amber-500/25 text-amber-600 dark:text-amber-400 text-xs flex items-start gap-3 shadow-sm animate-fade-in">
-            <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5 text-amber-500" />
-            <div className="space-y-1">
-              <p className="font-semibold text-sm">Configuración de Supabase requerida</p>
-              <p className="text-muted-foreground text-xs leading-relaxed">
-                Para iniciar sesión, crea un archivo <code className="bg-amber-500/20 px-1 py-0.5 rounded font-mono font-medium">.env.local</code> con tus credenciales de Supabase:
-              </p>
-              <div className="bg-background/80 dark:bg-background/40 p-2 rounded-lg font-mono text-[11px] text-foreground border border-border mt-1">
-                NEXT_PUBLIC_SUPABASE_URL="https://[id].supabase.co"<br />
-                NEXT_PUBLIC_SUPABASE_ANON_KEY="[tu-clave-anon]"
-              </div>
-            </div>
+        <div className="space-y-1.5">
+          <label htmlFor="password" className="label">Contraseña</label>
+          <div className="relative">
+            <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <input
+              id="password"
+              type={showPassword ? 'text' : 'password'}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="input h-11 pl-10 pr-11 sm:h-10"
+              placeholder="••••••••"
+              required
+              autoComplete="current-password"
+              disabled={isLoading}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(v => !v)}
+              className="absolute right-1 top-1/2 inline-flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground hover:text-foreground"
+              aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+            >
+              {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </button>
           </div>
-        )}
+        </div>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <div className="space-y-1">
-            <label className="text-sm font-medium text-foreground ml-1">Email</label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Mail className="h-5 w-5 text-muted-foreground" />
-              </div>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="input pl-10 h-12 bg-background/50 focus:bg-background"
-                placeholder="usuario@empresa.com"
-                required
-                autoComplete="email"
-                disabled={isLoading}
-              />
-            </div>
-          </div>
+        <button type="submit" disabled={isLoading} className="btn-primary h-11 w-full sm:h-10">
+          {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Ingresar'}
+        </button>
+      </form>
 
-          <div className="space-y-1">
-            <label className="text-sm font-medium text-foreground ml-1">Contraseña</label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Lock className="h-5 w-5 text-muted-foreground" />
-              </div>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="input pl-10 h-12 bg-background/50 focus:bg-background"
-                placeholder="••••••••"
-                required
-                autoComplete="current-password"
-                disabled={isLoading}
-              />
-            </div>
-          </div>
-
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="w-full h-12 btn-primary text-base mt-2 shadow-primary/25 shadow-lg relative overflow-hidden group"
-          >
-            {isLoading ? (
-              <Loader2 className="w-5 h-5 animate-spin" />
-            ) : (
-              <span className="relative z-10 flex items-center justify-center gap-2">
-                Iniciar Sesión
-              </span>
-            )}
-            {/* Button hover effect */}
-            <div className="absolute inset-0 h-full w-full bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]" />
-          </button>
-        </form>
-      </div>
-    </div>
+      <p className="mt-8 text-xs text-muted-foreground">
+        ¿Problemas para ingresar? Contactá al administrador de tu empresa.
+      </p>
+    </AuthLayout>
   );
 }

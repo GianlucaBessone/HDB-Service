@@ -45,10 +45,10 @@ export default function AuthConfirmPage() {
   }, [supabase, router, searchParams]);
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-background">
-      <div className="flex flex-col items-center gap-4">
-        <Loader2 className="w-10 h-10 animate-spin text-primary" />
-        <p className="text-muted-foreground animate-pulse">Confirmando acceso...</p>
+    <div className="flex min-h-dvh w-full items-center justify-center bg-background">
+      <div className="flex items-center gap-3 text-sm text-muted-foreground">
+        <Loader2 className="h-5 w-5 animate-spin" />
+        Confirmando acceso…
       </div>
     </div>
   );

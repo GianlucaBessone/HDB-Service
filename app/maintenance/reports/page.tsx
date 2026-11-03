@@ -5,6 +5,10 @@ import { Loader2, FileSpreadsheet, Search, LayoutGrid } from 'lucide-react';
 import toast from 'react-hot-toast';
 import * as XLSX from 'xlsx';
 import { t, getStatusColor } from '@/lib/translations';
+import Link from 'next/link';
+import { Wrench, FileText, FileSignature } from 'lucide-react';
+import PageHeader from '@/components/ui/PageHeader';
+import EmptyState from '@/components/ui/EmptyState';
 
 export default function MaintenanceReportsPage() {
   const [startMonth, setStartMonth] = useState('');
@@ -146,118 +150,99 @@ export default function MaintenanceReportsPage() {
     XLSX.writeFile(workbook, `Reporte_HDB_${startMonth}_a_${endMonth}.xlsx`);
   };
 
+  const fieldCls = 'select';
   return (
-    <div className="space-y-6 animate-fade-in pb-10">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3">
-            <LayoutGrid className="w-8 h-8 text-primary" />
-            Matriz de Mantenimiento
-          </h1>
-          <p className="text-muted-foreground mt-1">Reporte de cumplimiento y estado de flota por periodo.</p>
-        </div>
-      </div>
+    <div className="space-y-6 animate-fade-in">
+      <PageHeader
+        title="Matriz de mantenimiento"
+        description="Cumplimiento y estado de la flota por período."
+        actions={
+          reportData.length > 0 && (
+            <button onClick={handleExportExcel} className="btn-outline">
+              <FileSpreadsheet className="h-4 w-4" />
+              Exportar Excel
+            </button>
+          )
+        }
+      />
 
-      <div className="glass-card p-6 bg-muted/20">
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 items-end">
-          
-          <div className="lg:col-span-1">
-            <label className="text-xs font-semibold uppercase text-muted-foreground mb-1.5 block">Desde</label>
-            <input type="month" value={startMonth} onChange={e => setStartMonth(e.target.value)} className="w-full px-3 py-2 bg-background border border-border rounded-lg outline-none focus:ring-2 focus:ring-primary/20" />
-          </div>
-          
-          <div className="lg:col-span-1">
-            <label className="text-xs font-semibold uppercase text-muted-foreground mb-1.5 block">Hasta</label>
-            <input type="month" value={endMonth} onChange={e => setEndMonth(e.target.value)} className="w-full px-3 py-2 bg-background border border-border rounded-lg outline-none focus:ring-2 focus:ring-primary/20" />
-          </div>
+      <nav className="tabs" aria-label="Secciones de mantenimiento">
+        <Link href="/maintenance" className="tab"><Wrench className="h-4 w-4" /> Planificación</Link>
+        <Link href="/maintenance/approvals" className="tab"><FileSignature className="h-4 w-4" /> Firmas</Link>
+        <span className="tab-active" aria-current="page"><FileText className="h-4 w-4" /> Reportes</span>
+      </nav>
 
-          <div className="lg:col-span-1">
-            <label className="text-xs font-semibold uppercase text-muted-foreground mb-1.5 block">Cliente</label>
-            <select 
-              value={clientId} 
-              onChange={e => { setClientId(e.target.value); setPlantId(''); setSectorId(''); }} 
-              className="w-full px-3 py-2 bg-background border border-border rounded-lg outline-none focus:ring-2 focus:ring-primary/20"
-            >
-              <option value="">Todos los Clientes</option>
+      <div className="glass-card p-4">
+        <div className="grid grid-cols-2 items-end gap-3 md:grid-cols-3 lg:grid-cols-6">
+          <div>
+            <label className="label mb-1.5">Desde</label>
+            <input type="month" value={startMonth} onChange={e => setStartMonth(e.target.value)} className="input" />
+          </div>
+          <div>
+            <label className="label mb-1.5">Hasta</label>
+            <input type="month" value={endMonth} onChange={e => setEndMonth(e.target.value)} className="input" />
+          </div>
+          <div className="col-span-2 md:col-span-1">
+            <label className="label mb-1.5">Cliente</label>
+            <select value={clientId} onChange={e => { setClientId(e.target.value); setPlantId(''); setSectorId(''); }} className={fieldCls}>
+              <option value="">Todos los clientes</option>
               {clientsData.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
             </select>
           </div>
-
-          <div className="lg:col-span-1">
-            <label className="text-xs font-semibold uppercase text-muted-foreground mb-1.5 block">Planta</label>
-            <select 
-              value={plantId} 
-              onChange={e => { setPlantId(e.target.value); setSectorId(''); }} 
-              className="w-full px-3 py-2 bg-background border border-border rounded-lg outline-none focus:ring-2 focus:ring-primary/20 disabled:opacity-50"
-              disabled={availablePlants.length === 0}
-            >
-              <option value="">Todas las Plantas</option>
+          <div>
+            <label className="label mb-1.5">Planta</label>
+            <select value={plantId} onChange={e => { setPlantId(e.target.value); setSectorId(''); }} className={fieldCls} disabled={availablePlants.length === 0}>
+              <option value="">Todas las plantas</option>
               {availablePlants.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
             </select>
           </div>
-
-          <div className="lg:col-span-1">
-            <label className="text-xs font-semibold uppercase text-muted-foreground mb-1.5 block">Sector</label>
-            <select 
-              value={sectorId} 
-              onChange={e => setSectorId(e.target.value)} 
-              className="w-full px-3 py-2 bg-background border border-border rounded-lg outline-none focus:ring-2 focus:ring-primary/20 disabled:opacity-50"
-              disabled={sectorsData.length === 0}
-            >
-              <option value="">Todos los Sectores</option>
+          <div>
+            <label className="label mb-1.5">Sector</label>
+            <select value={sectorId} onChange={e => setSectorId(e.target.value)} className={fieldCls} disabled={sectorsData.length === 0}>
+              <option value="">Todos los sectores</option>
               {sectorsData.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
             </select>
           </div>
-
-          <button onClick={handleGenerate} disabled={isLoading} className="btn-primary w-full flex items-center justify-center gap-2 py-2.5">
-            {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
-            Filtrar
+          <button onClick={handleGenerate} disabled={isLoading} className="btn-primary col-span-2 md:col-span-1">
+            {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+            Generar reporte
           </button>
         </div>
       </div>
 
-      {reportData.length > 0 && (
-        <div className="glass-card flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <div className="p-4 border-b border-border flex flex-col md:flex-row justify-between items-center gap-4 bg-muted/30">
-            <h2 className="font-bold text-lg">Reporte de Flota ({reportData.length} unidades)</h2>
-            <button onClick={handleExportExcel} className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg hover:bg-emerald-100 transition-colors text-sm font-semibold">
-              <FileSpreadsheet className="w-4 h-4" />
-              Exportar Excel
-            </button>
+      {reportData.length > 0 ? (
+        <div className="glass-card overflow-hidden animate-fade-in">
+          <div className="flex items-center justify-between border-b border-border px-4 py-2.5">
+            <h2 className="panel-title">Reporte de flota</h2>
+            <span className="text-xs text-muted-foreground tabular">{reportData.length} unidades</span>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left border-collapse">
+            <table className="table">
               <thead>
-                <tr className="bg-muted/50 text-muted-foreground uppercase text-[10px] font-bold tracking-widest border-b border-border">
-                  <th className="px-6 py-4 sticky left-0 bg-muted/50 z-10">Equipo / Activo</th>
-                  <th className="px-6 py-4">Ubicación</th>
+                <tr>
+                  <th className="sticky left-0 z-10 bg-muted">Activo</th>
+                  <th className="min-w-[180px]">Ubicación</th>
                   {matrixMonths.map(m => (
-                    <th key={m} className="px-4 py-4 text-center border-l border-border min-w-[120px]">{m}</th>
+                    <th key={m} className="min-w-[110px] border-l border-border text-center">{m}</th>
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-border">
+              <tbody>
                 {reportData.map((row) => (
-                  <tr key={row.id} className="hover:bg-accent/20 transition-colors">
-                    <td className="px-6 py-4 font-bold text-foreground sticky left-0 bg-background/80 backdrop-blur-sm z-10 border-r border-border/50">
-                      {row.id}
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex flex-col">
-                        <span className="font-semibold text-primary/80">{row.plant}</span>
-                        <span className="text-xs text-muted-foreground">{row.sector} - {row.location}</span>
-                      </div>
+                  <tr key={row.id}>
+                    <td className="sticky left-0 z-10 border-r border-border bg-card font-mono font-medium">{row.id}</td>
+                    <td>
+                      <div className="font-medium">{row.plant}</div>
+                      <div className="text-xs text-muted-foreground">{row.sector} · {row.location}</div>
                     </td>
                     {matrixMonths.map(m => {
                       const status = row.months[m];
                       return (
-                        <td key={m} className="px-4 py-4 text-center border-l border-border/50">
+                        <td key={m} className="border-l border-border text-center">
                           {status ? (
-                            <span className={`inline-flex items-center px-2 py-1 rounded text-[10px] font-bold ${getStatusColor(status)}`}>
-                              {t(status)}
-                            </span>
+                            <span className={`badge ${getStatusColor(status)}`}>{t(status)}</span>
                           ) : (
-                            <span className="text-muted-foreground/20 text-xs">—</span>
+                            <span className="text-xs text-muted-foreground/50">—</span>
                           )}
                         </td>
                       );
@@ -268,6 +253,10 @@ export default function MaintenanceReportsPage() {
             </table>
           </div>
         </div>
+      ) : (
+        !isLoading && (
+          <EmptyState icon={FileText} title="Sin datos para mostrar" description="Elegí el período y los filtros, y generá el reporte." />
+        )
       )}
     </div>
   );

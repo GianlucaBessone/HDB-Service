@@ -141,131 +141,133 @@ export function getPermissions(role: UserRole): Permission[] {
   return ROLE_PERMISSIONS[role] || [];
 }
 
+export type NavGroup = 'general' | 'operacion' | 'activos' | 'gestion' | 'admin';
+
+export const NAV_GROUP_LABELS: Record<NavGroup, string | null> = {
+  general: null,
+  operacion: 'Operación',
+  activos: 'Activos y stock',
+  gestion: 'Gestión',
+  admin: 'Administración',
+};
+
 export interface NavItem {
   key: string;
   label: string;
+  /** Título corto para la barra superior (si difiere del label). */
+  title?: string;
   icon: string; // lucide-react icon name
   roles: UserRole[];
+  group: NavGroup;
   badge?: string;
   description?: string;
-  colorClass?: string;
-  bgClass?: string;
-  borderLeftClass?: string;
 }
 
+const ALL_ROLES: UserRole[] = ['ADMIN', 'SUPERVISOR', 'TECHNICIAN', 'CLIENT_RESPONSIBLE', 'CLIENT_REQUESTER'];
+const STAFF: UserRole[] = ['ADMIN', 'SUPERVISOR', 'TECHNICIAN'];
+const MANAGERS: UserRole[] = ['ADMIN', 'SUPERVISOR'];
+
 export const NAV_ITEMS: NavItem[] = [
-  { key: '/', label: 'Inicio', icon: 'Home', roles: ['ADMIN', 'SUPERVISOR', 'TECHNICIAN', 'CLIENT_RESPONSIBLE', 'CLIENT_REQUESTER'] },
-  { 
-    key: '/dashboard', 
-    label: 'Dashboard', 
-    icon: 'BarChart3', 
-    roles: ['ADMIN', 'SUPERVISOR', 'TECHNICIAN', 'CLIENT_RESPONSIBLE', 'CLIENT_REQUESTER'],
-    description: 'Resumen y métricas de operación, SLA, MTTR y visualización de la performance de los equipos.',
-    colorClass: 'text-primary border-t-primary',
-    bgClass: 'bg-primary/10 text-primary',
-    borderLeftClass: 'border-l-primary'
+  { key: '/', label: 'Inicio', icon: 'Home', roles: ALL_ROLES, group: 'general' },
+  {
+    key: '/dashboard',
+    label: 'Dashboard',
+    icon: 'LayoutDashboard',
+    roles: ALL_ROLES,
+    group: 'general',
+    description: 'Indicadores de operación: SLA, MTTR, estado de la flota y productividad.',
   },
-  { 
-    key: '/tickets', 
-    label: 'Tickets', 
-    icon: 'Ticket', 
-    roles: ['ADMIN', 'SUPERVISOR', 'TECHNICIAN', 'CLIENT_RESPONSIBLE', 'CLIENT_REQUESTER'],
-    description: 'Gestión y seguimiento de incidencias, solicitudes de servicio y reportes de soporte técnico.',
-    colorClass: 'text-blue-500 border-t-blue-500',
-    bgClass: 'bg-blue-500/10 text-blue-500',
-    borderLeftClass: 'border-l-blue-500'
+  {
+    key: '/tickets',
+    label: 'Tickets',
+    icon: 'Ticket',
+    roles: ALL_ROLES,
+    group: 'operacion',
+    description: 'Incidencias y solicitudes de servicio, asignación y seguimiento.',
   },
-  { 
-    key: '/dispensers', 
-    label: 'Equipos y Activos', 
-    icon: 'Layers', 
-    roles: ['ADMIN', 'SUPERVISOR', 'TECHNICIAN', 'CLIENT_RESPONSIBLE', 'CLIENT_REQUESTER'],
-    description: 'Catálogo de equipos y maquinaria instalada, historial de reparaciones y fichas técnicas.',
-    colorClass: 'text-emerald-500 border-t-emerald-500',
-    bgClass: 'bg-emerald-500/10 text-emerald-500',
-    borderLeftClass: 'border-l-emerald-500'
+  {
+    key: '/maintenance',
+    label: 'Mantenimiento',
+    icon: 'Wrench',
+    roles: STAFF,
+    group: 'operacion',
+    description: 'Rutas de mantenimiento preventivo y checklists del período.',
   },
-  { 
-    key: '/maintenance', 
-    label: 'Mantenimiento', 
-    icon: 'Wrench', 
-    roles: ['ADMIN', 'SUPERVISOR', 'TECHNICIAN'],
-    description: 'Rutinas de mantenimiento preventivo, visitas agendadas y checklists de control técnico.',
-    colorClass: 'text-amber-500 border-t-amber-500',
-    bgClass: 'bg-amber-500/10 text-amber-500',
-    borderLeftClass: 'border-l-amber-500'
+  {
+    key: '/maintenance/approvals',
+    label: 'Firmas',
+    title: 'Firmas de conformidad',
+    icon: 'PenLine',
+    roles: STAFF,
+    group: 'operacion',
+    description: 'Conformidades firmadas por clientes y actas de mantenimiento.',
   },
-  { 
-    key: '/maintenance/approvals', 
-    label: 'Firmas', 
-    icon: 'FileSignature', 
-    roles: ['ADMIN', 'SUPERVISOR', 'TECHNICIAN'],
-    description: 'Firmas digitales de conformidad, aprobaciones de trabajos y actas de mantenimiento.',
-    colorClass: 'text-indigo-500 border-t-indigo-500',
-    bgClass: 'bg-indigo-500/10 text-indigo-500',
-    borderLeftClass: 'border-l-indigo-500'
+  {
+    key: '/qr/scan',
+    label: 'Escanear QR',
+    icon: 'ScanLine',
+    roles: ALL_ROLES,
+    group: 'operacion',
+    description: 'Identificar un activo en planta y abrir su ficha o un reporte.',
   },
-  { 
-    key: '/inventory', 
-    label: 'Inventario', 
-    icon: 'Package', 
-    roles: ['ADMIN', 'SUPERVISOR', 'TECHNICIAN', 'CLIENT_RESPONSIBLE', 'CLIENT_REQUESTER'],
-    description: 'Niveles de stock de insumos y repuestos, control de transferencias y deudas inter-plantas.',
-    colorClass: 'text-purple-500 border-t-purple-500',
-    bgClass: 'bg-purple-500/10 text-purple-500',
-    borderLeftClass: 'border-l-purple-500'
+  {
+    key: '/dispensers',
+    label: 'Activos',
+    icon: 'Layers',
+    roles: ALL_ROLES,
+    group: 'activos',
+    description: 'Parque instalado, fichas técnicas e historial de intervenciones.',
   },
-  { 
-    key: '/clients', 
-    label: 'Configuración', 
-    icon: 'Settings', 
-    roles: ['ADMIN', 'SUPERVISOR'],
-    description: 'Gestión administrativa de clientes, plantas operativas y configuración de sectores.',
-    colorClass: 'text-cyan-500 border-t-cyan-500',
-    bgClass: 'bg-cyan-500/10 text-cyan-500',
-    borderLeftClass: 'border-l-cyan-500'
+  {
+    key: '/inventory',
+    label: 'Inventario',
+    icon: 'Package',
+    roles: ALL_ROLES,
+    group: 'activos',
+    description: 'Stock de insumos y repuestos, transferencias y deudas entre plantas.',
   },
-  { 
-    key: '/qr/scan', 
-    label: 'Escanear QR', 
-    icon: 'ScanLine', 
-    roles: ['ADMIN', 'SUPERVISOR', 'TECHNICIAN', 'CLIENT_RESPONSIBLE', 'CLIENT_REQUESTER'],
-    description: 'Lector rápido de códigos QR para escaneo de equipos e inicio rápido de reportes.',
-    colorClass: 'text-rose-500 border-t-rose-500',
-    bgClass: 'bg-rose-500/10 text-rose-500',
-    borderLeftClass: 'border-l-rose-500'
-  },
-  { 
-    key: '/users', 
-    label: 'Usuarios', 
-    icon: 'Users', 
-    roles: ['ADMIN', 'SUPERVISOR'],
-    description: 'Administración de usuarios de la plataforma, control de accesos, roles y personal.',
-    colorClass: 'text-orange-500 border-t-orange-500',
-    bgClass: 'bg-orange-500/10 text-orange-500',
-    borderLeftClass: 'border-l-orange-500'
-  },
-  { 
-    key: '/quotations', 
-    label: 'Presupuestos & OC', 
-    icon: 'FileSignature', 
+  {
+    key: '/quotations',
+    label: 'Presupuestos y OC',
+    icon: 'Receipt',
     roles: ['ADMIN', 'SUPERVISOR', 'TECHNICIAN', 'CLIENT_RESPONSIBLE'],
-    description: 'Cotizaciones de reparaciones y mano de obra, vinculación con Órdenes de Compra (OC).',
-    colorClass: 'text-emerald-600 border-t-emerald-600',
-    bgClass: 'bg-emerald-600/10 text-emerald-600',
-    borderLeftClass: 'border-l-emerald-600'
+    group: 'gestion',
+    description: 'Cotizaciones de reparación y mano de obra, vinculadas a órdenes de compra.',
   },
-  { 
-    key: '/maintenance/reports', 
-    label: 'Reportes', 
-    icon: 'FileText', 
+  {
+    key: '/maintenance/reports',
+    label: 'Reportes',
+    title: 'Matriz de mantenimiento',
+    icon: 'FileText',
     roles: ['ADMIN', 'SUPERVISOR', 'TECHNICIAN', 'CLIENT_RESPONSIBLE'],
-    description: 'Descarga de reportes periódicos, historial de visitas y exportaciones analíticas.',
-    colorClass: 'text-violet-500 border-t-violet-500',
-    bgClass: 'bg-violet-500/10 text-violet-500',
-    borderLeftClass: 'border-l-violet-500'
+    group: 'gestion',
+    description: 'Cumplimiento por período y exportaciones.',
+  },
+  {
+    key: '/users',
+    label: 'Usuarios',
+    icon: 'Users',
+    roles: MANAGERS,
+    group: 'admin',
+    description: 'Accesos, roles y personal de la plataforma.',
+  },
+  {
+    key: '/clients',
+    label: 'Configuración',
+    icon: 'Settings',
+    roles: MANAGERS,
+    group: 'admin',
+    description: 'Clientes, plantas, sectores, ubicaciones, catálogo y correo.',
   },
 ];
+
+/** Devuelve el ítem de navegación que corresponde a una ruta (prefijo más largo). */
+export function getNavItemForPath(pathname: string): NavItem | undefined {
+  if (pathname === '/') return NAV_ITEMS[0];
+  return NAV_ITEMS
+    .filter(n => n.key !== '/' && (pathname === n.key || pathname.startsWith(n.key + '/')))
+    .sort((a, b) => b.key.length - a.key.length)[0];
+}
 
 /**
  * Check if a navigation item is visible for a given role.

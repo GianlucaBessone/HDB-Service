@@ -94,28 +94,25 @@ export default function RepairModal({ ticket, onClose, onSuccess }: RepairModalP
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="w-full max-w-2xl bg-card border border-border rounded-xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 max-h-[90vh] flex flex-col">
-        <div className="flex items-center justify-between p-6 border-b border-border bg-muted/30">
+    <div className="modal-overlay">
+      <div className="modal-content max-w-2xl flex flex-col overflow-hidden">
+        <div className="modal-header">
           <div>
-            <h2 className="text-xl font-bold flex items-center gap-2">
-              <Wrench className="w-6 h-6 text-primary" />
-              Registrar Reparación
-            </h2>
-            <p className="text-xs text-muted-foreground mt-1">
-              Ticket: <span className="font-mono text-foreground font-bold">{ticket.id}</span> · Equipo: {ticket.dispenserId}
+            <h2>Registrar reparación</h2>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              Ticket <span className="font-mono text-foreground">{ticket.id}</span> · Activo <span className="font-mono text-foreground">{ticket.dispenserId}</span>
             </p>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-accent rounded-full transition-colors text-muted-foreground">
-            <X className="w-5 h-5" />
+          <button type="button" onClick={onClose} className="modal-close" aria-label="Cerrar">
+            <X className="h-4 w-4" />
           </button>
         </div>
         
-        <div className="p-6 space-y-6 overflow-y-auto flex-1">
+        <div className="modal-body flex-1 space-y-6 overflow-y-auto">
           {/* Detalles de la reparación */}
           <div className="grid grid-cols-1 gap-4">
             <div>
-              <label className="text-sm font-semibold mb-2 block">Descripción del Problema (Síntomas)</label>
+              <label className="label mb-1.5">Descripción del problema (síntomas)</label>
               <textarea
                 className="textarea"
                 rows={2}
@@ -125,7 +122,7 @@ export default function RepairModal({ ticket, onClose, onSuccess }: RepairModalP
               />
             </div>
             <div>
-              <label className="text-sm font-semibold mb-2 block">Solución Aplicada (Diagnóstico/Acción)</label>
+              <label className="label mb-1.5">Solución aplicada (Diagnóstico/Acción)</label>
               <textarea
                 className="textarea"
                 rows={3}
@@ -140,7 +137,7 @@ export default function RepairModal({ ticket, onClose, onSuccess }: RepairModalP
           <div className="space-y-3">
             <label className="text-sm font-semibold flex items-center gap-2 text-foreground">
               <Package className="w-4 h-4 text-primary" />
-              Repuestos e Insumos Utilizados
+              Repuestos e insumos utilizados
             </label>
             
             {loadingStock ? (
@@ -149,7 +146,7 @@ export default function RepairModal({ ticket, onClose, onSuccess }: RepairModalP
                 Cargando stock disponible...
               </div>
             ) : !plantId ? (
-              <div className="p-3 bg-amber-50 text-amber-700 border border-amber-200 rounded-lg text-xs flex items-center gap-2">
+              <div className="p-3 bg-warning/10 text-warning border border-warning/25 rounded-lg text-xs flex items-center gap-2">
                 <AlertTriangle className="w-4 h-4" />
                 El equipo no tiene una ubicación asignada. No se puede descontar stock automáticamente.
               </div>
@@ -182,7 +179,7 @@ export default function RepairModal({ ticket, onClose, onSuccess }: RepairModalP
                       <div key={index} className="flex items-center gap-3 p-3 bg-primary/5 border border-primary/20 rounded-xl">
                         <div className="flex-1">
                           <p className="text-sm font-bold">{item.nombre}</p>
-                          <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                          <p className="text-2xs text-muted-foreground uppercase tracking-wider">
                             {item.type === 'SERIALIZED' ? `S/N: ${item.uniqueId}` : `Código: ${item.materialCode}`}
                           </p>
                         </div>
@@ -203,9 +200,9 @@ export default function RepairModal({ ticket, onClose, onSuccess }: RepairModalP
                               />
                             </div>
                           ) : (
-                            <span className="text-[10px] font-bold px-2 py-1 bg-primary/10 text-primary rounded-md border border-primary/20 uppercase">Serializado</span>
+                            <span className="text-2xs font-bold px-2 py-1 bg-primary/10 text-primary rounded-md border border-primary/20 uppercase">Serializado</span>
                           )}
-                          <button type="button" onClick={() => removeConsumable(index)} className="p-1.5 hover:bg-red-50 text-red-500 rounded-lg transition-colors shrink-0">
+                          <button type="button" onClick={() => removeConsumable(index)} className="p-1.5 hover:bg-destructive/10 text-destructive rounded-lg transition-colors shrink-0">
                             <X className="w-4 h-4" />
                           </button>
                         </div>
@@ -225,7 +222,7 @@ export default function RepairModal({ ticket, onClose, onSuccess }: RepairModalP
           <button 
             onClick={handleSave} 
             disabled={saving} 
-            className="btn-primary min-w-[160px] gap-2 shadow-lg shadow-primary/20"
+            className="btn-primary min-w-[160px] gap-2"
           >
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
             Finalizar Reparación

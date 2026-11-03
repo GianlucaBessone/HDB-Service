@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { Html5Qrcode } from 'html5-qrcode';
+import PageHeader from '@/components/ui/PageHeader';
 import { useRouter } from 'next/navigation';
 import { 
   ScanLine, ArrowLeft, Loader2, Camera, 
@@ -103,111 +104,89 @@ export default function QRScanPage() {
   function onScanFailure() {}
 
   return (
-    <div className="p-4 space-y-6 animate-fade-in max-w-md mx-auto">
-      {/* Navigation Row - Consistent with other pages */}
-      <div className="flex items-center gap-4">
-        <button 
-          onClick={() => router.back()}
-          className="p-2 hover:bg-muted rounded-xl transition-colors shrink-0"
-        >
-          <ArrowLeft className="w-6 h-6" />
-        </button>
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Escaneo de Equipo</h1>
-          <p className="text-xs text-muted-foreground">Identificación rápida mediante QR</p>
-        </div>
-      </div>
+    <div className="mx-auto max-w-md space-y-6 animate-fade-in">
+      <PageHeader
+        title="Escanear activo"
+        description="Apuntá la cámara al código QR del equipo."
+      />
 
-      <main className="w-full space-y-6">
-        {/* Scanner Area - Simple & Functional */}
-        <div className="relative w-full aspect-square bg-muted rounded-3xl overflow-hidden border border-border shadow-sm">
-          <div id="qr-reader" className="w-full h-full"></div>
-          
+      <div className="space-y-4">
+        {/* Visor */}
+        <div className="relative aspect-square w-full overflow-hidden rounded-xl border border-border bg-sidebar">
+          <div id="qr-reader" className="h-full w-full"></div>
+
           {isScanning && (
-            <div className="absolute inset-0 pointer-events-none z-10 flex items-center justify-center">
-              {/* Subtle target frame */}
-              <div className="w-[70%] h-[70%] border-2 border-primary/30 rounded-2xl"></div>
-              {/* Subtle scan line */}
-              <div className="absolute top-0 left-0 right-0 h-px bg-primary/40 animate-scan-line"></div>
+            <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
+              <div className="relative h-[68%] w-[68%]">
+                <span className="absolute left-0 top-0 h-6 w-6 border-l-2 border-t-2 border-white/90" />
+                <span className="absolute right-0 top-0 h-6 w-6 border-r-2 border-t-2 border-white/90" />
+                <span className="absolute bottom-0 left-0 h-6 w-6 border-b-2 border-l-2 border-white/90" />
+                <span className="absolute bottom-0 right-0 h-6 w-6 border-b-2 border-r-2 border-white/90" />
+              </div>
+              <div className="absolute left-[16%] right-[16%] top-0 h-px bg-[hsl(var(--sidebar-active))] animate-scan-line"></div>
             </div>
           )}
 
           {!isScanning && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center">
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-5 p-6 text-center text-sidebar-foreground">
               {isLoading ? (
-                <Loader2 className="w-12 h-12 text-primary animate-spin" />
+                <Loader2 className="h-8 w-8 animate-spin" />
               ) : (
-                <div className="space-y-8 w-full max-w-[200px]">
-                  <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto">
-                    <Camera className="w-8 h-8 text-primary" />
-                  </div>
-                  <button 
-                    onClick={startScanning}
-                    className="w-full h-12 bg-primary text-primary-foreground font-bold rounded-2xl shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
-                  >
-                    Escanear QR
+                <>
+                  <Camera className="h-8 w-8 text-sidebar-muted" />
+                  <p className="max-w-[220px] text-sm text-sidebar-muted">La cámara se activa sólo mientras escaneás.</p>
+                  <button onClick={startScanning} className="btn-primary h-11 px-6">
+                    <ScanLine className="h-4 w-4" />
+                    Iniciar escaneo
                   </button>
-                </div>
+                </>
               )}
             </div>
           )}
 
           {isScanning && (
-            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20">
-              <button 
-                onClick={stopScanning}
-                className="px-6 py-3 bg-destructive text-destructive-foreground font-bold rounded-2xl shadow-xl flex items-center gap-2 hover:scale-105 transition-transform"
-              >
-                <CameraOff className="w-5 h-5" />
+            <div className="absolute bottom-4 left-1/2 z-20 -translate-x-1/2">
+              <button onClick={stopScanning} className="btn h-11 border border-white/20 bg-black/60 px-5 text-white hover:bg-black/70">
+                <CameraOff className="h-4 w-4" />
                 Detener
               </button>
             </div>
           )}
         </div>
 
-        {/* Action: Manual Search */}
-        <button 
+        <button
           onClick={() => router.push('/dispensers')}
-          className="w-full p-4 bg-card border border-border rounded-2xl flex items-center justify-between hover:bg-muted/50 transition-colors group"
+          className="glass-card-hover flex w-full items-center justify-between gap-3 p-4 text-left"
         >
-          <div className="flex items-center gap-4">
-            <div className="p-2 bg-muted rounded-xl group-hover:bg-background transition-colors">
-              <Maximize2 className="w-5 h-5 text-muted-foreground" />
-            </div>
-            <span className="font-semibold">Buscar en lista manual</span>
-          </div>
-          <ChevronRight className="w-5 h-5 text-muted-foreground" />
+          <span className="flex items-center gap-3">
+            <Maximize2 className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm font-medium">Buscar en el listado de activos</span>
+          </span>
+          <ChevronRight className="h-4 w-4 text-muted-foreground" />
         </button>
 
-        {/* Recent Scans Section */}
         {recentScans.length > 0 && (
-          <div className="space-y-3">
-            <div className="flex items-center gap-2 px-1">
-              <History className="w-4 h-4 text-muted-foreground" />
-              <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-                Recientes
-              </h2>
-            </div>
-            <div className="grid grid-cols-1 gap-2">
+          <section>
+            <h2 className="eyebrow mb-2 flex items-center gap-1.5 px-1">
+              <History className="h-3.5 w-3.5" />
+              Recientes
+            </h2>
+            <ul className="glass-card divide-y divide-border overflow-hidden">
               {recentScans.map(id => (
-                <button
-                  key={id}
-                  onClick={() => router.push(`/dispensers/${id}`)}
-                  className="w-full p-4 bg-card border border-border rounded-2xl flex items-center justify-between hover:border-primary/40 transition-all text-left group"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 bg-muted rounded-xl flex items-center justify-center group-hover:bg-primary/5 transition-colors">
-                      <ScanLine className="w-5 h-5 text-muted-foreground group-hover:text-primary" />
-                    </div>
-                    <span className="font-mono font-bold">{id}</span>
-                  </div>
-                  <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-all group-hover:translate-x-1" />
-                </button>
+                <li key={id}>
+                  <button
+                    onClick={() => router.push(`/dispensers/${id}`)}
+                    className="flex min-h-[48px] w-full items-center justify-between gap-3 px-4 text-left transition-colors hover:bg-muted/50"
+                  >
+                    <span className="font-mono text-sm font-medium">{id}</span>
+                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                  </button>
+                </li>
               ))}
-            </div>
-          </div>
+            </ul>
+          </section>
         )}
-      </main>
+      </div>
     </div>
   );
 }

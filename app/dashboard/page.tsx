@@ -26,9 +26,13 @@ import {
   Users,
   ShieldCheck,
   TrendingUp,
-  Sparkles
+
 } from 'lucide-react';
 import Link from 'next/link';
+import PageHeader from '@/components/ui/PageHeader';
+import StatCard from '@/components/ui/StatCard';
+import Panel from '@/components/ui/Panel';
+import { FieldIcon } from '@/components/ui/FilterBar';
 import clsx from 'clsx';
 import { getEquipmentTypeLabel, getEquipmentTypeIcon } from '@/lib/equipment';
 
@@ -95,424 +99,297 @@ export default function DashboardPage() {
 
   const role = stats?.user?.role;
 
+  const dash = (v: any, suffix = '') => (v === null || v === undefined || v === '' ? '—' : `${v}${suffix}`);
+  const canPickClient = role === 'ADMIN' || role === 'SUPERVISOR' || role === 'TECHNICIAN';
+
   if (isLoading || !stats) {
     return (
-      <div className="space-y-6 animate-pulse p-4">
-        <div className="h-10 w-72 bg-muted rounded-xl skeleton"></div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {[...Array(4)].map((_, i) => (
-            <div key={i} className="h-32 glass-card skeleton rounded-2xl"></div>
-          ))}
+      <div className="space-y-6" aria-busy="true">
+        <div className="skeleton h-8 w-72" />
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+          {[...Array(4)].map((_, i) => <div key={i} className="skeleton h-[112px] rounded-lg" />)}
         </div>
+        <div className="skeleton h-48 rounded-lg" />
       </div>
     );
   }
 
-  return (
-    <div className="space-y-6 md:space-y-8 animate-fade-in pb-12">
-      
-      {/* Header and Filter Controls */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight">
-              Centro de Control Operativo
-            </h1>
-            <span className="hidden sm:inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-primary/10 text-primary border border-primary/20">
-              <Sparkles className="w-3 h-3" /> Multiactivo
-            </span>
-          </div>
-          <p className="text-xs md:text-sm text-muted-foreground mt-0.5">
-            Gestión en tiempo real de flota, mantenimiento preventivo y confiabilidad.
-          </p>
-        </div>
+  // Resumen de salud calculado a partir de la respuesta real de /api/dashboard/salud
+  const ranking: any[] = Array.isArray(healthData?.ranking) ? healthData.ranking : [];
+  const healthSummary = {
+    overall: ranking.length ? Math.round(ranking.reduce((acc, r) => acc + (r.score || 0), 0) / ranking.length) : null,
+    evaluated: ranking.length,
+    atRisk: healthData?.distribution?.critico ?? ranking.filter(r => r.status === 'CRÍTICO').length,
+    worst: ranking.slice(0, 5),
+  };
+  const perfKpis = perfData?.kpis || {};
 
-        {/* Global Filters & Action Buttons */}
-        <div className="flex flex-wrap items-center gap-2.5">
-          {/* Client Selector */}
-          {(role === 'ADMIN' || role === 'SUPERVISOR' || role === 'TECHNICIAN') && (
-            <div className="relative min-w-[170px]">
-              <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-              <select
-                value={selectedClient}
-                onChange={e => setSelectedClient(e.target.value)}
-                className="select pl-9 text-xs md:text-sm py-2 rounded-xl w-full"
-              >
-                <option value="">Todas las Empresas</option>
+  const tabs = [
+    { key: 'overview' as const, label: 'Resumen', icon: Activity },
+    { key: 'health' as const, label: 'Salud del parque', icon: HeartPulse },
+    { key: 'performance' as const, label: 'Productividad y SLA', icon: BarChart3 },
+  ];
+
+  return (
+    <div className="space-y-6 animate-fade-in">
+      <PageHeader
+        title="Dashboard"
+        description="Estado de la flota, mantenimiento preventivo y cumplimiento de SLA."
+        actions={
+          <>
+            <Link href="/qr/scan" className="btn-outline" title="Escanear QR de un activo">
+              <ScanLine className="h-4 w-4" />
+              Escanear QR
+            </Link>
+            <a
+              href={`/api/dashboard/pdf?clientId=${selectedClient}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-primary"
+            >
+              <FileDown className="h-4 w-4" />
+              Informe PDF
+            </a>
+          </>
+        }
+      />
+
+      {/* Filtros + pestañas */}
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+        <div className="tabs flex-1 lg:border-b-0">
+          {tabs.map(tab => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className={activeTab === tab.key ? 'tab-active' : 'tab'}
+              aria-selected={activeTab === tab.key}
+              role="tab"
+            >
+              <tab.icon className="h-4 w-4" />
+              {tab.label}
+            </button>
+          ))}
+        </div>
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:flex">
+          {canPickClient && (
+            <FieldIcon icon={Building2} className="lg:w-56">
+              <select value={selectedClient} onChange={e => setSelectedClient(e.target.value)} className="select pl-9" aria-label="Empresa">
+                <option value="">Todas las empresas</option>
                 {clients.map((c: any) => (
                   <option key={c.id} value={c.id}>{c.nombre}</option>
                 ))}
               </select>
-            </div>
+            </FieldIcon>
           )}
-
-          {/* Equipment Type Filter */}
-          <div className="relative min-w-[170px]">
-            <Layers className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-            <select
-              value={selectedEquipmentType}
-              onChange={e => setSelectedEquipmentType(e.target.value)}
-              className="select pl-9 text-xs md:text-sm py-2 rounded-xl w-full"
-            >
-              <option value="">Todos los Activos</option>
-              <option value="AIR_CONDITIONER">Aire Acondicionado (HVAC)</option>
-              <option value="COLD_ROOM">Cámaras Frigoríficas</option>
-              <option value="VENTILATION">Ventilación / Extracción</option>
-              <option value="DISPENSER">Dispensers de Agua</option>
-              <option value="OTHER">Otros Equipos</option>
+          <FieldIcon icon={Layers} className="lg:w-56">
+            <select value={selectedEquipmentType} onChange={e => setSelectedEquipmentType(e.target.value)} className="select pl-9" aria-label="Tipo de activo">
+              <option value="">Todos los activos</option>
+              <option value="AIR_CONDITIONER">Aire acondicionado (HVAC)</option>
+              <option value="COLD_ROOM">Cámaras frigoríficas</option>
+              <option value="VENTILATION">Ventilación / extracción</option>
+              <option value="DISPENSER">Dispensers de agua</option>
+              <option value="OTHER">Otros equipos</option>
             </select>
-          </div>
-
-          {/* Scan QR Shortcut */}
-          <Link
-            href="/qr/scan"
-            className="btn-secondary py-2 px-3 text-xs md:text-sm rounded-xl flex items-center gap-2"
-            title="Escanear QR de Activo en Planta"
-          >
-            <ScanLine className="w-4 h-4 text-primary" />
-            <span className="hidden sm:inline">Escanear QR</span>
-          </Link>
-
-          {/* Export PDF */}
-          <a
-            href={`/api/dashboard/pdf?clientId=${selectedClient}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="btn-primary py-2 px-3 text-xs md:text-sm rounded-xl flex items-center gap-2"
-            title="Descargar Informe Ejecutivo PDF"
-          >
-            <FileDown className="w-4 h-4" />
-            <span className="hidden sm:inline">Informe PDF</span>
-          </a>
+          </FieldIcon>
         </div>
       </div>
 
-      {/* Segmented Control Tabs */}
-      <div className="flex border-b border-border gap-2 overflow-x-auto pb-px">
-        <button
-          onClick={() => setActiveTab('overview')}
-          className={clsx(
-            "flex items-center gap-2 px-4 py-2.5 text-xs md:text-sm font-bold border-b-2 transition-all whitespace-nowrap",
-            activeTab === 'overview'
-              ? "border-primary text-primary"
-              : "border-transparent text-muted-foreground hover:text-foreground"
-          )}
-        >
-          <Activity className="w-4 h-4" /> Resumen Operativo
-        </button>
-
-        <button
-          onClick={() => setActiveTab('health')}
-          className={clsx(
-            "flex items-center gap-2 px-4 py-2.5 text-xs md:text-sm font-bold border-b-2 transition-all whitespace-nowrap",
-            activeTab === 'health'
-              ? "border-emerald-500 text-emerald-600 dark:text-emerald-400"
-              : "border-transparent text-muted-foreground hover:text-foreground"
-          )}
-        >
-          <HeartPulse className="w-4 h-4" /> Confiabilidad & Salud MTTR
-        </button>
-
-        <button
-          onClick={() => setActiveTab('performance')}
-          className={clsx(
-            "flex items-center gap-2 px-4 py-2.5 text-xs md:text-sm font-bold border-b-2 transition-all whitespace-nowrap",
-            activeTab === 'performance'
-              ? "border-sky-500 text-sky-600 dark:text-sky-400"
-              : "border-transparent text-muted-foreground hover:text-foreground"
-          )}
-        >
-          <BarChart3 className="w-4 h-4" /> Productividad Técnica & SLA
-        </button>
-      </div>
-
-      {/* TAB 1: RESUMEN OPERATIVO */}
+      {/* RESUMEN */}
       {activeTab === 'overview' && (
         <div className="space-y-6 animate-fade-in">
-          {/* Main KPI Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5">
-            {/* Tickets */}
-            <Link href="/tickets" className="metric-card border-t-4 border-t-primary hover:scale-[1.01] transition-transform cursor-pointer group">
-              <div className="flex justify-between items-start">
-                <div>
-                  <p className="metric-label">Tickets Abiertos</p>
-                  <p className="metric-value">{stats.tickets.open}</p>
-                </div>
-                <div className="p-2.5 bg-primary/10 rounded-xl group-hover:bg-primary/20 transition-colors">
-                  <Ticket className="w-5 h-5 text-primary" />
-                </div>
-              </div>
-              <div className="mt-3 flex items-center gap-2">
-                <span className={clsx(
-                  "text-xs font-semibold px-2 py-0.5 rounded-full",
-                  stats.tickets.slaCompliance >= 90 ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400" :
-                  stats.tickets.slaCompliance >= 75 ? "bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-400" : "bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-400"
-                )}>
-                  {stats.tickets.slaCompliance}% SLA
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+            <StatCard
+              href="/tickets"
+              label="Tickets abiertos"
+              value={stats.tickets.open}
+              icon={Ticket}
+              tone="primary"
+              hint={
+                <span className="flex flex-wrap items-center gap-1.5">
+                  <span className={clsx('badge', stats.tickets.slaCompliance >= 90 ? 'badge-success' : stats.tickets.slaCompliance >= 75 ? 'badge-warning' : 'badge-danger')}>
+                    {stats.tickets.slaCompliance}% SLA
+                  </span>
+                  <span className="tabular">de {stats.tickets.total}</span>
                 </span>
-                <span className="text-xs text-muted-foreground">de {stats.tickets.total} totales</span>
-              </div>
-            </Link>
-
-            {/* Assets In Service */}
-            <Link href="/dispensers" className="metric-card border-t-4 border-t-emerald-500 hover:scale-[1.01] transition-transform cursor-pointer group">
-              <div className="flex justify-between items-start">
-                <div>
-                  <p className="metric-label">Activos en Servicio</p>
-                  <p className="metric-value">{stats.dispensers.inService}</p>
-                </div>
-                <div className="p-2.5 bg-emerald-500/10 rounded-xl group-hover:bg-emerald-500/20 transition-colors">
-                  <Cpu className="w-5 h-5 text-emerald-500" />
-                </div>
-              </div>
-              <div className="mt-3 flex items-center gap-3 text-xs text-muted-foreground">
-                <span className="flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-amber-500"></span>
-                  {stats.dispensers.repair} en Taller
+              }
+            />
+            <StatCard
+              href="/dispensers"
+              label="Activos en servicio"
+              value={stats.dispensers.inService}
+              icon={Cpu}
+              tone="success"
+              hint={
+                <span className="flex flex-wrap gap-x-3 gap-y-1 tabular">
+                  <span className="inline-flex items-center gap-1.5"><span className="status-dot bg-warning" />{stats.dispensers.repair} en taller</span>
+                  <span className="inline-flex items-center gap-1.5"><span className="status-dot bg-destructive" />{stats.dispensers.blocked} bloqueados</span>
                 </span>
-                <span className="flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-red-500"></span>
-                  {stats.dispensers.blocked} Bloqueados
-                </span>
-              </div>
-            </Link>
-
-            {/* Maintenance */}
-            <Link href="/maintenance" className="metric-card border-t-4 border-t-amber-500 hover:scale-[1.01] transition-transform cursor-pointer group">
-              <div className="flex justify-between items-start">
-                <div>
-                  <p className="metric-label">Mantenimientos</p>
-                  <p className="metric-value">{stats.maintenance.pending}</p>
-                </div>
-                <div className="p-2.5 bg-amber-500/10 rounded-xl group-hover:bg-amber-500/20 transition-colors">
-                  <CalendarClock className="w-5 h-5 text-amber-500" />
-                </div>
-              </div>
-              <div className="mt-3 flex items-center gap-2">
-                {stats.maintenance.overdue > 0 ? (
-                  <span className="metric-trend-down">
-                    <AlertTriangle className="w-3 h-3" />
-                    {stats.maintenance.overdue} Vencidos
+              }
+            />
+            <StatCard
+              href="/maintenance"
+              label="Mantenimientos pendientes"
+              value={stats.maintenance.pending}
+              icon={CalendarClock}
+              tone={stats.maintenance.overdue > 0 ? 'warning' : 'default'}
+              hint={
+                stats.maintenance.overdue > 0 ? (
+                  <span className="inline-flex items-center gap-1 font-medium text-destructive tabular">
+                    <AlertTriangle className="h-3.5 w-3.5" /> {stats.maintenance.overdue} vencidos
                   </span>
                 ) : (
-                  <span className="metric-trend-up">
-                    <CheckCircle2 className="w-3 h-3" /> Al día
+                  <span className="inline-flex items-center gap-1 text-success">
+                    <CheckCircle2 className="h-3.5 w-3.5" /> Al día
                   </span>
-                )}
-              </div>
-            </Link>
-
-            {/* Stock Alerts */}
-            <Link href="/inventory" className="metric-card border-t-4 border-t-red-500 hover:scale-[1.01] transition-transform cursor-pointer group">
-              <div className="flex justify-between items-start">
-                <div>
-                  <p className="metric-label">Alertas de Stock</p>
-                  <p className="metric-value">{stats.stock.lowAlerts}</p>
-                </div>
-                <div className="p-2.5 bg-red-500/10 rounded-xl group-hover:bg-red-500/20 transition-colors">
-                  <PackageX className="w-5 h-5 text-red-500" />
-                </div>
-              </div>
-              <div className="mt-3 flex items-center gap-2">
-                <span className="text-xs text-muted-foreground">Insumos y piezas críticas bajo mínimo</span>
-              </div>
-            </Link>
+                )
+              }
+            />
+            <StatCard
+              href="/inventory"
+              label="Alertas de stock"
+              value={stats.stock.lowAlerts}
+              icon={PackageX}
+              tone={stats.stock.lowAlerts > 0 ? 'danger' : 'default'}
+              emphasize={stats.stock.lowAlerts > 0}
+              hint="Insumos bajo el mínimo"
+            />
           </div>
 
-          {/* Fleet Distribution by Equipment Type */}
           {stats.equipmentBreakdown && stats.equipmentBreakdown.length > 0 && (
-            <div className="glass-card p-5 md:p-6 space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-base font-bold text-foreground">Distribución de Flota Multiactivo</h3>
-                  <p className="text-xs text-muted-foreground">Parque instalado clasificado por familia técnica de ingeniería</p>
-                </div>
-                <Link href="/dispensers" className="text-xs text-primary font-bold hover:underline flex items-center gap-1">
-                  Ver inventario completo <ArrowUpRight className="w-3.5 h-3.5" />
+            <Panel
+              title="Distribución de la flota"
+              description="Parque instalado por tipo de activo. Seleccioná un tipo para filtrar."
+              actions={
+                <Link href="/dispensers" className="btn-ghost btn-sm text-primary">
+                  Ver activos <ArrowUpRight className="h-3.5 w-3.5" />
                 </Link>
-              </div>
-
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              }
+            >
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
                 {stats.equipmentBreakdown.map((item) => {
                   const Icon = getEquipmentTypeIcon(item.type);
                   const label = getEquipmentTypeLabel(item.type);
+                  const selected = selectedEquipmentType === item.type;
                   return (
-                    <div 
+                    <button
                       key={item.type}
-                      onClick={() => setSelectedEquipmentType(item.type === selectedEquipmentType ? '' : item.type)}
+                      onClick={() => setSelectedEquipmentType(selected ? '' : item.type)}
+                      aria-pressed={selected}
                       className={clsx(
-                        "p-4 rounded-2xl border transition-all cursor-pointer flex items-center gap-3.5",
-                        selectedEquipmentType === item.type 
-                          ? "bg-primary/10 border-primary shadow-sm"
-                          : "bg-card hover:bg-muted/50 border-border"
+                        'flex items-center gap-3 rounded-md border p-3 text-left transition-colors',
+                        selected ? 'border-primary bg-primary/[0.06]' : 'border-border hover:bg-muted/50'
                       )}
                     >
-                      <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                        <Icon className="w-5 h-5" />
+                      <Icon className={clsx('h-5 w-5 shrink-0', selected ? 'text-primary' : 'text-muted-foreground')} />
+                      <div className="min-w-0">
+                        <span className="block text-lg font-semibold leading-tight tabular">{item.count}</span>
+                        <span className="block truncate text-xs text-muted-foreground">{label}</span>
                       </div>
-                      <div>
-                        <span className="text-lg font-black block">{item.count}</span>
-                        <span className="text-xs text-muted-foreground font-medium block truncate">{label}</span>
-                      </div>
-                    </div>
+                    </button>
                   );
                 })}
               </div>
-            </div>
+            </Panel>
           )}
 
-          {/* Quick Deep-Dive Modules */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Link 
-              href="/dashboard/salud" 
-              className="glass-card p-6 flex items-start gap-4 hover:border-emerald-500/50 transition-all group"
-            >
-              <div className="p-3.5 bg-emerald-500/10 text-emerald-500 rounded-2xl group-hover:scale-105 transition-transform shrink-0">
-                <HeartPulse className="w-8 h-8" />
-              </div>
-              <div className="flex-1">
-                <h3 className="text-lg font-bold group-hover:text-emerald-500 transition-colors flex items-center gap-2">
-                  Salud del Parque & Confiabilidad <ArrowUpRight className="w-4 h-4" />
-                </h3>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Índice de salud ponderado por MTTR, criticidad y recurrencia de fallas con ranking preventivo.
-                </p>
-              </div>
-            </Link>
-
-            <Link 
-              href="/dashboard/performance" 
-              className="glass-card p-6 flex items-start gap-4 hover:border-sky-500/50 transition-all group"
-            >
-              <div className="p-3.5 bg-sky-500/10 text-sky-500 rounded-2xl group-hover:scale-105 transition-transform shrink-0">
-                <BarChart3 className="w-8 h-8" />
-              </div>
-              <div className="flex-1">
-                <h3 className="text-lg font-bold group-hover:text-sky-500 transition-colors flex items-center gap-2">
-                  Performance & Rendimiento de Técnicos <ArrowUpRight className="w-4 h-4" />
-                </h3>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Métricas de SLA de resolución, MTBF, tiempos de respuesta y horas de trabajo de campo.
-                </p>
-              </div>
-            </Link>
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            {[
+              { href: '/dashboard/salud', icon: HeartPulse, title: 'Salud del parque', desc: 'Índice de salud ponderado por MTTR, criticidad y recurrencia de fallas.' },
+              { href: '/dashboard/performance', icon: BarChart3, title: 'Performance operativa', desc: 'Tiempos de respuesta y resolución, MTBF y evolución de incidentes.' },
+            ].map(card => (
+              <Link key={card.href} href={card.href} className="glass-card-hover group flex items-start gap-4 p-4 sm:p-5">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-border bg-muted text-muted-foreground group-hover:text-primary">
+                  <card.icon className="h-5 w-5" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
+                    {card.title}
+                    <ArrowUpRight className="h-3.5 w-3.5 text-muted-foreground group-hover:text-foreground" />
+                  </span>
+                  <span className="mt-1 block text-[13px] text-muted-foreground">{card.desc}</span>
+                </span>
+              </Link>
+            ))}
           </div>
         </div>
       )}
 
-      {/* TAB 2: SALUD DEL PARQUE */}
+      {/* SALUD */}
       {activeTab === 'health' && (
-        <div className="space-y-6 animate-fade-in">
+        <div className="animate-fade-in">
           {isLoadingHealth ? (
-            <div className="h-64 flex items-center justify-center">
-              <Activity className="w-8 h-8 animate-spin text-emerald-500" />
-            </div>
+            <div className="skeleton h-64 rounded-lg" />
           ) : healthData ? (
-            <div className="glass-card p-6 space-y-6">
-              <div className="flex items-center justify-between border-b border-border pb-4">
-                <div>
-                  <h2 className="text-xl font-bold flex items-center gap-2 text-foreground">
-                    <HeartPulse className="w-5 h-5 text-emerald-500" /> Índice Global de Confiabilidad
-                  </h2>
-                  <p className="text-xs text-muted-foreground">Ponderado por criticidad (Cámaras: 24h MTTR, HVAC: 48h MTTR)</p>
-                </div>
-                <Link href="/dashboard/salud" className="btn-secondary text-xs px-3 py-1.5 rounded-xl flex items-center gap-1.5">
-                  Ver detalle completo <ArrowUpRight className="w-3.5 h-3.5" />
+            <Panel
+              title="Índice global de confiabilidad"
+              description="Ponderado por criticidad (cámaras: MTTR 24 h · HVAC: MTTR 48 h)."
+              actions={
+                <Link href="/dashboard/salud" className="btn-outline btn-sm">
+                  Ver detalle <ArrowUpRight className="h-3.5 w-3.5" />
                 </Link>
+              }
+            >
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <StatCard label="Salud promedio de flota" value={dash(healthSummary.overall, '%')} tone="success" />
+                <StatCard label="Activos evaluados" value={healthSummary.evaluated} />
+                <StatCard label="Activos en estado crítico" value={healthSummary.atRisk} tone="danger" emphasize={healthSummary.atRisk > 0} />
               </div>
 
-              {/* Health Score Summary */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
-                <div className="p-4 rounded-xl bg-muted/40 border border-border">
-                  <span className="text-3xl font-black text-emerald-500">{healthData.stats?.overallHealthScore || 94}%</span>
-                  <span className="text-xs text-muted-foreground block font-medium mt-1">Salud Promedio de Flota</span>
-                </div>
-                <div className="p-4 rounded-xl bg-muted/40 border border-border">
-                  <span className="text-3xl font-black text-sky-500">{healthData.stats?.evaluatedCount || stats.dispensers.total}</span>
-                  <span className="text-xs text-muted-foreground block font-medium mt-1">Activos Evaluados</span>
-                </div>
-                <div className="p-4 rounded-xl bg-muted/40 border border-border">
-                  <span className="text-3xl font-black text-amber-500">{healthData.stats?.criticalAlertsCount || 0}</span>
-                  <span className="text-xs text-muted-foreground block font-medium mt-1">Activos en Riesgo</span>
-                </div>
-              </div>
-
-              {/* Quick Ranking Preview */}
-              {healthData.worstPerformers && healthData.worstPerformers.length > 0 && (
-                <div className="space-y-3 pt-2">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                    Equipos que requieren atención inmediata
-                  </h3>
-                  <div className="space-y-2">
-                    {healthData.worstPerformers.slice(0, 5).map((eq: any) => (
-                      <div key={eq.id} className="p-3 rounded-xl bg-card border border-border flex items-center justify-between text-xs">
-                        <div className="flex items-center gap-3">
-                          <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
-                          <div>
-                            <span className="font-bold text-foreground">{eq.id}</span>
-                            <span className="text-muted-foreground ml-2">{eq.modelo}</span>
-                          </div>
+              {healthSummary.worst.length > 0 && (
+                <div className="mt-6">
+                  <h3 className="eyebrow mb-2">Requieren atención</h3>
+                  <ul className="divide-y divide-border rounded-md border border-border">
+                    {healthSummary.worst.map((eq: any) => (
+                      <li key={eq.id} className="flex items-center justify-between gap-3 px-3 py-2.5 text-sm">
+                        <div className="flex min-w-0 items-center gap-2.5">
+                          <AlertTriangle className="h-4 w-4 shrink-0 text-warning" />
+                          <span className="font-mono font-medium">{eq.id}</span>
+                          <span className="truncate text-muted-foreground">{eq.modelo}</span>
                         </div>
-                        <div className="flex items-center gap-3">
-                          <span className="font-mono font-bold text-amber-600">{eq.score}% salud</span>
-                          <Link href={`/dispensers/${eq.id}`} className="text-primary hover:underline font-semibold">
+                        <div className="flex shrink-0 items-center gap-3">
+                          <span className="font-medium text-warning tabular">{eq.score}%</span>
+                          <Link href={`/dispensers/${eq.id}`} className="text-[13px] font-medium text-primary hover:underline">
                             Revisar
                           </Link>
                         </div>
-                      </div>
+                      </li>
                     ))}
-                  </div>
+                  </ul>
                 </div>
               )}
-            </div>
+            </Panel>
           ) : (
-            <p className="text-center text-muted-foreground py-8">No se encontraron datos de salud.</p>
+            <p className="py-8 text-center text-sm text-muted-foreground">No hay datos de salud disponibles.</p>
           )}
         </div>
       )}
 
-      {/* TAB 3: PRODUCTIVIDAD & SLA */}
+      {/* PRODUCTIVIDAD */}
       {activeTab === 'performance' && (
-        <div className="space-y-6 animate-fade-in">
+        <div className="animate-fade-in">
           {isLoadingPerf ? (
-            <div className="h-64 flex items-center justify-center">
-              <BarChart3 className="w-8 h-8 animate-spin text-sky-500" />
-            </div>
+            <div className="skeleton h-48 rounded-lg" />
           ) : perfData ? (
-            <div className="glass-card p-6 space-y-6">
-              <div className="flex items-center justify-between border-b border-border pb-4">
-                <div>
-                  <h2 className="text-xl font-bold flex items-center gap-2 text-foreground">
-                    <BarChart3 className="w-5 h-5 text-sky-500" /> Acuerdos de Nivel de Servicio (SLA) & Técnicos
-                  </h2>
-                  <p className="text-xs text-muted-foreground">Tiempos de respuesta y resolución en horas</p>
-                </div>
-                <Link href="/dashboard/performance" className="btn-secondary text-xs px-3 py-1.5 rounded-xl flex items-center gap-1.5">
-                  Ver reporte completo <ArrowUpRight className="w-3.5 h-3.5" />
+            <Panel
+              title="Acuerdos de nivel de servicio"
+              description="Indicadores del período según los filtros aplicados."
+              actions={
+                <Link href="/dashboard/performance" className="btn-outline btn-sm">
+                  Ver reporte <ArrowUpRight className="h-3.5 w-3.5" />
                 </Link>
+              }
+            >
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <StatCard label="Tiempo de respuesta (SLA)" value={dash(perfKpis.sla, ' h')} tone="primary" />
+                <StatCard label="MTTR (tiempo medio de reparación)" value={dash(perfKpis.mttr, ' h')} />
+                <StatCard label="MTBF (tiempo medio entre fallas)" value={dash(perfKpis.mtbf, ' d')} />
               </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
-                <div className="p-4 rounded-xl bg-muted/40 border border-border">
-                  <span className="text-3xl font-black text-sky-500">{perfData.slaCompliance || stats.tickets.slaCompliance}%</span>
-                  <span className="text-xs text-muted-foreground block font-medium mt-1">Cumplimiento SLA Global</span>
-                </div>
-                <div className="p-4 rounded-xl bg-muted/40 border border-border">
-                  <span className="text-3xl font-black text-emerald-500">{perfData.avgResolutionHours || '18.4'}h</span>
-                  <span className="text-xs text-muted-foreground block font-medium mt-1">Tiempo Medio de Resolución (MTTR)</span>
-                </div>
-                <div className="p-4 rounded-xl bg-muted/40 border border-border">
-                  <span className="text-3xl font-black text-purple-500">{perfData.completedTicketsThisMonth || '42'}</span>
-                  <span className="text-xs text-muted-foreground block font-medium mt-1">Tickets Resueltos este Mes</span>
-                </div>
-              </div>
-            </div>
+            </Panel>
           ) : (
-            <p className="text-center text-muted-foreground py-8">No se encontraron datos de rendimiento.</p>
+            <p className="py-8 text-center text-sm text-muted-foreground">No hay datos de rendimiento disponibles.</p>
           )}
         </div>
       )}
-
     </div>
   );
 }

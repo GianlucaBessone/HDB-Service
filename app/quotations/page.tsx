@@ -9,6 +9,10 @@ import {
 import clsx from 'clsx';
 import toast from 'react-hot-toast';
 import { getEquipmentTypeLabel, getEquipmentTypeIcon } from '@/lib/equipment';
+import PageHeader from '@/components/ui/PageHeader';
+import StatCard from '@/components/ui/StatCard';
+import FilterBar, { FieldIcon } from '@/components/ui/FilterBar';
+import EmptyState from '@/components/ui/EmptyState';
 
 export default function QuotationsPage() {
   const [statusFilter, setStatusFilter] = useState('');
@@ -78,168 +82,109 @@ export default function QuotationsPage() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'APPROVED':
-        return <span className="badge bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 font-bold">Aprobado (OC)</span>;
+        return <span className="badge-success">Aprobado (OC)</span>;
       case 'SENT':
-        return <span className="badge bg-blue-500/10 text-blue-600 border border-blue-500/20 font-bold">Enviado al Cliente</span>;
+        return <span className="badge-info">Enviado al cliente</span>;
       case 'REJECTED':
-        return <span className="badge bg-red-500/10 text-red-600 border border-red-500/20 font-bold">Rechazado</span>;
+        return <span className="badge-danger">Rechazado</span>;
       case 'CANCELLED':
-        return <span className="badge bg-muted text-muted-foreground font-bold">Cancelado</span>;
+        return <span className="badge-neutral">Cancelado</span>;
       default:
-        return <span className="badge bg-amber-500/10 text-amber-600 border border-amber-500/20 font-bold">Borrador</span>;
+        return <span className="badge-neutral">Borrador</span>;
     }
   };
 
   return (
-    <div className="space-y-6 animate-fade-in p-2 sm:p-4">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3">
-            <div className="p-2.5 bg-primary/10 rounded-2xl text-primary">
-              <FileText className="w-7 h-7" />
-            </div>
-            Presupuestos & Órdenes de Compra
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            Cotizaciones de reparaciones mayores, mano de obra y aprobación de OC de clientes
-          </p>
-        </div>
-        {canWrite && (
-          <button onClick={() => setIsCreateOpen(true)} className="btn-primary gap-2 shrink-0">
-            <Plus className="w-5 h-5" />
-            Nueva Cotización
-          </button>
-        )}
+    <div className="space-y-6 animate-fade-in">
+      <PageHeader
+        title="Presupuestos y órdenes de compra"
+        description="Cotizaciones de reparaciones y mano de obra, y su aprobación mediante OC del cliente."
+        actions={
+          canWrite && (
+            <button onClick={() => setIsCreateOpen(true)} className="btn-primary">
+              <Plus className="h-4 w-4" />
+              Nuevo presupuesto
+            </button>
+          )
+        }
+      />
+
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+        <StatCard label="Presupuestos" value={kpis.total} icon={FileText} />
+        <StatCard label="Aprobados con OC" value={kpis.approved} icon={CheckCircle2} tone="success" />
+        <StatCard label="Pendientes de OC" value={kpis.pending} icon={Clock} tone="warning" />
+        <StatCard label="Monto aprobado" value={<span className="text-xl sm:text-2xl">$ {kpis.approvedTotal.toLocaleString('es-AR')}</span>} icon={DollarSign} tone="primary" />
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="glass-card p-4 flex items-center gap-4">
-          <div className="p-3 bg-primary/10 text-primary rounded-xl">
-            <FileText className="w-6 h-6" />
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Total Presupuestos</p>
-            <p className="text-2xl font-bold mt-0.5">{kpis.total}</p>
-          </div>
-        </div>
-        <div className="glass-card p-4 flex items-center gap-4">
-          <div className="p-3 bg-emerald-500/10 text-emerald-600 rounded-xl">
-            <CheckCircle2 className="w-6 h-6" />
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Aprobados con OC</p>
-            <p className="text-2xl font-bold mt-0.5">{kpis.approved}</p>
-          </div>
-        </div>
-        <div className="glass-card p-4 flex items-center gap-4">
-          <div className="p-3 bg-amber-500/10 text-amber-600 rounded-xl">
-            <Clock className="w-6 h-6" />
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Pendientes de OC</p>
-            <p className="text-2xl font-bold mt-0.5">{kpis.pending}</p>
-          </div>
-        </div>
-        <div className="glass-card p-4 flex items-center gap-4">
-          <div className="p-3 bg-emerald-500/10 text-emerald-600 rounded-xl">
-            <DollarSign className="w-6 h-6" />
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Monto Facturable OC</p>
-            <p className="text-xl font-bold mt-0.5 font-mono">
-              $ {kpis.approvedTotal.toLocaleString()}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Filter Bar */}
-      <div className="glass-card p-4 flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+      <FilterBar>
+        <FieldIcon icon={Search} className="sm:col-span-2 lg:min-w-[240px] lg:flex-1">
           <input
-            type="text"
-            placeholder="Buscar por título, cliente, ID de activo o N° de OC..."
+            type="search"
+            placeholder="Buscar por título, cliente, activo o N.º de OC…"
+            aria-label="Buscar presupuestos"
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="input pl-10 w-full"
+            className="input pl-9"
           />
-        </div>
-        <div className="relative">
-          <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <select
-            value={clientFilter}
-            onChange={e => setClientFilter(e.target.value)}
-            className="select pl-10 min-w-[180px]"
-          >
-            <option value="">Todas las Empresas</option>
+        </FieldIcon>
+        <FieldIcon icon={Building2} className="lg:w-52">
+          <select value={clientFilter} onChange={e => setClientFilter(e.target.value)} className="select pl-9" aria-label="Empresa">
+            <option value="">Todas las empresas</option>
             {clients.map((c: any) => (
               <option key={c.id} value={c.id}>{c.nombre}</option>
             ))}
           </select>
-        </div>
-        <select
-          value={statusFilter}
-          onChange={e => setStatusFilter(e.target.value)}
-          className="select min-w-[170px]"
-        >
+        </FieldIcon>
+        <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="select lg:w-48" aria-label="Estado">
           <option value="">Todos los estados</option>
           <option value="DRAFT">Borrador</option>
           <option value="SENT">Enviado</option>
           <option value="APPROVED">Aprobado (OC)</option>
           <option value="REJECTED">Rechazado</option>
         </select>
-      </div>
+      </FilterBar>
 
       {/* Content List */}
       {isLoading ? (
         <div className="space-y-3">
           {[...Array(4)].map((_, i) => (
-            <div key={i} className="h-24 skeleton rounded-2xl" />
+            <div key={i} className="h-24 skeleton rounded-lg" />
           ))}
         </div>
       ) : filteredQuotes.length === 0 ? (
-        <div className="glass-card p-12 text-center flex flex-col items-center justify-center">
-          <FileText className="w-16 h-16 text-muted-foreground/20 mb-3" />
-          <p className="text-lg font-semibold text-muted-foreground">No se encontraron cotizaciones</p>
-          <p className="text-xs text-muted-foreground mt-1">Crea un nuevo presupuesto para reparaciones o repuestos mayores.</p>
-        </div>
+        <EmptyState icon={FileText} title="No se encontraron presupuestos" description="Creá un presupuesto para reparaciones o repuestos mayores." />
       ) : (
-        <div className="grid grid-cols-1 gap-4">
+        <div className="glass-card divide-y divide-border overflow-hidden">
           {filteredQuotes.map((q: any) => {
             const AssetIcon = getEquipmentTypeIcon(q.dispenser?.equipmentType || 'OTHER');
             return (
-              <div key={q.id} className="glass-card p-5 hover:border-primary/40 transition-all flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div className="space-y-2 flex-1">
+              <div key={q.id} className="flex flex-col justify-between gap-4 p-4 transition-colors hover:bg-muted/30 md:flex-row md:items-center sm:p-5">
+                <div className="min-w-0 flex-1 space-y-1.5">
                   <div className="flex flex-wrap items-center gap-2">
-                    <h3 className="font-bold text-lg text-foreground">{q.titulo}</h3>
+                    <h3 className="text-[15px] font-semibold text-foreground">{q.titulo}</h3>
                     {getStatusBadge(q.status)}
                     {q.orderNumber && (
-                      <span className="badge bg-primary/10 text-primary border border-primary/20 font-mono font-bold text-xs">
-                        OC: {q.orderNumber}
-                      </span>
+                      <span className="badge-neutral font-mono">OC {q.orderNumber}</span>
                     )}
                   </div>
 
                   <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
                     <span className="flex items-center gap-1 font-medium text-foreground">
-                      <Building2 className="w-3.5 h-3.5 text-primary" />
-                      {q.client?.nombre || 'Cliente General'}
+                      <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
+                      {q.client?.nombre || 'Cliente general'}
                     </span>
 
                     {q.dispenser && (
                       <span className="flex items-center gap-1">
-                        <AssetIcon className="w-3.5 h-3.5 text-primary" />
-                        <span className="font-mono font-bold text-foreground">{q.dispenser.id}</span>
+                        <AssetIcon className="h-3.5 w-3.5" />
+                        <span className="font-mono font-medium text-foreground">{q.dispenser.id}</span>
                         <span>({getEquipmentTypeLabel(q.dispenser.equipmentType)})</span>
                       </span>
                     )}
 
                     {q.ticket && (
                       <span className="flex items-center gap-1">
-                        <Wrench className="w-3.5 h-3.5 text-amber-500" />
+                        <Wrench className="h-3.5 w-3.5" />
                         Ticket: <span className="font-mono">{q.ticket.id.slice(-6)}</span> ({q.ticket.reason})
                       </span>
                     )}
@@ -252,25 +197,25 @@ export default function QuotationsPage() {
                   )}
                 </div>
 
-                <div className="flex flex-row md:flex-col items-end justify-between md:justify-center gap-3 shrink-0 border-t md:border-t-0 pt-3 md:pt-0 border-border">
-                  <div className="text-right">
-                    <p className="text-[10px] uppercase font-bold text-muted-foreground">Total Presupuestado</p>
-                    <p className="text-xl font-bold font-mono text-foreground">
-                      {q.moneda} $ {q.total.toLocaleString()}
+                <div className="flex shrink-0 flex-row items-end justify-between gap-3 border-t border-border pt-3 md:flex-col md:items-end md:justify-center md:border-t-0 md:pt-0">
+                  <div className="md:text-right">
+                    <p className="eyebrow">Total</p>
+                    <p className="text-lg font-semibold tabular text-foreground">
+                      {q.moneda} $ {q.total.toLocaleString('es-AR')}
                     </p>
                   </div>
 
                   <div className="flex items-center gap-2">
                     <button 
                       onClick={() => setViewingQuote(q)}
-                      className="btn-outline btn-sm text-xs"
+                      className="btn-outline btn-sm"
                     >
-                      Ver Detalle
+                      Ver detalle
                     </button>
                     {canApprove && q.status !== 'APPROVED' && (
                       <button 
                         onClick={() => setApprovingQuote(q)}
-                        className="btn-primary btn-sm text-xs gap-1.5 shadow-sm"
+                        className="btn-primary btn-sm"
                       >
                         <FileCheck className="w-3.5 h-3.5" />
                         Cargar OC
@@ -393,24 +338,22 @@ function CreateQuotationModal({ onClose, onSuccess }: { onClose: () => void; onS
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in">
-      <div className="w-full max-w-2xl bg-card border border-border rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 max-h-[90vh] flex flex-col">
-        <div className="p-5 border-b border-border bg-muted/30 flex items-center justify-between">
-          <h2 className="text-lg font-bold flex items-center gap-2">
-            <FileText className="w-5 h-5 text-primary" />
-            Nuevo Presupuesto Técnico
-          </h2>
-          <button onClick={onClose} className="p-2 hover:bg-accent rounded-full transition-colors text-muted-foreground">
-            <X className="w-5 h-5" />
+    <div className="modal-overlay">
+      <div className="modal-content max-w-2xl flex flex-col overflow-hidden">
+        <div className="modal-header">
+          <h2>Nuevo presupuesto técnico</h2>
+          <button type="button" onClick={onClose} className="modal-close" aria-label="Cerrar">
+            <X className="h-4 w-4" />
           </button>
         </div>
 
-        <form onSubmit={handleSave} className="p-6 space-y-4 overflow-y-auto flex-1 text-sm">
+        <form onSubmit={handleSave} className="flex flex-1 flex-col overflow-hidden text-sm">
+          <div className="modal-body flex-1 space-y-4 overflow-y-auto">
           <div>
-            <label className="text-xs font-semibold block mb-1">Título del Trabajo / Presupuesto *</label>
+            <label className="label mb-1.5">Título del trabajo / presupuesto *</label>
             <input
               className="input w-full"
-              placeholder="Ej. Cambio de compresor 4500 Fg y presurización R410A"
+              placeholder="Ej. Cambio de compresor 4500 fg y presurización R410A"
               value={titulo}
               onChange={e => setTitulo(e.target.value)}
               required
@@ -421,7 +364,7 @@ function CreateQuotationModal({ onClose, onSuccess }: { onClose: () => void; onS
             <div>
               <label className="text-xs font-semibold block mb-1 flex items-center gap-1">
                 <Building2 className="w-3.5 h-3.5 text-primary" />
-                Empresa / Cliente *
+                Empresa / cliente *
               </label>
               <select
                 className="select w-full"
@@ -433,14 +376,14 @@ function CreateQuotationModal({ onClose, onSuccess }: { onClose: () => void; onS
                 }}
                 required
               >
-                <option value="">Seleccionar Empresa...</option>
+                <option value="">Seleccionar empresa…</option>
                 {clients.map(c => (
                   <option key={c.id} value={c.id}>{c.nombre}</option>
                 ))}
               </select>
             </div>
             <div>
-              <label className="text-xs font-semibold block mb-1">Equipo / Activo Asociado (Opcional)</label>
+              <label className="label mb-1.5">Equipo / activo asociado (opcional)</label>
               <select
                 className="select w-full text-xs"
                 value={dispenserId}
@@ -454,7 +397,7 @@ function CreateQuotationModal({ onClose, onSuccess }: { onClose: () => void; onS
                   }
                 }}
               >
-                <option value="">Ninguno / Intervención General</option>
+                <option value="">Ninguno / intervención general</option>
                 {assets
                   .filter(a => {
                     if (!clientId) return true;
@@ -471,17 +414,17 @@ function CreateQuotationModal({ onClose, onSuccess }: { onClose: () => void; onS
           </div>
 
           <div>
-            <label className="text-xs font-semibold block mb-1">Moneda</label>
+            <label className="label mb-1.5">Moneda</label>
             <select className="select w-full" value={moneda} onChange={e => setMoneda(e.target.value)}>
-              <option value="ARS">Pesos Argentinos (ARS)</option>
-              <option value="USD">Dólares Estadounidenses (USD)</option>
+              <option value="ARS">Pesos argentinos (ARS)</option>
+              <option value="USD">Dólares estadounidenses (USD)</option>
             </select>
           </div>
 
           <div>
-            <label className="text-xs font-semibold block mb-1">Descripción y Justificación Técnica</label>
+            <label className="label mb-1.5">Descripción y justificación técnica</label>
             <textarea
-              className="textarea w-full text-xs"
+              className="textarea"
               rows={2}
               placeholder="Detalles de la falla diagnosticada, necesidad de intervención..."
               value={descripcion}
@@ -492,8 +435,8 @@ function CreateQuotationModal({ onClose, onSuccess }: { onClose: () => void; onS
           {/* Items breakdown */}
           <div className="space-y-3 pt-2">
             <div className="flex items-center justify-between">
-              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                Desglose de Mano de Obra, Repuestos e Insumos
+              <label className="eyebrow">
+                Desglose de mano de obra, repuestos e insumos
               </label>
               <button 
                 type="button" 
@@ -506,7 +449,7 @@ function CreateQuotationModal({ onClose, onSuccess }: { onClose: () => void; onS
 
             <div className="space-y-2">
               {items.map((item, idx) => (
-                <div key={idx} className="flex items-center gap-2 p-2 bg-muted/20 border border-border rounded-xl">
+                <div key={idx} className="flex items-center gap-2 rounded-md border border-border bg-muted/30 p-2">
                   <input
                     className="input flex-1 text-xs"
                     placeholder="Descripción del ítem / repuesto / mano de obra"
@@ -538,7 +481,7 @@ function CreateQuotationModal({ onClose, onSuccess }: { onClose: () => void; onS
                     <button 
                       type="button" 
                       onClick={() => removeItemRow(idx)}
-                      className="p-1.5 hover:bg-red-50 text-red-500 rounded-lg shrink-0"
+                      className="p-1.5 hover:bg-destructive/10 text-destructive rounded-lg shrink-0"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -547,19 +490,20 @@ function CreateQuotationModal({ onClose, onSuccess }: { onClose: () => void; onS
               ))}
             </div>
 
-            <div className="p-3 rounded-xl bg-primary/5 border border-primary/20 flex justify-between items-center text-sm">
-              <span className="font-bold">Total Cotizado Estimado:</span>
-              <span className="text-lg font-bold font-mono text-primary">
-                {moneda} $ {totalCalculated.toLocaleString()}
+            <div className="flex items-center justify-between rounded-md border border-border bg-muted/40 p-3 text-sm">
+              <span className="font-medium">Total estimado</span>
+              <span className="text-lg font-semibold tabular">
+                {moneda} $ {totalCalculated.toLocaleString('es-AR')}
               </span>
             </div>
           </div>
+          </div>
 
-          <div className="p-4 border-t border-border flex justify-end gap-3 pt-4">
+          <div className="modal-footer">
             <button type="button" onClick={onClose} className="btn-outline">Cancelar</button>
-            <button type="submit" disabled={saving} className="btn-primary gap-2 min-w-[130px]">
+            <button type="submit" disabled={saving} className="btn-primary">
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
-              Guardar Borrador
+              Guardar borrador
             </button>
           </div>
         </form>
@@ -606,30 +550,28 @@ function ApproveOcModal({ quote, onClose, onSuccess }: { quote: any; onClose: ()
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in">
-      <div className="w-full max-w-md bg-card border border-border rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95">
-        <div className="p-5 border-b border-border bg-muted/30 flex items-center justify-between">
-          <h2 className="text-base font-bold flex items-center gap-2">
-            <FileCheck className="w-5 h-5 text-emerald-600" />
-            Vincular Orden de Compra (OC)
-          </h2>
-          <button onClick={onClose} className="p-2 hover:bg-accent rounded-full text-muted-foreground">
-            <X className="w-5 h-5" />
+    <div className="modal-overlay">
+      <div className="modal-content max-w-md">
+        <div className="modal-header">
+          <h2>Vincular orden de compra</h2>
+          <button type="button" onClick={onClose} className="modal-close" aria-label="Cerrar">
+            <X className="h-4 w-4" />
           </button>
         </div>
 
-        <form onSubmit={handleApprove} className="p-6 space-y-4 text-sm">
-          <div className="p-3 bg-muted/20 rounded-xl border border-border">
-            <p className="font-bold text-foreground">{quote.titulo}</p>
+        <form onSubmit={handleApprove} className="text-sm">
+          <div className="modal-body space-y-4">
+          <div className="rounded-md border border-border bg-muted/40 p-3">
+            <p className="font-semibold text-foreground">{quote.titulo}</p>
             <p className="text-xs text-muted-foreground mt-0.5 font-mono">
               Total: {quote.moneda} $ {quote.total.toLocaleString()}
             </p>
           </div>
 
           <div>
-            <label className="text-xs font-semibold block mb-1">N° de Orden de Compra (OC del Cliente) *</label>
+            <label className="label mb-1.5">N° de orden de compra (OC del cliente) *</label>
             <input
-              className="input w-full uppercase font-mono font-bold"
+              className="input font-mono uppercase"
               placeholder="Ej. OC-2026-9844 / PO-450123"
               value={orderNumber}
               onChange={e => setOrderNumber(e.target.value)}
@@ -639,7 +581,7 @@ function ApproveOcModal({ quote, onClose, onSuccess }: { quote: any; onClose: ()
           </div>
 
           <div>
-            <label className="text-xs font-semibold block mb-1">Contacto que Autoriza / Aprueba</label>
+            <label className="label mb-1.5">Contacto que autoriza / aprueba</label>
             <input
               className="input w-full"
               placeholder="Nombre y cargo de quien aprobó"
@@ -649,9 +591,9 @@ function ApproveOcModal({ quote, onClose, onSuccess }: { quote: any; onClose: ()
           </div>
 
           <div>
-            <label className="text-xs font-semibold block mb-1">Notas de la OC (Opcional)</label>
+            <label className="label mb-1.5">Notas de la OC (opcional)</label>
             <textarea
-              className="textarea w-full text-xs"
+              className="textarea"
               rows={2}
               placeholder="Condiciones de pago, plazo de entrega acordado..."
               value={notes}
@@ -659,11 +601,12 @@ function ApproveOcModal({ quote, onClose, onSuccess }: { quote: any; onClose: ()
             />
           </div>
 
-          <div className="flex justify-end gap-2 pt-2">
+          </div>
+          <div className="modal-footer">
             <button type="button" onClick={onClose} className="btn-outline">Cancelar</button>
-            <button type="submit" disabled={saving} className="btn-primary gap-2">
+            <button type="submit" disabled={saving} className="btn-primary">
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
-              Confirmar Aprobación
+              Confirmar aprobación
             </button>
           </div>
         </form>
@@ -676,24 +619,24 @@ function ApproveOcModal({ quote, onClose, onSuccess }: { quote: any; onClose: ()
 function ViewQuoteModal({ quote, onClose }: { quote: any; onClose: () => void }) {
   const items = Array.isArray(quote.items) ? quote.items : [];
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in">
-      <div className="w-full max-w-lg bg-card border border-border rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95">
-        <div className="p-5 border-b border-border bg-muted/30 flex items-center justify-between">
+    <div className="modal-overlay">
+      <div className="modal-content max-w-lg">
+        <div className="modal-header">
           <div>
-            <h2 className="text-lg font-bold">{quote.titulo}</h2>
+            <h2>{quote.titulo}</h2>
             <p className="text-xs text-muted-foreground mt-0.5">Cliente: {quote.client?.nombre}</p>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-accent rounded-full text-muted-foreground">
-            <X className="w-5 h-5" />
+          <button type="button" onClick={onClose} className="modal-close" aria-label="Cerrar">
+            <X className="h-4 w-4" />
           </button>
         </div>
 
-        <div className="p-6 space-y-4 text-sm max-h-[70vh] overflow-y-auto">
+        <div className="modal-body space-y-4 text-sm">
           {quote.orderNumber && (
-            <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-emerald-800 dark:text-emerald-300 text-xs flex items-center justify-between">
+            <div className="flex items-center justify-between rounded-md border border-success/25 bg-success/10 p-3 text-xs text-success">
               <div>
-                <p className="font-bold">Orden de Compra: {quote.orderNumber}</p>
-                <p className="text-[11px] opacity-80">Aprobado por: {quote.approvedBy || 'Cliente'}</p>
+                <p className="font-semibold">Orden de compra {quote.orderNumber}</p>
+                <p className="text-2xs opacity-80">Aprobado por: {quote.approvedBy || 'Cliente'}</p>
               </div>
               <CheckCircle2 className="w-5 h-5" />
             </div>
@@ -702,38 +645,38 @@ function ViewQuoteModal({ quote, onClose }: { quote: any; onClose: () => void })
           {quote.descripcion && (
             <div>
               <span className="text-xs font-semibold text-muted-foreground block mb-1">Descripción:</span>
-              <p className="text-xs text-foreground bg-muted/20 p-3 rounded-lg border border-border">{quote.descripcion}</p>
+              <p className="rounded-md border border-border bg-muted/40 p-3 text-[13px] text-foreground">{quote.descripcion}</p>
             </div>
           )}
 
           <div>
-            <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground block mb-2">
-              Ítems Presupuestados ({items.length})
+            <span className="eyebrow block mb-2">
+              Ítems ({items.length})
             </span>
             <div className="space-y-2">
               {items.map((it: any, i: number) => (
-                <div key={i} className="flex justify-between items-center p-2.5 rounded-lg border border-border bg-muted/10 text-xs">
+                <div key={i} className="flex items-center justify-between gap-3 rounded-md border border-border p-2.5 text-[13px]">
                   <div>
                     <p className="font-semibold text-foreground">{it.description}</p>
-                    <p className="text-muted-foreground text-[11px]">Cantidad: {it.quantity} × $ {Number(it.unitPrice).toLocaleString()}</p>
+                    <p className="text-muted-foreground text-2xs">Cantidad: {it.quantity} × $ {Number(it.unitPrice).toLocaleString()}</p>
                   </div>
-                  <span className="font-mono font-bold">
-                    $ {(Number(it.quantity) * Number(it.unitPrice)).toLocaleString()}
+                  <span className="shrink-0 font-medium tabular">
+                    $ {(Number(it.quantity) * Number(it.unitPrice)).toLocaleString('es-AR')}
                   </span>
                 </div>
               ))}
             </div>
           </div>
 
-          <div className="p-4 bg-muted/30 rounded-xl border border-border flex justify-between items-center text-sm font-bold">
-            <span>Total:</span>
-            <span className="text-lg font-mono text-primary">
-              {quote.moneda} $ {quote.total.toLocaleString()}
+          <div className="flex items-center justify-between rounded-md border border-border bg-muted/40 p-3 text-sm">
+            <span className="font-medium">Total</span>
+            <span className="text-lg font-semibold tabular">
+              {quote.moneda} $ {quote.total.toLocaleString('es-AR')}
             </span>
           </div>
         </div>
 
-        <div className="p-4 border-t border-border flex justify-end">
+        <div className="modal-footer">
           <button onClick={onClose} className="btn-outline">Cerrar</button>
         </div>
       </div>

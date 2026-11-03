@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { useRouter } from 'next/navigation';
-import { Layers, Lock, Loader2, CheckCircle2 } from 'lucide-react';
+import { Lock, Loader2, CheckCircle2 } from 'lucide-react';
+import AuthLayout from '@/components/AuthLayout';
 import toast from 'react-hot-toast';
 
 export default function SetPasswordPage() {
@@ -63,88 +64,64 @@ export default function SetPasswordPage() {
 
   if (isSuccess) {
     return (
-      <div className="min-h-screen w-full flex items-center justify-center bg-background relative overflow-hidden">
-        <div className="w-full max-w-md p-8 glass-card z-10 text-center animate-fade-in">
-          <div className="w-20 h-20 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
-            <CheckCircle2 className="w-10 h-10 text-emerald-500" />
-          </div>
-          <h1 className="text-2xl font-bold mb-2">¡Todo listo!</h1>
-          <p className="text-muted-foreground">Tu contraseña ha sido establecida. Redirigiendo al panel...</p>
+      <AuthLayout>
+        <div className="animate-fade-in">
+          <CheckCircle2 className="h-8 w-8 text-success" />
+          <h1 className="mt-4 text-2xl font-semibold">Contraseña establecida</h1>
+          <p className="mt-1.5 text-sm text-muted-foreground">Redirigiendo al panel…</p>
         </div>
-      </div>
+      </AuthLayout>
     );
   }
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-background relative overflow-hidden">
-      {/* Background decoration */}
-      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/20 blur-[120px] rounded-full mix-blend-multiply dark:mix-blend-screen animate-pulse-soft" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-cyan-500/20 blur-[120px] rounded-full mix-blend-multiply dark:mix-blend-screen animate-pulse-soft" style={{ animationDelay: '1s' }} />
+    <AuthLayout>
+      <div className="mb-8">
+        <h1 className="text-2xl font-semibold text-foreground">Establecer contraseña</h1>
+        <p className="mt-1.5 text-sm text-muted-foreground">Creá una contraseña segura para tu cuenta.</p>
+      </div>
 
-      <div className="w-full max-w-md p-8 glass-card z-10 relative border-t border-l border-white/20 dark:border-white/5">
-        <div className="flex flex-col items-center mb-8">
-          <div className="w-16 h-16 bg-gradient-to-br from-primary to-cyan-400 rounded-2xl flex items-center justify-center shadow-lg mb-6">
-            <Layers className="w-8 h-8 text-white fill-white/20" />
+      <form onSubmit={handleSubmit} className="space-y-5">
+        <div className="space-y-1.5">
+          <label htmlFor="new-password" className="label">Nueva contraseña</label>
+          <div className="relative">
+            <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <input
+              id="new-password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="input h-11 pl-10 sm:h-10"
+              placeholder="••••••••"
+              autoComplete="new-password"
+              required
+              disabled={isLoading}
+            />
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground text-center">Establecer Contraseña</h1>
-          <p className="text-muted-foreground mt-2 text-center text-sm">
-            Crea una contraseña segura para tu cuenta
-          </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <div className="space-y-1">
-            <label className="text-sm font-medium text-foreground ml-1">Nueva Contraseña</label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Lock className="h-5 w-5 text-muted-foreground" />
-              </div>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="input pl-10 h-12 bg-background/50 focus:bg-background"
-                placeholder="••••••••"
-                required
-                disabled={isLoading}
-              />
-            </div>
+        <div className="space-y-1.5">
+          <label htmlFor="confirm-password" className="label">Confirmar contraseña</label>
+          <div className="relative">
+            <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <input
+              id="confirm-password"
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              className="input h-11 pl-10 sm:h-10"
+              placeholder="••••••••"
+              autoComplete="new-password"
+              required
+              disabled={isLoading}
+            />
           </div>
+        </div>
 
-          <div className="space-y-1">
-            <label className="text-sm font-medium text-foreground ml-1">Confirmar Contraseña</label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Lock className="h-5 w-5 text-muted-foreground" />
-              </div>
-              <input
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                className="input pl-10 h-12 bg-background/50 focus:bg-background"
-                placeholder="••••••••"
-                required
-                disabled={isLoading}
-              />
-            </div>
-          </div>
-
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="w-full h-12 btn-primary text-base mt-2 shadow-primary/25 shadow-lg relative overflow-hidden group"
-          >
-            {isLoading ? (
-              <Loader2 className="w-5 h-5 animate-spin" />
-            ) : (
-              <span className="relative z-10 flex items-center justify-center gap-2">
-                Establecer Contraseña
-              </span>
-            )}
-            <div className="absolute inset-0 h-full w-full bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]" />
-          </button>
-        </form>
-      </div>
-    </div>
+        <button type="submit" disabled={isLoading} className="btn-primary h-11 w-full sm:h-10">
+          {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Guardar contraseña'}
+        </button>
+      </form>
+    </AuthLayout>
   );
 }
