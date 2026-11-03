@@ -5,6 +5,7 @@ import { X, Loader2, QrCode, Ticket, AlertTriangle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import clsx from 'clsx';
 import Switch from '@/components/ui/Switch';
+import { enablePush } from '@/lib/pushClient';
 import ReasonCombobox from './ReasonCombobox';
 import { extractDispenserId } from '@/lib/qr';
 
@@ -239,8 +240,11 @@ export default function CreateTicketModal({ initialDispenserId = '', onClose, on
                 checked={form.wantsPushNotifications}
                 onChange={(checked) => {
                   setForm(p => ({ ...p, wantsPushNotifications: checked }));
-                  if (checked && typeof window !== 'undefined' && window.OneSignal) {
-                    window.OneSignal.Slidedown.promptPush();
+                  if (checked) {
+                    enablePush().then(state => {
+                      if (state === 'denied') toast.error('El navegador bloqueó las notificaciones; vas a recibir los avisos dentro de la app.');
+                      else if (state === 'unsupported') toast('Este dispositivo no admite notificaciones push; vas a ver los avisos dentro de la app.');
+                    });
                   }
                 }}
               />
@@ -257,7 +261,7 @@ export default function CreateTicketModal({ initialDispenserId = '', onClose, on
                     <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
                     <p>
                       Verificá que el navegador tenga permitidas las notificaciones.{' '}
-                      <button type="button" onClick={() => window.OneSignal?.Slidedown.promptPush()} className="font-medium text-primary underline-offset-2 hover:underline">
+                      <button type="button" onClick={() => enablePush()} className="font-medium text-primary underline-offset-2 hover:underline">
                         Activar permisos
                       </button>
                     </p>

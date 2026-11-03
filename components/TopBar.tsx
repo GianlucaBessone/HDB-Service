@@ -34,6 +34,8 @@ import { t } from '@/lib/translations';
 import { useNotificationStore } from '@/lib/store/useNotificationStore';
 import { useUIStore } from '@/lib/store/useUIStore';
 import CommandPalette from '@/components/CommandPalette';
+import PushSettings from '@/components/PushSettings';
+import { logoutPush } from '@/lib/pushClient';
 
 interface Notification {
   id: string;
@@ -232,6 +234,7 @@ export default function TopBar({ user }: { user: { nombre: string; email: string
   };
 
   const handleSignOut = async () => {
+    await logoutPush();
     await supabase.auth.signOut();
     window.location.href = '/login';
   };
@@ -426,7 +429,7 @@ export default function TopBar({ user }: { user: { nombre: string; email: string
           </button>
 
           {isUserMenuOpen && (
-            <div className="absolute right-0 top-full z-50 mt-2 w-64 overflow-hidden rounded-lg border border-border bg-popover shadow-lg animate-fade-in">
+            <div className="absolute right-0 top-full z-50 mt-2 w-72 max-w-[calc(100vw-1rem)] overflow-hidden rounded-lg border border-border bg-popover shadow-lg animate-fade-in">
               <div className="border-b border-border px-4 py-3">
                 <p className="truncate text-sm font-semibold text-foreground">{user.nombre}</p>
                 <p className="truncate text-xs text-muted-foreground">{user.email}</p>
@@ -450,6 +453,9 @@ export default function TopBar({ user }: { user: { nombre: string; email: string
                     </button>
                   ))}
                 </div>
+              </div>
+              <div className="border-t border-border px-4 py-3">
+                <PushSettings />
               </div>
               <div className="border-t border-border p-1.5">
                 <button onClick={handleSignOut} className="btn-ghost w-full justify-start text-[13px] text-destructive hover:bg-destructive/10 hover:text-destructive">

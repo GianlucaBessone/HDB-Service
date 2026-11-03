@@ -12,6 +12,7 @@ import * as XLSX from 'xlsx';
 import { useConfigStore } from '@/lib/store/useConfigStore';
 import { getEquipmentTypeIcon } from '@/lib/equipment';
 import ConfirmModal from '@/components/ConfirmModal';
+import { EMAIL_TEMPLATES, EMAIL_TEMPLATE_TYPES, EmailTemplateType, isPlaceholderTemplate, renderEmailHtml, applyVariables } from '@/lib/emailTemplates';
 import PageHeader from '@/components/ui/PageHeader';
 import UIEmptyState from '@/components/ui/EmptyState';
 
@@ -93,7 +94,7 @@ function SmtpSection() {
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    fetch('/api/settings?keys=SMTP_HOST,SMTP_PORT,SMTP_USER,SMTP_PASS,SMTP_FROM_NAME,SMTP_FROM_EMAIL,SMTP_SECURE')
+    fetch('/api/settings?keys=SMTP_HOST,SMTP_PORT,SMTP_USER,SMTP_PASS,SMTP_FROM_NAME,SMTP_FROM_EMAIL,SMTP_SECURE,EMAIL_TEST_MODE,EMAIL_TEST_RECIPIENT')
       .then(res => res.json())
       .then(data => {
         setSettings(data);
@@ -114,6 +115,8 @@ function SmtpSection() {
       SMTP_FROM_NAME: formData.get('SMTP_FROM_NAME'),
       SMTP_FROM_EMAIL: formData.get('SMTP_FROM_EMAIL'),
       SMTP_SECURE: formData.get('SMTP_SECURE') === 'on' ? 'true' : 'false',
+      EMAIL_TEST_MODE: formData.get('EMAIL_TEST_MODE') === 'on' ? 'true' : 'false',
+      EMAIL_TEST_RECIPIENT: String(formData.get('EMAIL_TEST_RECIPIENT') || '').trim(),
     };
 
     try {
@@ -185,10 +188,40 @@ function SmtpSection() {
           </label>
         </div>
 
+        <div className="space-y-3 rounded-md border border-warning/30 bg-warning/[0.06] p-4">
+          <div className="flex items-start gap-3">
+            <input
+              type="checkbox"
+              name="EMAIL_TEST_MODE"
+              id="EMAIL_TEST_MODE"
+              defaultChecked={settings?.EMAIL_TEST_MODE === undefined || settings?.EMAIL_TEST_MODE === 'true'}
+              className="mt-0.5 h-4 w-4 rounded border-input accent-[hsl(var(--primary))]"
+            />
+            <label htmlFor="EMAIL_TEST_MODE" className="cursor-pointer">
+              <span className="block text-sm font-medium">Modo prueba</span>
+              <span className="block text-xs text-muted-foreground">
+                Mientras esté activo, todos los correos se envían sólo a la casilla de prueba (el asunto indica a quién iban dirigidos).
+                Desactivalo para que lleguen a los usuarios reales.
+              </span>
+            </label>
+          </div>
+          <div className="space-y-1.5 sm:max-w-sm">
+            <label className="label" htmlFor="EMAIL_TEST_RECIPIENT">Casilla de prueba</label>
+            <input
+              id="EMAIL_TEST_RECIPIENT"
+              name="EMAIL_TEST_RECIPIENT"
+              type="email"
+              defaultValue={settings?.EMAIL_TEST_RECIPIENT ?? 'gbessone.hdb@gmail.com'}
+              className="input"
+              placeholder="pruebas@empresa.com"
+            />
+          </div>
+        </div>
+
         <div className="pt-4 flex justify-end">
           <button type="submit" disabled={isSaving} className="btn-primary gap-2 w-full sm:w-auto">
             {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-            {isSaving ? 'Guardando...' : 'Guardar Configuración SMTP'}
+            {isSaving ? 'Guardando…' : 'Guardar configuración'}
           </button>
         </div>
       </form>
@@ -200,262 +233,281 @@ function SmtpSection() {
 function EmailsSection() {
   const [templates, setTemplates] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [editingTemplate, setEditingTemplate] = useState<any>(null);
+  const [isSeeding, setIsSeeding] = useState(false);
+  const [editing, setEditing] = useState<any>(null);
 
-  useEffect(() => {
+  const load = useCallback(() => {
     fetch('/api/email-templates')
       .then(res => res.json())
-      .then(data => {
-        setTemplates(data);
-        setIsLoading(false);
-      })
-      .catch(() => setIsLoading(false));
+      .then(data => setTemplates(Array.isArray(data) ? data : []))
+      .finally(() => setIsLoading(false));
   }, []);
 
-  const handleSave = async (data: any) => {
-    const res = await fetch(`/api/email-templates/${editingTemplate.id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
-    if (!res.ok) throw new Error('Error al guardar');
-    toast.success('Plantilla actualizada');
-    setTemplates(prev => prev.map(t => t.id === editingTemplate.id ? { ...t, ...data } : t));
-    setEditingTemplate(null);
+  useEffect(() => { load(); }, [load]);
+
+  const byType = new Map(templates.map(t => [t.type, t]));
+  const pending = EMAIL_TEMPLATE_TYPES.filter(type => isPlaceholderTemplate(byType.get(type)));
+
+  const saveRecommended = async () => {
+    setIsSeeding(true);
+    try {
+      const res = await fetch('/api/email-templates/defaults', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode: 'missing' }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setTemplates(data.templates);
+      toast.success(data.saved.length ? `Se guardaron ${data.saved.length} plantillas` : 'Las plantillas ya estaban cargadas');
+    } catch (e: any) {
+      toast.error(e?.message || 'Error al guardar las plantillas');
+    } finally {
+      setIsSeeding(false);
+    }
   };
 
+  if (isLoading) return <LoadingSkeleton />;
+
+  return (
+    <div className="space-y-4 animate-fade-in">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h2 className="panel-title">Plantillas de correo</h2>
+          <p className="text-xs text-muted-foreground">Textos de los avisos automáticos. Se envían con el diseño de HDB Service.</p>
+        </div>
+        {pending.length > 0 && (
+          <button onClick={saveRecommended} disabled={isSeeding} className="btn-primary">
+            {isSeeding ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            Guardar plantillas recomendadas ({pending.length})
+          </button>
+        )}
+      </div>
+
+      {pending.length > 0 && (
+        <div className="flex items-start gap-2.5 rounded-md border border-border bg-muted/40 p-3 text-[13px] text-muted-foreground">
+          <HelpCircle className="mt-0.5 h-4 w-4 shrink-0" />
+          <p>
+            {pending.length === EMAIL_TEMPLATE_TYPES.length ? 'Todavía no hay plantillas guardadas.' : `${pending.length} plantillas no tienen texto propio.`}{' '}
+            Mientras tanto, los correos se envían con el texto recomendado. Guardalas para poder editarlas.
+          </p>
+        </div>
+      )}
+
+      <div className="glass-card divide-y divide-border overflow-hidden">
+        {EMAIL_TEMPLATE_TYPES.map(type => {
+          const meta = EMAIL_TEMPLATES[type];
+          const stored = byType.get(type);
+          const usesDefault = isPlaceholderTemplate(stored);
+          const subject = usesDefault ? meta.subject : stored.subject;
+          return (
+            <div key={type} className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-w-0 space-y-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-sm font-semibold">{meta.label}</span>
+                  {stored && !stored.active ? (
+                    <span className="badge-neutral">Desactivada</span>
+                  ) : usesDefault ? (
+                    <span className="badge-warning">Texto recomendado (sin guardar)</span>
+                  ) : (
+                    <span className="badge-success">Personalizada</span>
+                  )}
+                </div>
+                <p className="truncate text-[13px] text-foreground">{subject}</p>
+                <p className="text-xs text-muted-foreground">{meta.help}</p>
+              </div>
+              <button
+                onClick={() => setEditing({ type, id: stored?.id, active: stored ? stored.active : true, subject, body: usesDefault ? meta.body : stored.body })}
+                className="btn-outline btn-sm shrink-0"
+              >
+                <Edit2 className="h-3.5 w-3.5" />
+                {stored && !usesDefault ? 'Editar' : 'Revisar y guardar'}
+              </button>
+            </div>
+          );
+        })}
+      </div>
+
+      {editing && (
+        <EmailTemplateEditor
+          value={editing}
+          onClose={() => setEditing(null)}
+          onSaved={(tpl) => {
+            setTemplates(prev => {
+              const rest = prev.filter(t => t.type !== tpl.type);
+              return [...rest, tpl];
+            });
+            setEditing(null);
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function EmailTemplateEditor({ value, onClose, onSaved }: { value: any; onClose: () => void; onSaved: (tpl: any) => void }) {
+  const meta = EMAIL_TEMPLATES[value.type as EmailTemplateType];
+  const [subject, setSubject] = useState<string>(value.subject);
+  const [body, setBody] = useState<string>(value.body);
+  const [active, setActive] = useState<boolean>(value.active);
+  const [tab, setTab] = useState<'edit' | 'preview'>('edit');
+  const [saving, setSaving] = useState(false);
+  const [testing, setTesting] = useState(false);
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
 
   const insertVariable = (variable: string) => {
-    if (!textAreaRef.current) return;
-    const textarea = textAreaRef.current;
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const text = textarea.value;
-    textarea.value = text.substring(0, start) + variable + text.substring(end);
-    textarea.focus();
-    textarea.selectionStart = textarea.selectionEnd = start + variable.length;
+    const el = textAreaRef.current;
+    if (!el) return;
+    const start = el.selectionStart;
+    const end = el.selectionEnd;
+    const next = body.substring(0, start) + variable + body.substring(end);
+    setBody(next);
+    requestAnimationFrame(() => {
+      el.focus();
+      el.selectionStart = el.selectionEnd = start + variable.length;
+    });
   };
 
-  const templateTypes = {
-    WELCOME_TEMP_PASSWORD: { 
-      label: 'Bienvenida (clave temporal)', 
-      help: 'Se envía al crear un nuevo usuario.', 
-      variables: ['{nombre_completo}', '{primer_nombre}', '{email}', '{contraseña}'] 
-    },
-    TICKET_CREATED: { 
-      label: 'Ticket creado', 
-      help: 'Notificación de nuevo ticket.', 
-      variables: ['{id_ticket}', '{motivo}', '{reportador_completo}', '{primer_nombre_reportador}', '{prioridad}', '{planta}', '{ubicacion}'] 
-    },
-    TICKET_ASSIGNED: { 
-      label: 'Ticket asignado', 
-      help: 'Notificación al técnico asignado.', 
-      variables: ['{id_ticket}', '{motivo}', '{tecnico_completo}', '{primer_nombre_tecnico}', '{prioridad}', '{planta}', '{ubicacion}', '{dias_vencimiento_sla}', '{fecha_vencimiento_sla}'] 
-    },
-    TICKET_RESOLVED: {
-      label: 'Ticket resuelto',
-      help: 'Notificación cuando se soluciona un ticket y el equipo queda operativo.',
-      variables: ['{id_ticket}', '{motivo}', '{resolucion}', '{tecnico_completo}', '{primer_nombre_tecnico}', '{reportador_completo}', '{primer_nombre_reportador}', '{planta}', '{ubicacion}', '{fecha_resolucion}']
-    },
-    DISPENSER_BLOCKED: {
-      label: 'Equipo bloqueado (esperando OC)',
-      help: 'Notificación al responsable cuando un equipo requiere reemplazo o reparación mayor y está a la espera de Orden de Compra.',
-      variables: ['{id_equipo}', '{id_dispenser}', '{marca}', '{modelo}', '{motivo_cambio}', '{tecnico_completo}', '{primer_nombre_tecnico}', '{responsable_completo}', '{primer_nombre_responsable}', '{planta}', '{ubicacion}', '{fecha_bloqueo}']
-    },
-    DISPENSER_BLOCKED_REQUESTER: {
-      label: 'Equipo bloqueado (aviso al referente)',
-      help: 'Notificación al referente cuando un equipo en su planta queda bloqueado.',
-      variables: ['{id_equipo}', '{id_dispenser}', '{marca}', '{modelo}', '{motivo_cambio}', '{tecnico_completo}', '{primer_nombre_tecnico}', '{referente_completo}', '{primer_nombre_referente}', '{planta}', '{ubicacion}', '{fecha_bloqueo}']
+  const previewHtml = useMemo(
+    () => renderEmailHtml({ subject, body, variables: meta.sample, ctaLabel: meta.ctaLabel }),
+    [subject, body, meta]
+  );
+
+  const save = async () => {
+    if (!subject.trim() || !body.trim()) {
+      toast.error('El asunto y el cuerpo son obligatorios');
+      return;
+    }
+    setSaving(true);
+    try {
+      const res = value.id
+        ? await fetch(`/api/email-templates/${value.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ subject, body, active }),
+          })
+        : await fetch('/api/email-templates', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ type: value.type, subject, body }),
+          });
+      const tpl = await res.json();
+      if (!res.ok) throw new Error(tpl.error);
+      if (!value.id && !active) {
+        await fetch(`/api/email-templates/${tpl.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ subject, body, active }),
+        });
+        tpl.active = false;
+      }
+      toast.success('Plantilla guardada');
+      onSaved(tpl);
+    } catch (e: any) {
+      toast.error(e?.message || 'Error al guardar');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const sendTest = async () => {
+    setTesting(true);
+    try {
+      const res = await fetch('/api/email-templates/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: value.type, subject, body }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      toast.success(`Correo de prueba enviado a ${data.to}`);
+    } catch (e: any) {
+      toast.error(e?.message || 'No se pudo enviar la prueba');
+    } finally {
+      setTesting(false);
     }
   };
 
   return (
-    <div className="space-y-4">
-      {isLoading ? <LoadingSkeleton /> : templates.length === 0 ? (
-        <div className="glass-card p-12 text-center">
-          <Mail className="w-16 h-16 text-muted-foreground/20 mx-auto mb-4" />
-          <p className="text-muted-foreground">No hay plantillas configuradas</p>
-          <button 
-            onClick={async () => {
-              for (const type of Object.keys(templateTypes)) {
-                await fetch('/api/email-templates', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    type,
-                    subject: `Notificación: ${type}`,
-                    body: 'Cuerpo de correo predeterminado'
-                  })
-                });
-              }
-              window.location.reload();
-            }}
-            className="btn-primary mt-4"
-          >
-            Inicializar plantillas base
-          </button>
+    <div className="modal-overlay" onMouseDown={e => e.target === e.currentTarget && onClose()}>
+      <div className="modal-content flex max-w-5xl flex-col overflow-hidden">
+        <div className="modal-header">
+          <div className="min-w-0">
+            <h2>{meta.label}</h2>
+            <p className="text-xs text-muted-foreground">{meta.help}</p>
+          </div>
+          <button type="button" onClick={onClose} className="modal-close" aria-label="Cerrar"><X className="h-4 w-4" /></button>
         </div>
-      ) : (
-        <div className="space-y-4">
-          {Object.keys(templateTypes).length > templates.length && (
-            <div className="flex justify-end">
-              <button
-                onClick={async () => {
-                  const existingTypes = templates.map(t => t.type);
-                  const missingTypes = Object.keys(templateTypes).filter(t => !existingTypes.includes(t));
-                  for (const type of missingTypes) {
-                    await fetch('/api/email-templates', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({
-                        type,
-                        subject: `Notificación: ${type}`,
-                        body: 'Cuerpo de correo predeterminado'
-                      })
-                    });
-                  }
-                  window.location.reload();
-                }}
-                className="btn-outline gap-2 text-xs"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                Agregar Plantillas Nuevas ({Object.keys(templateTypes).length - templates.length})
-              </button>
+
+        <div className="border-b border-border px-4 sm:px-6 lg:hidden">
+          <div className="tabs border-b-0">
+            <button className={tab === 'edit' ? 'tab-active' : 'tab'} onClick={() => setTab('edit')}>Editar</button>
+            <button className={tab === 'preview' ? 'tab-active' : 'tab'} onClick={() => setTab('preview')}>Vista previa</button>
+          </div>
+        </div>
+
+        <div className="grid flex-1 grid-cols-1 overflow-y-auto lg:grid-cols-2 lg:divide-x lg:divide-border">
+          <div className={clsx('modal-body space-y-4', tab !== 'edit' && 'hidden lg:block')}>
+            <div className="space-y-1.5">
+              <label className="label">Asunto</label>
+              <input className="input" value={subject} onChange={e => setSubject(e.target.value)} />
             </div>
-          )}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {templates.map(t => (
-            <div key={t.id} className="glass-card p-6 flex flex-col justify-between">
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="badge-neutral">
-                    {(templateTypes as any)[t.type]?.label || t.type}
-                  </span>
-                  <button 
-                    onClick={() => setEditingTemplate(t)}
-                    className="btn-icon btn-ghost"
-                    aria-label="Editar plantilla"
-                  >
-                    <Edit2 className="w-4 h-4" />
+            <div className="space-y-1.5">
+              <label className="label">Cuerpo</label>
+              <textarea
+                ref={textAreaRef}
+                className="textarea min-h-[280px] font-mono text-[13px] leading-relaxed"
+                value={body}
+                onChange={e => setBody(e.target.value)}
+              />
+              <p className="field-hint">Texto con saltos de línea. Podés usar &lt;strong&gt; para negrita. El botón final lleva a {'{link}'}.</p>
+            </div>
+            <div>
+              <p className="eyebrow mb-2">Variables disponibles</p>
+              <div className="flex flex-wrap gap-1.5">
+                {meta.variables.map(v => (
+                  <button key={v} type="button" onClick={() => insertVariable(v)} className="badge-neutral cursor-pointer font-mono hover:border-foreground/30">
+                    {v}
                   </button>
-                </div>
-                <h3 className="mb-1 text-[15px] font-semibold">{t.subject}</h3>
-                <p className="line-clamp-3 rounded-md border border-border bg-muted/40 p-3 font-mono text-xs text-muted-foreground">
-                  {t.body}
-                </p>
-              </div>
-              <div className="mt-4 pt-4 border-t border-border flex items-center justify-between text-2xs text-muted-foreground">
-                <div className="flex items-center gap-1.5">
-                  <HelpCircle className="w-3 h-3" />
-                  {(templateTypes as any)[t.type]?.help} Variables: {((templateTypes as any)[t.type]?.variables || []).join(', ')}
-                </div>
+                ))}
               </div>
             </div>
-          ))}
+            <label className="flex items-center gap-2 text-sm">
+              <input type="checkbox" checked={active} onChange={e => setActive(e.target.checked)} className="h-4 w-4 rounded border-input accent-[hsl(var(--primary))]" />
+              Plantilla activa (si se desactiva, este aviso no se envía por correo)
+            </label>
+          </div>
+
+          <div className={clsx('bg-muted/40 p-4 sm:p-6', tab !== 'preview' && 'hidden lg:block')}>
+            <p className="eyebrow mb-2">Vista previa con datos de ejemplo</p>
+            <p className="mb-2 truncate text-[13px]"><span className="text-muted-foreground">Asunto:</span> {applyVariables(subject, meta.sample, { html: false })}</p>
+            <iframe title="Vista previa del correo" srcDoc={previewHtml} className="h-[480px] w-full rounded-md border border-border bg-white" sandbox="" />
           </div>
         </div>
-      )}
-      {editingTemplate && (
-        <div className="modal-overlay" onMouseDown={e => e.target === e.currentTarget && setEditingTemplate(null)}>
-          <div className="modal-content max-w-4xl" onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2>Editar plantilla: {(templateTypes as any)[editingTemplate.type]?.label}</h2>
-              <button type="button" onClick={() => setEditingTemplate(null)} className="modal-close" aria-label="Cerrar"><X className="h-4 w-4" /></button>
-            </div>
-            <form onSubmit={(e) => {
-              e.preventDefault();
-              const formData = new FormData(e.currentTarget);
-              handleSave({
-                subject: formData.get('subject'),
-                body: formData.get('body'),
-              });
-            }}>
-              <div className="modal-body p-0">
-                <div className="grid grid-cols-1 md:grid-cols-[1fr_260px] gap-0">
-                  {/* Left Column: Form Fields */}
-                  <div className="p-6 space-y-4 border-r border-border/50">
-                    <div className="space-y-1.5">
-                      <label className="label">Asunto del email</label>
-                      <input
-                        name="subject"
-                        defaultValue={editingTemplate.subject}
-                        className="input"
-                        required
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <label className="label">Cuerpo del email (HTML permitido)</label>
-                      <textarea
-                        ref={textAreaRef}
-                        name="body"
-                        defaultValue={editingTemplate.body}
-                        className="input min-h-[300px] font-mono text-sm leading-relaxed resize-y"
-                        required
-                      />
-                    </div>
-                  </div>
 
-                  {/* Right Column: Variables Side Panel */}
-                  <div className="p-6 bg-muted/20 dark:bg-muted/10 space-y-4">
-                    <div>
-                      <h3 className="font-semibold text-sm mb-1 flex items-center gap-1.5">
-                        <Settings className="w-4 h-4 text-primary" />
-                        Variables disponibles
-                      </h3>
-                      <p className="text-xs text-muted-foreground">
-                        Haz clic para insertarlas en la posición del cursor.
-                      </p>
-                    </div>
-
-                    <div className="flex flex-col gap-2">
-                      {((templateTypes as any)[editingTemplate.type]?.variables || []).map((v: string, i: number) => {
-                        const colors = [
-                          'bg-info/10 text-info border-info/25',
-                          'bg-success/10 text-success border-success/25',
-                          'bg-info/10 text-info border-info/25',
-                          'bg-warning/10 text-warning border-warning/25',
-                          'bg-destructive/10 text-destructive border-destructive/25',
-                          'bg-info/10 text-info border-info/25',
-                        ];
-                        const colorClass = colors[i % colors.length];
-                        return (
-                          <button
-                            key={v}
-                            type="button"
-                            onClick={() => insertVariable(v)}
-                            className={`px-2.5 py-1.5 text-xs font-mono font-medium rounded-md border text-left cursor-pointer transition-all select-none flex items-center justify-between ${colorClass}`}
-                            title={`Insertar ${v}`}
-                          >
-                            <span>{v}</span>
-                            <span className="opacity-50 text-2xs">&rarr;</span>
-                          </button>
-                        );
-                      })}
-                    </div>
-
-                    <div className="mt-auto pt-6">
-                      <div className="p-3 bg-primary/5 border border-primary/10 rounded-lg">
-                        <p className="text-2xs text-muted-foreground flex items-start gap-1.5 leading-snug">
-                          <HelpCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-                          El sistema reemplazará automáticamente estas llaves por la información real al enviar el correo.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div className="modal-footer bg-muted/30 border-t border-border">
-                <button type="button" onClick={() => setEditingTemplate(null)} className="btn-outline">Cancelar</button>
-                <button type="submit" className="btn-primary gap-2">
-                  <Save className="w-4 h-4" />
-                  Guardar cambios
-                </button>
-              </div>
-            </form>
+        <div className="modal-footer sm:justify-between">
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <button
+              type="button"
+              onClick={() => { setSubject(meta.subject); setBody(meta.body); }}
+              className="btn-ghost"
+            >
+              Restaurar texto recomendado
+            </button>
+            <button type="button" onClick={sendTest} disabled={testing} className="btn-outline">
+              {testing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
+              Enviarme una prueba
+            </button>
+          </div>
+          <div className="flex flex-col-reverse gap-2 sm:flex-row">
+            <button type="button" onClick={onClose} className="btn-outline">Cancelar</button>
+            <button type="button" onClick={save} disabled={saving} className="btn-primary">
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              Guardar plantilla
+            </button>
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }

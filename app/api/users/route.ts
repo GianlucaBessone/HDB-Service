@@ -3,6 +3,8 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireRole } from '@/lib/auth';
 import { supabaseAdmin } from '@/utils/supabase/admin';
+import { sendEmail } from '@/lib/email';
+import { appUrl } from '@/lib/appUrl';
 
 export const dynamic = 'force-dynamic';
 
@@ -121,6 +123,19 @@ export async function POST(request: Request) {
         console.warn('[API] EquipmentTypes raw create warning:', e);
       }
     }
+
+    // Correo de bienvenida con la contraseña temporal (no bloquea la respuesta)
+    sendEmail({
+      to: email,
+      templateType: 'WELCOME_TEMP_PASSWORD',
+      variables: {
+        nombre_completo: [nombre, apellido].filter(Boolean).join(' '),
+        primer_nombre: String(nombre).split(' ')[0],
+        email,
+        'contraseña': password,
+        link: appUrl('/login'),
+      },
+    }).catch(err => console.error('[Email] Bienvenida:', err));
 
     revalidateTag('users', 'default');
     return NextResponse.json(newUser);

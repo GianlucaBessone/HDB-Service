@@ -264,7 +264,7 @@ export default function UserModal({ user, onClose, onSuccess }: UserModalProps) 
           <div className="min-w-0">
             <h2>{isEditing ? 'Editar usuario' : 'Nuevo usuario'}</h2>
             <p className="text-xs text-muted-foreground">
-              {isEditing ? 'Actualizá los datos del perfil.' : 'Se enviará una invitación por email para definir la contraseña.'}
+              {isEditing ? 'Actualizá los datos del perfil.' : 'Se le enviará un correo de bienvenida con la contraseña temporal.'}
             </p>
           </div>
           <button type="button" onClick={onClose} className="modal-close" aria-label="Cerrar">

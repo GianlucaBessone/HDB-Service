@@ -5,6 +5,8 @@ import { requirePermission, getDataFilter } from '@/lib/auth';
 import { createAuditLog } from '@/lib/audit';
 import { sendPushNotification } from '@/lib/onesignal';
 import { sendEmail } from '@/lib/email';
+import { appUrl } from '@/lib/appUrl';
+import { t } from '@/lib/translations';
 import { TicketStatus } from '@prisma/client';
 
 export const dynamic = 'force-dynamic';
@@ -80,7 +82,7 @@ export async function PUT(req: Request, props: { params: Promise<{ id: string }>
     const ticket = await prisma.ticket.findUnique({ 
       where: { id: id },
       include: { 
-        reportedBy: { select: { id: true, onesignalPlayerId: true, nombre: true } },
+        reportedBy: { select: { id: true, nombre: true, email: true } },
         location: { include: { plant: true } },
         dispenser: { select: { id: true, status: true, equipmentType: true } },
       }
@@ -157,11 +159,26 @@ export async function PUT(req: Request, props: { params: Promise<{ id: string }>
         },
       });
 
-      // Send Email on Resolve
-      if (status === 'RESOLVED') {
-        const reporterEmail = 'reportador@empresa.com'; // Overridden in sendEmail anyway
+      // Avisos a quien reportó el ticket, según lo que eligió al crearlo
+      const reporterId = ticket.reportedBy?.id;
+      const reporterIsActor = reporterId === user.id;
+      if (reporterId && !reporterIsActor && ticket.wantsPushNotifications && ['IN_PROGRESS', 'RESOLVED', 'CLOSED'].includes(status)) {
+        const pushText: Record<string, { title: string; message: string }> = {
+          IN_PROGRESS: { title: `Ticket ${ticket.id} en curso`, message: `${user.nombre} está trabajando en: ${ticket.reason.substring(0, 80)}` },
+          RESOLVED: { title: `Ticket ${ticket.id} resuelto`, message: `${ticket.reason.substring(0, 80)}${notes?.trim() ? ` · ${notes.trim().substring(0, 80)}` : ''}` },
+          CLOSED: { title: `Ticket ${ticket.id} cerrado`, message: ticket.reason.substring(0, 100) },
+        };
+        sendPushNotification({
+          userIds: [reporterId],
+          ...pushText[status],
+          url: appUrl(`/tickets/${id}`),
+          data: { ticketId: id, type: `TICKET_${status}` },
+        }).catch(err => console.error('[Push] Aviso al reportador:', err));
+      }
+
+      if (status === 'RESOLVED' && ticket.wantsEmailNotifications && ticket.reportedBy?.email && !reporterIsActor) {
         sendEmail({
-          to: reporterEmail,
+          to: ticket.reportedBy.email,
           templateType: 'TICKET_RESOLVED',
           variables: {
             id_ticket: ticket.id,
@@ -174,6 +191,7 @@ export async function PUT(req: Request, props: { params: Promise<{ id: string }>
             planta: ticket.location?.plant?.nombre || 'N/A',
             ubicacion: ticket.location?.nombre || 'N/A',
             fecha_resolucion: new Date().toLocaleDateString('es-AR'),
+            link: appUrl(`/tickets/${id}`),
           }
         }).catch(console.error);
       }
@@ -202,8 +220,9 @@ export async function PUT(req: Request, props: { params: Promise<{ id: string }>
         if (tech?.id && tech.id !== user.id) {
           await sendPushNotification({
             userIds: [tech.id],
-            title: 'Ticket Asignado',
-            message: `Se te asignó el ticket: ${ticket.reason.substring(0, 80)}`,
+            title: `Ticket asignado · ${t(ticket.priority)}`,
+            message: `Se te asignó el ticket ${ticket.id}: ${ticket.reason.substring(0, 80)}`,
+            url: appUrl(`/tickets/${id}`),
             data: { ticketId: id, type: 'TICKET_ASSIGNED' },
           });
 
@@ -211,7 +230,7 @@ export async function PUT(req: Request, props: { params: Promise<{ id: string }>
           await prisma.notification.create({
             data: {
               userId: assignedToId,
-              title: 'Ticket Asignado',
+              title: 'Ticket asignado',
               message: ticket.reason.substring(0, 200),
               type: 'TICKET_ASSIGNED',
               relatedId: id,
@@ -219,23 +238,27 @@ export async function PUT(req: Request, props: { params: Promise<{ id: string }>
           });
         }
 
-        // Send Email for Assignment
-        const techEmail = 'tecnico@empresa.com'; // overridden
-        sendEmail({
-          to: techEmail,
-          templateType: 'TICKET_ASSIGNED',
-          variables: {
-            id_ticket: ticket.id,
-            motivo: ticket.reason,
-            tecnico_completo: tech?.nombre || 'Técnico',
-            primer_nombre_tecnico: tech?.nombre?.split(' ')[0] || 'Técnico',
-            prioridad: ticket.priority,
-            planta: ticket.location?.plant?.nombre || 'N/A',
-            ubicacion: ticket.location?.nombre || 'N/A',
-            dias_vencimiento_sla: 'N/A', // Could calculate if needed
-            fecha_vencimiento_sla: ticket.slaResolutionDeadline ? new Date(ticket.slaResolutionDeadline).toLocaleDateString('es-AR') : 'N/A',
-          }
-        }).catch(console.error);
+        // Correo al técnico asignado (no cuando se lo asigna a sí mismo)
+        if (tech?.email && tech.id !== user.id) {
+          const deadline = ticket.slaResolutionDeadline ? new Date(ticket.slaResolutionDeadline) : null;
+          const days = deadline ? Math.ceil((deadline.getTime() - Date.now()) / 86400000) : null;
+          sendEmail({
+            to: tech.email,
+            templateType: 'TICKET_ASSIGNED',
+            variables: {
+              id_ticket: ticket.id,
+              motivo: ticket.reason,
+              tecnico_completo: tech.nombre || 'Técnico',
+              primer_nombre_tecnico: tech.nombre?.split(' ')[0] || 'Técnico',
+              prioridad: t(ticket.priority),
+              planta: ticket.location?.plant?.nombre || 'N/A',
+              ubicacion: ticket.location?.nombre || 'N/A',
+              dias_vencimiento_sla: days === null ? 'sin SLA' : days < 0 ? `vencido hace ${Math.abs(days)} día(s)` : days === 0 ? 'vence hoy' : `vence en ${days} día(s)`,
+              fecha_vencimiento_sla: deadline ? deadline.toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' }) : 'N/A',
+              link: appUrl(`/tickets/${id}`),
+            }
+          }).catch(console.error);
+        }
       }
     }
 
@@ -259,26 +282,24 @@ export async function PUT(req: Request, props: { params: Promise<{ id: string }>
     // Notify reporter and supervisor if closed without resolution
     if (status === 'CLOSED' && ticket.status !== 'RESOLVED') {
       const supervisors = await prisma.user.findMany({
-        where: { role: 'SUPERVISOR' },
-        select: { onesignalPlayerId: true, id: true },
+        where: { role: 'SUPERVISOR', active: true },
+        select: { id: true },
       });
 
       const notifyUsers = new Set<string>();
       if (ticket.reportedBy?.id) notifyUsers.add(ticket.reportedBy.id);
       supervisors.forEach(s => notifyUsers.add(s.id));
-
-      const onesignalIds: string[] = [];
-      if (ticket.reportedBy?.onesignalPlayerId) onesignalIds.push(ticket.reportedBy.onesignalPlayerId);
-      supervisors.forEach(s => { if (s.onesignalPlayerId) onesignalIds.push(s.onesignalPlayerId); });
+      notifyUsers.delete(user.id);
 
       const notificationTitle = 'Ticket cerrado sin resolver';
       const notificationMessage = `El ticket "${ticket.reason.substring(0, 80)}" fue cerrado por ${user.nombre} sin estar resuelto.`;
 
-      if (onesignalIds.length > 0) {
+      if (notifyUsers.size > 0) {
         await sendPushNotification({
-          playerIds: onesignalIds,
+          userIds: Array.from(notifyUsers),
           title: notificationTitle,
           message: notificationMessage,
+          url: appUrl(`/tickets/${id}`),
           data: { ticketId: id, type: 'TICKET_CLOSED_UNRESOLVED' },
         }).catch(err => console.error('Failed to send push notification:', err));
       }

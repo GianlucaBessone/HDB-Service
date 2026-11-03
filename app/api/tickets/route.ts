@@ -6,6 +6,8 @@ import { withIdempotency } from '@/lib/idempotency';
 import { createAuditLog } from '@/lib/audit';
 import { calculateSlaDeadlines } from '@/lib/sla';
 import { sendPushNotification } from '@/lib/onesignal';
+import { appUrl } from '@/lib/appUrl';
+import { t } from '@/lib/translations';
 import { sendEmail } from '@/lib/email';
 
 export const dynamic = 'force-dynamic';
@@ -233,16 +235,17 @@ export async function POST(req: Request) {
 
       if (notifyUserIds.length > 0) {
         await sendPushNotification({
-          userIds: notifyUserIds,
-          title: `Nuevo Ticket [${ticketPriority}]`,
-          message: `${reason.substring(0, 100)}${reason.length > 100 ? '...' : ''}`,
+          userIds: notifyUserIds.filter(id => id !== user.id),
+          title: `Nuevo ticket · ${t(ticketPriority)}`,
+          message: `${(ticket as any).location?.plant?.nombre ? `${(ticket as any).location.plant.nombre}: ` : ''}${reason.substring(0, 100)}${reason.length > 100 ? '…' : ''}`,
+          url: appUrl(`/tickets/${ticket.id}`),
           data: { ticketId: ticket.id, type: 'NEW_TICKET' },
         });
 
         await prisma.notification.createMany({
           data: notifyUserIds.map(uId => ({
             userId: uId,
-            title: `Nuevo Ticket [${ticketPriority}]`,
+            title: `Nuevo ticket · ${t(ticketPriority)}`,
             message: reason.substring(0, 200),
             type: 'NEW_TICKET',
             relatedId: ticket.id,
@@ -259,9 +262,10 @@ export async function POST(req: Request) {
           motivo: reason,
           reportador_completo: user.nombre,
           primer_nombre_reportador: user.nombre.split(' ')[0],
-          prioridad: ticketPriority,
+          prioridad: t(ticketPriority),
           planta: (ticket as any).location?.plant?.nombre || 'N/A',
           ubicacion: (ticket as any).location?.nombre || 'N/A',
+          link: appUrl(`/tickets/${ticket.id}`),
         }
       }).catch(console.error);
 

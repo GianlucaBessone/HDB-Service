@@ -1,7 +1,9 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requirePermission, getDataFilter } from '@/lib/auth';
-import { getDiffHours, getDiffDays, calculateDispenserHealth, ratingToValue } from '@/lib/analytics';
+import {
+  loadHealthData, computeHealth, ensureHealthSnapshots, ensureSnapshotTable, monthKey, previousMonthKey, endOfMonthKey, statusFromScore,
+} from '@/lib/healthScore';
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: Request) {
@@ -59,98 +61,14 @@ export async function GET(req: Request) {
 
     const TIMELINE_MONTHS = 6;
 
-    const [tickets, repairs, dispensers] = await Promise.all([
-      prisma.ticket.findMany({
-        where: { ...whereTickets, resolvedAt: { not: null } },
-        select: { dispenserId: true, createdAt: true, resolvedAt: true },
-      }),
-      prisma.dispenserRepairHistory.findMany({
-        where: whereRepairs,
-        orderBy: { startDate: 'asc' },
-      }),
-      prisma.dispenser.findMany({
-        where: whereDispensers,
-        include: {
-          location: { include: { plant: true, sector: true } },
-          maintenanceSchedules: {
-            include: { checklist: true },
-            orderBy: { scheduledMonth: 'desc' },
-            // 5 para el promedio de condición + margen para reconstruir los meses del historial
-            take: 5 + TIMELINE_MONTHS,
-          },
-        },
-      }),
-    ]);
-
-    const repairsByDispenser = new Map<string, typeof repairs>();
-    for (const r of repairs) {
-      const list = repairsByDispenser.get(r.dispenserId) || [];
-      list.push(r);
-      repairsByDispenser.set(r.dispenserId, list);
-    }
-    const ticketsByDispenser = new Map<string, typeof tickets>();
-    for (const t of tickets) {
-      if (!t.dispenserId) continue;
-      const list = ticketsByDispenser.get(t.dispenserId) || [];
-      list.push(t);
-      ticketsByDispenser.set(t.dispenserId, list);
-    }
-
-    const monthKey = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-
-    /**
-     * Calcula el score de salud de un activo con la información disponible a una fecha dada.
-     * Sólo considera reparaciones, tickets resueltos y checklists anteriores a `asOf`.
-     */
-    const computeHealth = (d: typeof dispensers[number], asOf: Date) => {
-      const asOfMonth = monthKey(asOf);
-      const lastMaintenances = d.maintenanceSchedules
-        .filter(s => s.scheduledMonth <= asOfMonth && s.checklist)
-        .slice(0, 5)
-        .map(s => s.checklist!);
-
-      const avgCondition = lastMaintenances.length > 0
-        ? lastMaintenances.reduce((acc, curr) => acc + ratingToValue(curr.condicionGeneral), 0) / lastMaintenances.length
-        : 100;
-
-      const dispenserRepairs = (repairsByDispenser.get(d.id) || []).filter(r => r.startDate <= asOf);
-      const recentRecurrences = dispenserRepairs.filter(r => getDiffDays(r.startDate, asOf) < 180).length;
-
-      let mtbfDays = 0;
-      let mtbfCount = 0;
-      for (let i = 1; i < dispenserRepairs.length; i++) {
-        const prev = dispenserRepairs[i - 1];
-        const prevEnd = prev.endDate && prev.endDate <= asOf ? prev.endDate : prev.startDate;
-        mtbfDays += getDiffDays(prevEnd, dispenserRepairs[i].startDate);
-        mtbfCount++;
-      }
-      const avgMtbf = mtbfCount > 0 ? mtbfDays / mtbfCount : 180; // 6 meses por defecto si no hay recurrencias
-
-      const resolved = (ticketsByDispenser.get(d.id) || []).filter(t => t.resolvedAt! <= asOf);
-      const avgMttr = resolved.length > 0
-        ? resolved.reduce((acc, t) => acc + getDiffHours(t.createdAt, t.resolvedAt!), 0) / resolved.length
-        : 0;
-
-      const ageMonths = getDiffDays(d.createdAt, asOf) / 30;
-      const progress = Math.min(1, Math.max(0, ageMonths / d.lifecycleMonths));
-
-      const score = calculateDispenserHealth({
-        mtbfMonths: avgMtbf / 30,
-        mttrHours: avgMttr,
-        recurrenceCount: recentRecurrences,
-        avgConditionRating: avgCondition,
-        lifespanProgress: progress,
-        equipmentType: d.equipmentType,
-        criticality: d.criticality,
-      });
-
-      return { score, avgMtbf, avgMttr, recentRecurrences, avgCondition, progress };
-    };
-
+    const data = await loadHealthData(
+      { dispenserWhere: whereDispensers, ticketWhere: whereTickets, repairWhere: whereRepairs },
+      TIMELINE_MONTHS,
+    );
     const now = new Date();
 
-    const dispenserHealth = dispensers.map(d => {
-      const h = computeHealth(d, now);
+    const dispenserHealth = data.dispensers.map(d => {
+      const h = computeHealth(data, d, now);
       return {
         id: d.id,
         equipmentType: d.equipmentType,
@@ -160,7 +78,7 @@ export async function GET(req: Request) {
         serial: d.numeroSerie || 'S/N',
         planta: d.location?.plant?.nombre ? `${d.location.plant.nombre}${d.location.sector ? ` - ${d.location.sector.nombre}` : ''}` : 'Sin Planta',
         score: h.score,
-        status: h.score > 80 ? 'ÓPTIMO' : h.score >= 50 ? 'ESTABLE' : 'CRÍTICO',
+        status: statusFromScore(h.score),
         details: {
           ownerPlantId: d.plantId,
           currentPlantId: d.location?.plantId,
@@ -174,28 +92,76 @@ export async function GET(req: Request) {
       };
     }).sort((a, b) => a.score - b.score);
 
-    // Evolución real: score promedio de la flota existente al cierre de cada mes
-    // (el mes en curso se calcula a la fecha de hoy). Sin activos dados de alta → sin dato.
-    const timeline = Array.from({ length: TIMELINE_MONTHS }).map((_, i) => {
-      const offset = TIMELINE_MONTHS - 1 - i;
-      const asOf = offset === 0
-        ? now
-        : new Date(now.getFullYear(), now.getMonth() - offset + 1, 0, 23, 59, 59, 999);
-      const fleet = dispensers.filter(d => d.createdAt <= asOf);
-      const score = fleet.length > 0
-        ? Math.round(fleet.reduce((acc, d) => acc + computeHealth(d, asOf).score, 0) / fleet.length)
-        : null;
-      const label = asOf.toLocaleString('es-AR', { month: 'short' }).replace('.', '');
+    // ── Evolución mensual ──────────────────────────────────────────────
+    // Meses cerrados: fotos congeladas (AssetHealthSnapshot). Mes en curso: cálculo en vivo.
+    const currentMonth = monthKey(now);
+    const closedMonths = Array.from({ length: TIMELINE_MONTHS - 1 }, (_, i) =>
+      previousMonthKey(currentMonth, TIMELINE_MONTHS - 1 - i)
+    );
+
+    // Ámbito de las fotos según lo registrado al momento de cada foto
+    const snapshotScope: any[] = [];
+    if (user.role === 'CLIENT_RESPONSIBLE') {
+      snapshotScope.push({ clientId: user.clientId || '__none__' });
+    } else if (user.role === 'CLIENT_REQUESTER') {
+      snapshotScope.push({ OR: [{ ownerPlantId: { in: user.plantIds } }, { locationPlantId: { in: user.plantIds } }] });
+    }
+    if (plantId) snapshotScope.push({ OR: [{ ownerPlantId: plantId }, { locationPlantId: plantId }] });
+    else if (clientId) snapshotScope.push({ clientId });
+
+    let snapshotsAvailable = true;
+    let snapshotRows: { month: string; score: number; source: string }[] = [];
+    try {
+      // Crea la tabla si falta y garantiza la foto del último mes cerrado aunque el cron no haya corrido
+      await ensureSnapshotTable();
+      const lastClosed = closedMonths[closedMonths.length - 1];
+      const hasLastClosed = await prisma.assetHealthSnapshot.findFirst({ where: { month: lastClosed }, select: { id: true } });
+      if (!hasLastClosed) await ensureHealthSnapshots(now);
+
+      snapshotRows = await prisma.assetHealthSnapshot.findMany({
+        where: { month: { in: closedMonths }, AND: snapshotScope },
+        select: { month: true, score: true, source: true },
+      });
+    } catch (err) {
+      // No se pudo crear/leer la tabla (p. ej. permisos de la base): la vista sigue funcionando sin historial.
+      console.error('[API] salud: fotos mensuales no disponibles', err);
+      snapshotsAvailable = false;
+    }
+
+    const monthLabel = (month: string) => {
+      const label = endOfMonthKey(month).toLocaleString('es-AR', { month: 'short' }).replace('.', '');
+      return label.charAt(0).toUpperCase() + label.slice(1);
+    };
+
+    const timeline = closedMonths.map(month => {
+      const rows = snapshotRows.filter(r => r.month === month);
+      if (rows.length === 0) {
+        return { month: monthLabel(month), key: month, score: null as number | null, assets: 0, source: 'SIN_DATOS' };
+      }
+      const reconstructed = rows.some(r => r.source === 'RECONSTRUIDO');
       return {
-        month: label.charAt(0).toUpperCase() + label.slice(1),
-        score,
-        assets: fleet.length,
+        month: monthLabel(month),
+        key: month,
+        score: Math.round(rows.reduce((acc, r) => acc + r.score, 0) / rows.length),
+        assets: rows.length,
+        source: reconstructed ? 'RECONSTRUIDO' : 'CIERRE',
       };
+    });
+
+    timeline.push({
+      month: monthLabel(currentMonth),
+      key: currentMonth,
+      score: dispenserHealth.length > 0
+        ? Math.round(dispenserHealth.reduce((acc, h) => acc + h.score, 0) / dispenserHealth.length)
+        : null,
+      assets: dispenserHealth.length,
+      source: 'EN_CURSO',
     });
 
     const jsonBody = {
       ranking: dispenserHealth,
       timeline,
+      snapshotsAvailable,
       distribution: {
         optimo: dispenserHealth.filter(h => h.status === 'ÓPTIMO').length,
         estable: dispenserHealth.filter(h => h.status === 'ESTABLE').length,
@@ -205,7 +171,7 @@ export async function GET(req: Request) {
     return new NextResponse(JSON.stringify(jsonBody), {
       headers: {
         'Content-Type': 'application/json',
-        'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=60',
+        'Cache-Control': 'private, no-store',
       },
     });
 

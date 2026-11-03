@@ -863,3 +863,45 @@ model Quotation {
   @@index([ticketId])
   @@index([status])
 }
+
+// ═══════════════════════════════════════════════════════
+// SALUD DEL PARQUE — Foto mensual congelada por activo
+// ═══════════════════════════════════════════════════════
+// Se escribe una sola vez por activo y mes (al cierre) y nunca se actualiza,
+// para poder evaluar la evolución aunque cambien los datos o la fórmula.
+enum HealthSnapshotSource {
+  CIERRE // Tomada por el cron al cerrar el mes
+  RECONSTRUIDO // Carga inicial: reconstruida con los datos disponibles al cierre de ese mes
+}
+
+model AssetHealthSnapshot {
+  id          String    @id @default(uuid())
+  month       String // YYYY-MM
+  // Sin relación (FK) a propósito: la foto debe sobrevivir aunque el activo se elimine.
+  dispenserId String
+
+  // Ámbito al momento de la foto (no cambia si el activo se mueve después)
+  clientId        String?
+  ownerPlantId    String?
+  locationPlantId String?
+  equipmentType   EquipmentType
+  criticality     AssetCriticality
+
+  score       Int
+  status      String // ÓPTIMO | ESTABLE | CRÍTICO
+  mtbfDays    Float
+  mttrHours   Float
+  recurrences Int
+  condition   Float
+  lifespanPct Float
+
+  formulaVersion Int                  @default(1)
+  source         HealthSnapshotSource @default(CIERRE)
+  createdAt      DateTime             @default(now())
+
+  @@unique([month, dispenserId])
+  @@index([month])
+  @@index([clientId, month])
+  @@index([ownerPlantId, month])
+  @@index([locationPlantId, month])
+}

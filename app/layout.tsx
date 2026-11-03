@@ -87,7 +87,7 @@ export default async function RootLayout({
                         </div>
                       </main>
                     </div>
-                    {session!.user.role !== 'CLIENT_REQUESTER' && <OneSignalInit user={session!.user} />}
+                    <OneSignalInit user={session!.user} />
                     {mustChangePassword && <ForcePasswordChangeModal />}
                     <MobileTabBar userRole={session!.user.role} />
                   </div>
