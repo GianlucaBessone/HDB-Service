@@ -221,7 +221,11 @@ function SaludContent() {
 
             <Panel
               title="Evolución del score global"
-              description="Promedio de la flota al cierre de cada mes (últimos 6 meses)."
+              description={
+                data.snapshotsAvailable === false
+                  ? 'Historial no disponible: falta crear la tabla de fotos mensuales en la base.'
+                  : 'Promedio de la flota al cierre de cada mes. Los meses cerrados quedan fijos; el mes en curso es provisorio.'
+              }
               className="lg:col-span-2"
               bodyClassName="h-[200px]"
             >
@@ -234,8 +238,14 @@ function SaludContent() {
                     formatter: (params: any) => {
                       const p = Array.isArray(params) ? params[0] : params;
                       const point = data.timeline[p.dataIndex] || {};
-                      if (point.score === null || point.score === undefined) return `${p.name}<br/>Sin activos registrados`;
-                      return `${p.name}<br/>Score: <b>${point.score}</b><br/>Activos evaluados: ${point.assets ?? '—'}`;
+                      const origin: Record<string, string> = {
+                        CIERRE: 'Foto de cierre (fija)',
+                        RECONSTRUIDO: 'Carga inicial reconstruida (fija)',
+                        EN_CURSO: 'Mes en curso (provisorio)',
+                        SIN_DATOS: 'Sin foto registrada',
+                      };
+                      if (point.score === null || point.score === undefined) return `${p.name}<br/>${origin[point.source] || 'Sin datos'}`;
+                      return `${p.name}<br/>Score: <b>${point.score}</b><br/>Activos: ${point.assets ?? '—'}<br/><span style="opacity:.75">${origin[point.source] || ''}</span>`;
                     },
                   },
                   grid: { top: 8, right: 8, left: 4, bottom: 4, containLabel: true },
@@ -244,7 +254,11 @@ function SaludContent() {
                   series: [
                     {
                       name: 'Score',
-                      data: data.timeline.map((d: any) => d.score),
+                      data: data.timeline.map((d: any) => ({
+                        value: d.score,
+                        symbol: d.source === 'EN_CURSO' ? 'emptyCircle' : 'circle',
+                        symbolSize: d.source === 'EN_CURSO' ? 7 : 5,
+                      })),
                       type: 'line',
                       symbol: 'circle',
                       symbolSize: 5,
