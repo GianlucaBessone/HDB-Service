@@ -41,7 +41,8 @@ export const metadata: Metadata = {
     title: 'HDB Service',
   },
   icons: {
-    apple: '/icon-192x192.png',
+    icon: [{ url: '/logo.svg?v=2', type: 'image/svg+xml' }],
+    apple: '/icons/v2/apple-touch-icon.png',
   },
 };
 

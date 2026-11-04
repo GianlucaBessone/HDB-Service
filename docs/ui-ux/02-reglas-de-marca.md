@@ -22,6 +22,7 @@ HDB Service es una herramienta de trabajo para empresas de mantenimiento industr
 ## 2. Logotipo
 
 - **Isotipo:** cuadrado petróleo con monograma "H" en blanco (`components/ui/BrandMark.tsx`, `public/logo.svg`).
+- **Íconos de la PWA y favicon:** salen del isotipo con `node scripts/pwa/generate-icons.js` (`public/icons/vN/`, `app/favicon.ico`). Si el isotipo cambia, regenerálos en una carpeta con versión nueva (`ICONS_DIR`) y actualizá las rutas en `public/manifest.json` y `app/layout.tsx`: con la misma URL, las PWA ya instaladas no detectan el cambio.
 - **Logotipo:** isotipo + "HDB Service" en IBM Plex Sans SemiBold, *tracking* −0.01em.
 - Área de resguardo: ½ del lado del isotipo en todos los lados.
 - Tamaños mínimos: 20 px (isotipo), 96 px de ancho (logotipo completo).
