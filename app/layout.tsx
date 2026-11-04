@@ -1,7 +1,7 @@
 import { Metadata } from 'next';
 import { PrefetchProvider } from "@/providers/PrefetchProvider";
 import { ReactQueryProvider } from "@/providers/ReactQueryProvider";
-import { IBM_Plex_Sans, IBM_Plex_Mono } from 'next/font/google';
+import localFont from 'next/font/local';
 import './globals.css';
 import { getSession } from '@/lib/auth';
 import { ThemeProvider } from '@/components/ThemeProvider';
@@ -14,18 +14,24 @@ import { headers } from 'next/headers';
 import { Analytics } from '@vercel/analytics/next';
 import AuthGuard from '@/components/AuthGuard';
 
-const fontSans = IBM_Plex_Sans({
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
+// IBM Plex alojada en el proyecto (subconjunto latino, licencia OFL en app/fonts/OFL.txt).
+// Con next/font/google el build depende de descargar las fuentes de Google en ese
+// momento, y en Vercel fallaba ("Can't resolve '@vercel/turbopack-next/internal/font/google/font'").
+const fontSans = localFont({
+  src: [{ path: './fonts/IBMPlexSans-latin-variable.woff2', weight: '400 700', style: 'normal' }],
   variable: '--font-sans',
   display: 'swap',
+  fallback: ['system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif'],
 });
 
-const fontMono = IBM_Plex_Mono({
-  subsets: ['latin'],
-  weight: ['400', '500'],
+const fontMono = localFont({
+  src: [
+    { path: './fonts/IBMPlexMono-latin-400.woff2', weight: '400', style: 'normal' },
+    { path: './fonts/IBMPlexMono-latin-500.woff2', weight: '500', style: 'normal' },
+  ],
   variable: '--font-mono',
   display: 'swap',
+  fallback: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Consolas', 'monospace'],
 });
 
 export const metadata: Metadata = {
