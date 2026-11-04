@@ -1,24 +1,39 @@
 {
+  "id": "/",
   "name": "HDB Service",
   "short_name": "HDB Service",
   "description": "Gestión de mantenimiento técnico, climatización, refrigeración y equipamiento industrial",
+  "lang": "es",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#F5F7F9",
   "theme_color": "#0F6A7B",
   "icons": [
     {
-      "src": "/icon-192x192.png",
+      "src": "/icons/v2/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
-      "src": "/icon-512x512.png",
+      "src": "/icons/v2/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/v2/maskable-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/v2/maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ]
 }
